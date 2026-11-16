@@ -424,6 +424,8 @@ async function main() {
     await foto(page, '10-lancado-siga')
 
     // a tela de histórico tem de mostrar o envio que acabou de ir ao SIGA
+    // (o lançamento acima saiu da tela de revisão; o link fica na da avaliação)
+    await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}`, { waitUntil: 'networkidle' })
     await page.getByRole('link', { name: 'Histórico de lançamentos' }).click()
     await page.waitForURL(/\/historico$/)
     await page.getByText(/Aceito pelo SIGA · HTTP 200/).first().waitFor({ timeout: 30000 })
