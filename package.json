@@ -16,7 +16,8 @@
     "diagnostico": "node scripts/diagnostico.mjs",
     "turma:planilha": "node scripts/importar-siga.mjs",
     "test:parser": "node scripts/testar-parser.mjs",
-    "test:ocr": "node scripts/testar-ocr.mjs"
+    "test:ocr": "node scripts/testar-ocr.mjs",
+    "test:llm": "node scripts/testar-llm.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

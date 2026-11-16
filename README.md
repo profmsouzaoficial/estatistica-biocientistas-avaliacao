@@ -210,6 +210,20 @@ com 504 — a tela agora explica isso e sugere as saídas:
 | Turma inteira com modelo em CPU | `pnpm corrigir:lote` no servidor do modelo (sem limite de tempo) |
 | IA indisponível | correção manual na revisão |
 
+### Pré-voo do corretor (Llama do Coolify)
+
+Antes de um aluno enviar redação de verdade, `pnpm test:llm` conversa com o endpoint do Coolify sem
+tocar no banco: confere `/models`, a chave, o modelo disponível, o tempo de uma correção e se o JSON
+volta completo (critérios com valor, pontos fortes e pontos a desenvolver).
+
+```bash
+LLM_BASE_URL=https://seu-servico.exemplo.com/v1 LLM_MODEL=qwen2.5-7b-instruct \
+  LLM_API_KEY=... pnpm test:llm
+```
+
+Ele avisa quando a correção passa de 55 s (limite da Vercel no plano atual) e manda usar
+`pnpm corrigir:lote`.
+
 ### OCR da foto
 
 A leitura da letra é uma etapa à parte (o Llama é de texto). O caminho recomendado é o **Google
