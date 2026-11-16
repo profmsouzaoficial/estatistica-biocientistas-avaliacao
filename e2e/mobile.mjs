@@ -96,11 +96,37 @@ async function medir(page, nome) {
     const barra = document.querySelector('nav')
     const topoBarra = barra ? barra.getBoundingClientRect().top : null
 
+    // Zoom: o app tem de deixar a pessoa ampliar. `maximum-scale=1` e
+    // `user-scalable=no` travam o pinch — quem tem baixa visão perde a única
+    // ferramenta que tem. (WCAG 1.4.4)
+    const viewport = document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? ''
+    const travaZoom = /maximum-scale\s*=\s*(1(\.0*)?|0?\.[0-9]+)/i.test(viewport) ||
+      /user-scalable\s*=\s*(no|0)/i.test(viewport)
+
+    // Campo com fonte menor que 16px faz o iOS ampliar sozinho ao focar — por
+    // isso a trava de zoom foi removida junto com esta garantia.
+    const camposPequenos = [...document.querySelectorAll('input, textarea, select')]
+      .filter((el) => {
+        const r = el.getBoundingClientRect()
+        const estilo = getComputedStyle(el)
+        if (r.width === 0 || r.height === 0 || estilo.visibility === 'hidden' || estilo.display === 'none') return false
+        // caixas de marcar e rádio não recebem texto digitado
+        return !['checkbox', 'radio', 'file', 'range', 'color', 'hidden'].includes(el.type)
+      })
+      .map((el) => ({
+        rotulo: (el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.id || el.tagName).slice(0, 40),
+        fonte: parseFloat(getComputedStyle(el).fontSize),
+      }))
+      .filter((c) => c.fonte < 16)
+
     return {
       scrollWidth: doc.scrollWidth,
       innerWidth: larguraJanela,
       topoBarra,
       alturaJanela: window.innerHeight,
+      travaZoom,
+      viewport,
+      camposPequenos,
       alvos,
     }
   })
@@ -108,6 +134,17 @@ async function medir(page, nome) {
   const problemas = []
   if (dados.scrollWidth > dados.innerWidth + 1) {
     problemas.push(`rola para o lado: conteúdo ${dados.scrollWidth}px em janela de ${dados.innerWidth}px`)
+  }
+
+  if (dados.travaZoom) {
+    problemas.push(`o zoom está travado no viewport: “${dados.viewport}”`)
+  }
+  if (dados.camposPequenos.length > 0) {
+    const lista = dados.camposPequenos
+      .slice(0, 3)
+      .map((c) => `“${c.rotulo}” (${c.fonte}px)`)
+      .join(', ')
+    problemas.push(`${dados.camposPequenos.length} campo(s) com fonte abaixo de 16px: ${lista}`)
   }
 
   const pequenos = dados.alvos.filter((a) => a.altura < 40 && a.tag === 'button')

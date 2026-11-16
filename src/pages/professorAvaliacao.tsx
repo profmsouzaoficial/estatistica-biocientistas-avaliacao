@@ -1231,7 +1231,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                               const v = Math.max(0, Math.min(max, Number(e.target.value)))
                               setCriterios((atual) => atual.map((x, k) => (k === i ? { ...x, valor: v } : x)))
                             }}
-                            className="w-16 rounded-lg border border-borda px-2 py-1 text-center text-[14px] tabular-nums"
+                            className="w-16 rounded-lg border border-borda px-2 py-1 text-center text-base tabular-nums sm:text-[14px]"
                           />
                           <span className="text-[12.5px] text-tinta-suave">/ {formatarPontos(max)}</span>
                         </div>
@@ -1255,7 +1255,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                 </label>
                 <textarea
                   id="fortes"
-                  className="campo mt-1.5 min-h-24 text-[13.5px]"
+                  className="campo mt-1.5 min-h-24 text-base sm:text-[13.5px]"
                   value={fortes}
                   onChange={(e) => setFortes(e.target.value)}
                   placeholder="Um por linha. Ex.: Explicou bem a diferença entre sensibilidade e especificidade."
@@ -1268,7 +1268,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                 </label>
                 <textarea
                   id="desenvolver"
-                  className="campo mt-1.5 min-h-24 text-[13.5px]"
+                  className="campo mt-1.5 min-h-24 text-base sm:text-[13.5px]"
                   value={desenvolver}
                   onChange={(e) => setDesenvolver(e.target.value)}
                   placeholder="Um por linha. Ex.: Aprofundar como a prevalência muda o valor preditivo."

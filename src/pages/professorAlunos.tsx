@@ -358,7 +358,7 @@ export function ProfessorAlunos() {
                   </p>
 
                   <textarea
-                    className="campo mt-2 min-h-32 font-mono text-[13px]"
+                    className="campo mt-2 min-h-32 font-mono text-base sm:text-[13px]"
                     placeholder={
                       exigirEmail
                         ? '2026301001;Ana Beatriz Lima;ana.lima@estudante.ufjf.br\n2026301002;Carlos Eduardo Nunes;carlos.nunes@estudante.ufjf.br'

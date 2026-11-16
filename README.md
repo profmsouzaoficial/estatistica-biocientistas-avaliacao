@@ -313,7 +313,7 @@ dois.
 
 ### Contraste e toque
 
-`pnpm test:contraste` abre 9 telas na demonstração, lê a cor calculada de cada elemento com texto, acha o
+`pnpm test:contraste` abre 10 telas na demonstração, lê a cor calculada de cada elemento com texto, acha o
 fundo efetivo subindo a árvore e aplica a fórmula de luminância da WCAG. Reprova texto pequeno abaixo de
 4.5:1 e grande abaixo de 3:1. Foi ele que encontrou os dois problemas de hoje: as legendas em
 `tinta-fraca` (#8b968f) davam **2.59:1** em todos os fundos, e os botões desativados saíam a **1.09:1**
@@ -324,6 +324,18 @@ fundo efetivo subindo a árvore e aplica a fórmula de luminância da WCAG. Repr
 `pnpm e2e:mobile` mede os alvos de toque das 16 telas principais em 360×740 e reprova qualquer controle
 abaixo de 40px. Foi ele que achou as abas “Transcrição/Foto original” (32px) e o “Voltar para a lista”
 (20px) na tela de revisão.
+
+O mesmo teste passou a cobrar duas garantias que se apoiam uma na outra:
+
+| Garantia | Por quê |
+|---|---|
+| nenhum `maximum-scale`/`user-scalable=no` no viewport | quem tem baixa visão precisa ampliar com dois dedos (WCAG 1.4.4) |
+| todo `input`/`textarea`/`select` visível com fonte ≥ 16px | é o que impede o iOS de ampliar sozinho ao focar o campo — o motivo pelo qual a trava de zoom existia |
+
+A trava saiu do `index.html` e quatro campos que ainda estavam em 13–14px na tela do professor
+(importar lista, descrição do critério, nota por critério, pontos fortes/desenvolver) passaram a
+`text-base` no celular e a fonte original a partir de `sm:`. No primeiro uso do novo teste, ele reprovou
+**4 das 16 telas** — todos eram campos de verdade, não falso positivo.
 
 ### Ligar a IA em um comando
 

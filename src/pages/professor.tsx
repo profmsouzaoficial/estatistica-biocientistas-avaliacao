@@ -536,7 +536,7 @@ export function ProfessorNovaAvaliacao() {
                     />
                   </div>
                   <textarea
-                    className="campo mt-2 min-h-16 text-[14px]"
+                    className="campo mt-2 min-h-16 text-base sm:text-[14px]"
                     value={c.descricao}
                     placeholder="O que se espera neste critério (usado pelo corretor)"
                     onChange={(e) =>

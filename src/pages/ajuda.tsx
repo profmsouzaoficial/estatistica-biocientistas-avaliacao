@@ -32,6 +32,9 @@ export function Ajuda() {
             A senha precisa ter ao menos 8 caracteres. Esqueceu? Use <strong>Esqueci minha senha</strong> na
             tela de entrada: o link chega no e-mail e abre a tela de definir a nova senha.
           </p>
+          <p className="text-[13px] leading-snug text-tinta-suave">
+            Se o texto estiver pequeno, amplie com dois dedos: o app não bloqueia o zoom do celular.
+          </p>
         </Cartao>
 
         <Cartao className="space-y-3">
