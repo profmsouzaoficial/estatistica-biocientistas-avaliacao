@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, FileUp, Plus, UserPlus } from 'lucide-react'
+import { CheckCircle2, FileUp, Plus, Trash2, UserPlus } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
 import { plural } from '../lib/formato'
 import type { Esperado, Turma } from '../lib/types'
+import type { ResumoTurma } from '../lib/dados'
 import type { LinhaImportacao } from '../lib/dados'
 
 /**
@@ -81,6 +82,9 @@ export function ProfessorAlunos() {
   const arquivoRef = useRef<HTMLInputElement>(null)
 
   const [mostrarNovaTurma, setMostrarNovaTurma] = useState(false)
+  const [removendo, setRemovendo] = useState(false)
+  const [resumo, setResumo] = useState<ResumoTurma | null>(null)
+  const [codigoRemocao, setCodigoRemocao] = useState('')
   const [novaTurma, setNovaTurma] = useState({ nome: '', codigo_siga: '', periodo: '2026/3', curso: 'Ciências Biológicas' })
 
   useEffect(() => {
@@ -163,6 +167,56 @@ export function ProfessorAlunos() {
     }
   }
 
+  async function abrirRemocao() {
+    if (!d || !turmaId) return
+    setOcupado(true)
+    setMsg(null)
+    try {
+      setResumo(await d.resumoTurma(turmaId))
+      setCodigoRemocao('')
+      setRemovendo(true)
+    } catch (e) {
+      setMsg({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Não foi possível ler o resumo da turma.' })
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  async function confirmarRemocao() {
+    if (!d || !turmaId || !turma) return
+    setOcupado(true)
+    setMsg(null)
+    try {
+      const r = await d.apagarTurma(turmaId)
+      if (!r.ok) {
+        setMsg({
+          tom: 'vermelho',
+          texto:
+            r.motivo === 'tem_lancamentos'
+              ? `Esta turma já tem ${plural(r.lancadas ?? 0, 'nota lançada', 'notas lançadas')} no SIGA. Apagar tiraria o histórico do lançamento, então o app não deixa.`
+              : r.motivo === 'sem_permissao'
+                ? 'Só o professor pode remover uma turma. Entre com a conta do professor.'
+                : 'Esta turma não existe mais. Atualize a página.',
+        })
+        return
+      }
+      const lista = await d.turmasTodas()
+      setTurmas(lista)
+      setTurmaId(lista[0]?.id ?? '')
+      setAlunos(null)
+      setRemovendo(false)
+      setResumo(null)
+      setMsg({
+        tom: 'verde',
+        texto: `Turma ${turma.codigo_siga} removida, com ${plural(r.alunos, 'aluno', 'alunos')} e ${plural(r.avaliacoes, 'avaliação', 'avaliações')}.`,
+      })
+    } catch (e) {
+      setMsg({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Falha ao remover a turma.' })
+    } finally {
+      setOcupado(false)
+    }
+  }
+
   async function criarTurma(e: React.FormEvent) {
     e.preventDefault()
     if (!d) return
@@ -236,8 +290,64 @@ export function ProfessorAlunos() {
                     </span>
                   </label>
                 ) : null}
+
+                {turmaId ? (
+                  <button
+                    type="button"
+                    onClick={abrirRemocao}
+                    disabled={ocupado}
+                    className="mt-1 self-start text-[12.5px] text-tinta-fraca underline decoration-dotted underline-offset-2 hover:text-vermelho disabled:opacity-50"
+                  >
+                    Remover esta turma…
+                  </button>
+                ) : null}
               </Cartao>
             )}
+
+            {removendo && turma ? (
+              <Cartao className="space-y-3 border-vermelho/30">
+                <div className="flex items-center gap-2">
+                  <Trash2 className="size-4 text-vermelho" aria-hidden />
+                  <h2 className="font-serif text-[16px] text-tinta">Remover {turma.nome}</h2>
+                </div>
+                <Alerta tom="vermelho" titulo="Isto não pode ser desfeito">
+                  Somem a lista com {plural(resumo?.alunos ?? alunos?.length ?? 0, 'aluno', 'alunos')},{' '}
+                  {plural(resumo?.avaliacoes ?? 0, 'avaliação', 'avaliações')} e{' '}
+                  {plural(resumo?.enviadas ?? 0, 'redação enviada', 'redações enviadas')}. As contas dos alunos
+                  continuam existindo, mas ficam sem turma. Se alguma nota já foi lançada no SIGA, a remoção é
+                  bloqueada.
+                </Alerta>
+                <Campo
+                  rotulo={`Digite ${turma.codigo_siga} para confirmar`}
+                  value={codigoRemocao}
+                  onChange={(e) => setCodigoRemocao(e.target.value.toUpperCase())}
+                  placeholder={turma.codigo_siga}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Botao
+                    variante="perigo"
+                    onClick={confirmarRemocao}
+                    carregando={ocupado}
+                    disabled={codigoRemocao.trim().toUpperCase() !== turma.codigo_siga.toUpperCase()}
+                    icone={<Trash2 className="size-4" />}
+                  >
+                    Remover turma definitivamente
+                  </Botao>
+                  <Botao
+                    variante="secundario"
+                    onClick={() => {
+                      setRemovendo(false)
+                      setResumo(null)
+                      setCodigoRemocao('')
+                    }}
+                  >
+                    Cancelar
+                  </Botao>
+                </div>
+              </Cartao>
+            ) : null}
 
             <Botao
               variante="secundario"

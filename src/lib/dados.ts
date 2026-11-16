@@ -72,6 +72,18 @@ export interface LinhaImportacao {
  *  - `dadosDemo`      → demonstração local, sem rede e sem credenciais
  * A interface (React) nunca sabe qual está ativa.
  */
+export interface ResumoTurma {
+  alunos: number
+  avaliacoes: number
+  enviadas: number
+  /** Notas já lançadas no SIGA — a turma não pode ser apagada enquanto houver. */
+  lancadas: number
+}
+
+export type RespostaApagarTurma =
+  | { ok: true; alunos: number; avaliacoes: number }
+  | { ok: false; motivo: 'sem_permissao' | 'nao_encontrada' | 'tem_lancamentos'; lancadas?: number }
+
 export interface Dados {
   modo: 'supabase' | 'demo'
 
@@ -100,6 +112,10 @@ export interface Dados {
   // professor
   turmasTodas(): Promise<Turma[]>
   criarTurma(dados: { nome: string; codigo_siga: string; periodo: string; curso: string }): Promise<Turma>
+  /** Quantos alunos, avaliações e notas no SIGA dependem desta turma. */
+  resumoTurma(turmaId: string): Promise<ResumoTurma>
+  /** Apaga a turma e tudo que pertence a ela; recusa se já há nota lançada no SIGA. */
+  apagarTurma(turmaId: string): Promise<RespostaApagarTurma>
   resumoAvaliacoes(): Promise<ResumoAvaliacao[]>
   criarAvaliacao(dados: NovaAvaliacao): Promise<Avaliacao>
   mudarStatusAvaliacao(id: string, status: StatusAvaliacao): Promise<void>

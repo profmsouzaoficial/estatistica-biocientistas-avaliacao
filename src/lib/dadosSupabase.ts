@@ -1,5 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Dados, Cadastro, MotivoValidacao, NovaAvaliacao, Revisao, LinhaImportacao } from './dados'
+import type {
+  Dados,
+  Cadastro,
+  MotivoValidacao,
+  NovaAvaliacao,
+  Revisao,
+  LinhaImportacao,
+  RespostaApagarTurma,
+} from './dados'
 import { api, configurarToken } from './servidor'
 import { notaParaSiga } from './types'
 import type {
@@ -255,6 +263,25 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       const { data, error } = await sb.from('turmas').insert(t).select('*').single()
       if (error) throw new Error(error.message)
       return data as Turma
+    },
+
+    async resumoTurma(turmaId) {
+      const { data, error } = await sb.rpc('resumo_turma', { p_turma: turmaId })
+      if (error) throw new Error(error.message)
+      const r = data as { ok?: boolean; alunos?: number; avaliacoes?: number; enviadas?: number; lancadas?: number }
+      if (!r?.ok) throw new Error('Não foi possível ler o resumo desta turma.')
+      return {
+        alunos: Number(r.alunos ?? 0),
+        avaliacoes: Number(r.avaliacoes ?? 0),
+        enviadas: Number(r.enviadas ?? 0),
+        lancadas: Number(r.lancadas ?? 0),
+      }
+    },
+
+    async apagarTurma(turmaId) {
+      const { data, error } = await sb.rpc('apagar_turma', { p_turma: turmaId })
+      if (error) throw new Error(error.message)
+      return data as RespostaApagarTurma
     },
 
     async resumoAvaliacoes() {

@@ -682,6 +682,33 @@ export function criarDadosDemo(): Dados {
       return { inseridos, atualizados: linhas.length - inseridos }
     },
 
+    async resumoTurma(turmaId) {
+      const avaliacoes = base.avaliacoes.filter((a) => a.turma_id === turmaId)
+      const ids = new Set(avaliacoes.map((a) => a.id))
+      return {
+        alunos: base.esperados.filter((e) => e.turma_id === turmaId).length,
+        avaliacoes: avaliacoes.length,
+        enviadas: base.submissoes.filter((s) => ids.has(s.avaliacao_id) && s.status !== 'rascunho').length,
+        lancadas: 0,
+      }
+    },
+
+    async apagarTurma(turmaId) {
+      const turma = base.turmas.find((t) => t.id === turmaId)
+      if (!turma) return { ok: false as const, motivo: 'nao_encontrada' as const }
+      const avaliacoes = base.avaliacoes.filter((a) => a.turma_id === turmaId)
+      const idsAvaliacoes = new Set(avaliacoes.map((a) => a.id))
+      const submissoes = base.submissoes.filter((s) => idsAvaliacoes.has(s.avaliacao_id))
+      const idsSubmissoes = new Set(submissoes.map((s) => s.id))
+      base.turmas = base.turmas.filter((t) => t.id !== turmaId)
+      base.esperados = base.esperados.filter((e) => e.turma_id !== turmaId)
+      base.avaliacoes = base.avaliacoes.filter((a) => a.turma_id !== turmaId)
+      base.submissoes = base.submissoes.filter((s) => !idsSubmissoes.has(s.id))
+      base.correcoes = base.correcoes.filter((c) => !idsSubmissoes.has(c.submissao_id))
+      gravar()
+      return { ok: true as const, alunos: base.esperados.length, avaliacoes: avaliacoes.length }
+    },
+
     async definirExigenciaDeEmail(turmaId, exige) {
       const t = base.turmas.find((x) => x.id === turmaId)
       if (!t) throw new Error('Turma não encontrada.')
