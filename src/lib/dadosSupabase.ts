@@ -395,6 +395,8 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
         .update({
           criterios: revisao.criterios,
           comentario_professor: revisao.comentario_professor,
+          ...(revisao.pontos_fortes ? { pontos_fortes: revisao.pontos_fortes } : {}),
+          ...(revisao.pontos_desenvolver ? { pontos_desenvolver: revisao.pontos_desenvolver } : {}),
           nota_bruta: notaBruta,
           nota_final: notaParaSiga(notaBruta, valorTotal),
           decisao: revisao.decisao,

@@ -244,6 +244,15 @@ function Contador({ rotulo, valor }: { rotulo: string; valor: number }) {
 
 // ---------------------------------------------------------------------------
 
+/** "um por linha" -> lista; aceita marcadores (-, •, *) digitados por hábito. */
+function emLinhas(texto: string): string[] {
+  return texto
+    .split('\n')
+    .map((l) => l.replace(/^\s*[-•*]\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 6)
+}
+
 export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: string; submissaoId: string }) {
   const { d } = usarSessao()
   const { voltar } = usarRota()
@@ -253,6 +262,8 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
   const [criterios, setCriterios] = useState<CriterioNota[]>([])
   const [comentario, setComentario] = useState('')
+  const [fortes, setFortes] = useState('')
+  const [desenvolver, setDesenvolver] = useState('')
   const [aba, setAba] = useState<'texto' | 'foto'>('texto')
   const [erro, setErro] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState<string | null>(null)
@@ -267,6 +278,8 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
     if (achado?.correcao) {
       setCriterios(achado.correcao.criterios.map((c) => ({ ...c })))
       setComentario(achado.correcao.comentario_professor ?? '')
+      setFortes(achado.correcao.pontos_fortes.join('\n'))
+      setDesenvolver(achado.correcao.pontos_desenvolver.join('\n'))
     }
     if (achado?.submissao.foto_path) {
       d.urlDaFoto(achado.submissao.foto_path).then(setFotoUrl).catch(() => setFotoUrl(null))
@@ -280,10 +293,14 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
   const original = item?.correcao?.criterios ?? []
   const notaBruta = criterios.reduce((t, c) => t + Number(c.valor || 0), 0)
   const notaFinal = avaliacao ? notaParaSiga(notaBruta, avaliacao.valor_total) : 0
+  const fortesOriginal = (item?.correcao?.pontos_fortes ?? []).join('\n')
+  const desenvolverOriginal = (item?.correcao?.pontos_desenvolver ?? []).join('\n')
   const alterado =
     original.length !== criterios.length ||
     criterios.some((c, i) => Math.abs(c.valor - (original[i]?.valor ?? 0)) > 0.001) ||
-    comentario.trim() !== (item?.correcao?.comentario_professor ?? '').trim()
+    comentario.trim() !== (item?.correcao?.comentario_professor ?? '').trim() ||
+    fortes.trim() !== fortesOriginal.trim() ||
+    desenvolver.trim() !== desenvolverOriginal.trim()
 
   async function corrigirAMao() {
     if (!d || !item) return
@@ -307,6 +324,8 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
       await d.salvarRevisao(item.correcao.id, {
         criterios,
         comentario_professor: comentario.trim() || null,
+        pontos_fortes: emLinhas(fortes),
+        pontos_desenvolver: emLinhas(desenvolver),
         decisao: alterado ? 'ajustada' : 'aprovada',
       })
       await carregar()
@@ -462,20 +481,30 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Cartao>
-                <h3 className="text-[12px] font-semibold uppercase tracking-wide text-verde">Pontos fortes</h3>
-                <ul className="mt-1.5 space-y-1.5 text-[13.5px] leading-snug text-tinta">
-                  {item.correcao.pontos_fortes.map((p, i) => (
-                    <li key={i}>• {p}</li>
-                  ))}
-                </ul>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-verde" htmlFor="fortes">
+                  Pontos fortes
+                </label>
+                <textarea
+                  id="fortes"
+                  className="campo mt-1.5 min-h-24 text-[13.5px]"
+                  value={fortes}
+                  onChange={(e) => setFortes(e.target.value)}
+                  placeholder="Um por linha. Ex.: Explicou bem a diferença entre sensibilidade e especificidade."
+                />
+                <p className="mt-1 text-[11.5px] text-tinta-fraca">Um item por linha.</p>
               </Cartao>
               <Cartao>
-                <h3 className="text-[12px] font-semibold uppercase tracking-wide text-ambar">A desenvolver</h3>
-                <ul className="mt-1.5 space-y-1.5 text-[13.5px] leading-snug text-tinta">
-                  {item.correcao.pontos_desenvolver.map((p, i) => (
-                    <li key={i}>• {p}</li>
-                  ))}
-                </ul>
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-ambar" htmlFor="desenvolver">
+                  A desenvolver
+                </label>
+                <textarea
+                  id="desenvolver"
+                  className="campo mt-1.5 min-h-24 text-[13.5px]"
+                  value={desenvolver}
+                  onChange={(e) => setDesenvolver(e.target.value)}
+                  placeholder="Um por linha. Ex.: Aprofundar como a prevalência muda o valor preditivo."
+                />
+                <p className="mt-1 text-[11.5px] text-tinta-fraca">Um item por linha.</p>
               </Cartao>
             </div>
 

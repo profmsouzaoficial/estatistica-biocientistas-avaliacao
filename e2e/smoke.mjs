@@ -193,13 +193,13 @@ async function main() {
 
   try {
     // ---- 1. professor entra ------------------------------------------------
-    console.log('  ▸ 1/9 professor entra')
+    console.log('  ▸ 1/12 professor entra')
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.getByText('Painel do professor').first().waitFor()
     await foto(page, '01-painel-professor')
 
     // ---- 2. cria turma e importa a lista ----------------------------------
-    console.log('  ▸ 2/9 cria turma e importa alunos')
+    console.log('  ▸ 2/12 cria turma e importa alunos')
     await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Nova turma' }).click()
     await page.getByLabel('Nome da turma').fill(ALUNO.turma)
@@ -222,7 +222,7 @@ async function main() {
     await foto(page, '02-turma-importada')
 
     // ---- 3. cria a avaliação ----------------------------------------------
-    console.log('  ▸ 3/9 cria avaliação')
+    console.log('  ▸ 3/12 cria avaliação')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
     await page.locator('select').first().selectOption({ index: 1 })
     await page.getByLabel('Título').fill('Redação 1 — Testes diagnósticos')
@@ -249,7 +249,7 @@ async function main() {
     await foto(page, '03-avaliacao-criada')
 
     // ---- 4. aluno se cadastra ---------------------------------------------
-    console.log('  ▸ 4/9 aluno se cadastra')
+    console.log('  ▸ 4/12 aluno se cadastra')
     await sair(page)
     await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
     await page.getByLabel('Turma').selectOption({ index: 1 })
@@ -265,7 +265,7 @@ async function main() {
     await foto(page, '04-aluno-inicio')
 
     // ---- 5. aluno envia a foto --------------------------------------------
-    console.log('  ▸ 5/9 aluno fotografa e envia')
+    console.log('  ▸ 5/12 aluno fotografa e envia')
     await page.getByText('Redação 1 — Testes diagnósticos').first().click()
     await page.getByRole('button', { name: /Fotografar minha redação/ }).click()
     await page.waitForURL(/\/enviar$/)
@@ -282,7 +282,7 @@ async function main() {
     await foto(page, '06-aluno-enviado')
 
     // ---- 6. professor corrige ---------------------------------------------
-    console.log('  ▸ 6/9 professor corrige')
+    console.log('  ▸ 6/12 professor corrige')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     console.log(`     logado como professor, em ${page.url()}`)
@@ -293,7 +293,7 @@ async function main() {
     await foto(page, '07-avaliacao-corrigida')
 
     // ---- 7. revisa, aprova e lança no SIGA --------------------------------
-    console.log('  ▸ 7/9 revisa, aprova e lança no SIGA')
+    console.log('  ▸ 7/12 revisa, aprova e lança no SIGA')
     await page.getByRole('button', { name: new RegExp(ALUNO.nome) }).click()
     await page.waitForURL(/\/revisao\//)
     await page.getByText('Nota por critério').waitFor()
@@ -305,7 +305,7 @@ async function main() {
     await foto(page, '09-lancado-siga')
 
     // ---- 8. aluno vê a devolutiva -----------------------------------------
-    console.log('  ▸ 8/9 aluno vê a devolutiva')
+    console.log('  ▸ 8/12 aluno vê a devolutiva')
     await sair(page)
     await entrar(page, ALUNO.email, ALUNO.senha)
     // com correção aprovada, o card do aluno já leva direto para a devolutiva
@@ -316,7 +316,7 @@ async function main() {
     const nota = await page.locator('body').innerText()
 
     // ---- 9. confere o registro do lançamento ------------------------------
-    console.log('  ▸ 9/9 confere a trilha de auditoria')
+    console.log('  ▸ 9/12 confere a trilha de auditoria')
     const lancamentos = await supabaseRest(
       `lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}&select=matricula,nota,sucesso,http_status,descricao_avaliacao`,
     )
@@ -326,14 +326,95 @@ async function main() {
     if (ok[0].nota > 10) throw new Error(`Nota fora da escala 0–10: ${ok[0].nota}`)
     if (!/Pontos fortes/i.test(nota)) throw new Error('A devolutiva não exibiu os pontos fortes.')
 
+// ---- 10. segunda avaliação (para o caminho sem IA) --------------------
+    console.log('  ▸ 10/12 professor cria a segunda avaliação')
+    await sair(page)
+    await entrar(page, PROFESSOR.email, PROFESSOR.senha)
+    await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
+    await page.locator('select').first().selectOption({ index: 1 })
+    await page.getByLabel('Título').fill('Redação 2 — Razão de chances')
+    await page
+      .locator('#tema')
+      .fill('Explique o que é razão de chances (odds ratio) e interprete um OR de 2,5 em um estudo sobre hanseníase.')
+    await page
+      .locator('#instrucoes')
+      .fill('Escreva de 15 a 25 linhas, à mão. Traga a fórmula e um exemplo numérico.')
+    await page.getByLabel('Capítulo do livro').selectOption({ index: 5 })
+    await page.getByRole('button', { name: 'Buscar' }).click()
+    await page.getByRole('button', { name: /TVC 2/ }).click()
+    await page.getByLabel('Data no SIGA').fill('2026-12-04')
+    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
+    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
+    const idAvaliacao2 = page.url().split('/').pop()
+    console.log(`     avaliação ${idAvaliacao2}`)
+
+    // ---- 11. aluno envia a segunda redação --------------------------------
+    console.log('  ▸ 11/12 aluno envia a segunda redação')
+    await sair(page)
+    await entrar(page, ALUNO.email, ALUNO.senha)
+    await page.getByText('Redação 2 — Razão de chances').first().click()
+    await page.getByRole('button', { name: /Fotografar minha redação/ }).click()
+    await page.waitForURL(/\/enviar$/)
+    await page.locator('input[type=file]').first().setInputFiles(foto_)
+    await page.getByRole('button', { name: 'Usar esta foto' }).click()
+    await page.getByText('Confira a transcrição').waitFor({ timeout: 40000 })
+    await page.getByRole('checkbox').check()
+    await page.getByRole('button', { name: 'Enviar redação' }).click()
+    await page.getByText('Redação enviada').waitFor()
+
+    // ---- 12. correção manual (sem IA), aprovação e lançamento --------------
+    console.log('  ▸ 12/12 professor corrige à mão e lança no SIGA')
+    await sair(page)
+    await entrar(page, PROFESSOR.email, PROFESSOR.senha)
+    await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao2}`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: new RegExp(ALUNO.nome) }).click()
+    await page.waitForURL(/\/revisao\//)
+    await page.getByText('Ainda sem correção da IA').waitFor()
+    await page.getByRole('button', { name: 'Corrigir manualmente' }).click()
+    await page.getByText('Nota por critério').waitFor({ timeout: 30000 })
+
+    const campos = page.locator('input[type=number]')
+    const quantos = await campos.count()
+    if (quantos < 2) throw new Error(`Esperava os campos de nota por critério, encontrei ${quantos}.`)
+    for (let i = 0; i < quantos; i++) {
+      const maximo = Number(await campos.nth(i).getAttribute('max'))
+      await campos.nth(i).fill(String(Math.min(5, maximo)))
+    }
+    await page.getByLabel('Pontos fortes').fill('Explica a ideia de razão de chances.\nUsa um exemplo numérico claro.')
+    await page.getByLabel('A desenvolver').fill('Interpretar o intervalo de confiança do OR.')
+    await foto(page, '11-corrigindo-a-mao')
+    await page.getByRole('button', { name: /Salvar ajustes e liberar/ }).click()
+    await page.getByText('Revisão salva').waitFor()
+    await page.getByRole('button', { name: /Lançar .* no SIGA/ }).click()
+    await page.getByText('Lançada no SIGA').waitFor({ timeout: 30000 })
+    await foto(page, '12-manual-lancada')
+
+    const manuais = await supabaseRest(
+      `lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}&descricao_avaliacao=eq.${encodeURIComponent('TVC 2')}&select=matricula,nota,sucesso`,
+    )
+    const okManual = (manuais ?? []).filter((l) => l.sucesso)
+    if (okManual.length !== 1) throw new Error(`Esperava 1 lançamento manual, encontrei ${okManual.length}.`)
+    if (!(okManual[0].nota > 0)) throw new Error('A nota da correção manual ficou zerada.')
+
+    const correcaoManual = await supabaseRest(
+      `correcoes?modelo=eq.manual&select=decisao,nota_final,pontos_fortes,submissao_id`,
+    )
+    const cm = (correcaoManual ?? [])[0]
+    if (!cm) throw new Error('Não encontrei a correção manual no banco.')
+    if (cm.decisao !== 'ajustada') throw new Error(`Decisão deveria ser "ajustada", veio "${cm.decisao}".`)
+    if (!(cm.nota_final > 0)) throw new Error('A correção manual ficou com nota final 0.')
+    if (!(cm.pontos_fortes ?? []).length) throw new Error('Os pontos fortes digitados não foram gravados.')
+
     console.log('\n  ✓ Fluxo completo validado')
-    console.log(`    lançamento: matrícula ${ok[0].matricula} · nota ${ok[0].nota} · "${ok[0].descricao_avaliacao}"`)
+    console.log(`    IA:     matrícula ${ok[0].matricula} · nota ${ok[0].nota} · "${ok[0].descricao_avaliacao}"`)
+    console.log(`    manual: matrícula ${okManual[0].matricula} · nota ${okManual[0].nota} · "${cm.decisao}"`)
     console.log(`    ${capturas.length} capturas em e2e/resultados/`)
     if (MANTER) {
       console.log(`\n  Dados mantidos para inspeção:`)
       console.log(`    professor: ${PROFESSOR.email} / ${PROFESSOR.senha}`)
       console.log(`    aluno:     ${ALUNO.email} / ${ALUNO.senha}`)
-      console.log(`    ${WEB}/prof/avaliacoes/${idAvaliacao}\n`)
+      console.log(`    ${WEB}/prof/avaliacoes/${idAvaliacao}`)
+      console.log(`    ${WEB}/prof/avaliacoes/${idAvaliacao2}\n`)
     }
   } catch (erro) {
     await foto(page, 'erro').catch(() => {})

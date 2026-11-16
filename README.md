@@ -209,11 +209,14 @@ SENHA_PROFESSOR='sua-senha' pnpm test:e2e --manter   # não apaga os dados ao fi
 O teste sobe um **mock** de Llama e de SIGA (`e2e/mock-servicos.mjs`), roda o fluxo real no
 Chromium em viewport de celular e valida o banco ao final:
 
-1. professor entra → cria turma → importa lista → cria avaliação;
+1. professor entra → cria turma → importa lista → cria avaliação (com o seletor do SIGA);
 2. aluno se cadastra → fotografa → confere a transcrição → envia;
-3. professor corrige → revisa → aprova → lança no SIGA;
+3. professor corrige pela IA → revisa → aprova → lança no SIGA;
 4. aluno vê a devolutiva;
-5. o teste confere `lancamentos_siga` (1 registro, nota entre 0 e 10).
+5. o teste confere `lancamentos_siga` (1 registro, nota entre 0 e 10);
+6. **segunda avaliação, sem IA**: o aluno envia outra redação e o professor usa
+   **Corrigir manualmente** → digita notas, pontos fortes e a desenvolver → aprova → lança;
+7. o teste confere a segunda nota, a decisão `ajustada` e o texto gravado em `pontos_fortes`.
 
 Capturas em `e2e/resultados/`. Nada é enviado ao SIGA de verdade: `SIGA_API_BASE` aponta para o mock.
 

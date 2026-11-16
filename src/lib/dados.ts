@@ -44,6 +44,9 @@ export interface NovaAvaliacao {
 export interface Revisao {
   criterios: Correcao['criterios']
   comentario_professor: string | null
+  /** Devolutiva qualitativa; ausente = manter a que veio do modelo. */
+  pontos_fortes?: string[]
+  pontos_desenvolver?: string[]
   decisao: 'aprovada' | 'ajustada' | 'rejeitada'
 }
 

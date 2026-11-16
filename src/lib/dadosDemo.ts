@@ -779,6 +779,8 @@ export function criarDadosDemo(): Dados {
       const notaBruta = revisao.criterios.reduce((t, x) => t + Number(x.valor), 0)
       c.criterios = revisao.criterios
       c.comentario_professor = revisao.comentario_professor
+      if (revisao.pontos_fortes) c.pontos_fortes = revisao.pontos_fortes
+      if (revisao.pontos_desenvolver) c.pontos_desenvolver = revisao.pontos_desenvolver
       c.nota_bruta = notaBruta
       c.nota_final = notaParaSiga(notaBruta, av?.valor_total ?? 10)
       c.decisao = revisao.decisao

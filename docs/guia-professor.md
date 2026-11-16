@@ -60,7 +60,8 @@ Na tela da avaliação:
 2. Toque no nome do aluno para abrir a **revisão**:
    - aba **Transcrição** (texto que será corrigido) e **Foto original** (comprovante);
    - nota por critério com justificativa do modelo — ajuste qualquer valor se discordar;
-   - pontos fortes e pontos a desenvolver, editáveis.
+   - **Pontos fortes** e **A desenvolver**: campos de texto, um item por linha. O que você
+     escrever aqui substitui o texto do modelo e é o que o aluno lê na devolutiva.
 3. **Aprovar e liberar para o aluno** (ou *Salvar ajustes e liberar*, se mudou algo). Nesse
    momento a devolutiva aparece para o aluno.
 4. **Devolver para o aluno reescrever** quando a redação não corresponde ao combinado.
