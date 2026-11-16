@@ -233,6 +233,23 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### O roteiro de operação
+
+`docs/operacao.md` é o documento para tocar o app sem ninguém por perto: os seis passos de antes do
+semestre, o ciclo de uma avaliação (criar → publicar → corrigir → lançar → fechar), o calendário sugerido,
+o que fazer em cada resposta de erro do SIGA e como saber que o sistema está saudável.
+
+`pnpm test:documentacao` impede que ele envelheça em silêncio. O teste cobra três contratos objetivos:
+todo `pnpm <script>` citado existe no `package.json`; todo caminho de arquivo citado existe no
+repositório; todo rótulo de tela citado (23 deles) existe em `src/`. Também deriva do `e2e/mobile.mjs`
+quantas telas a suíte mede e reprova qualquer documento que diga outro número.
+
+Na primeira execução ele achou o que ninguém tinha visto: este README mandava rodar dois comandos que
+**não existem** (os certos são `pnpm test:e2e` e `pnpm test:seguranca`) e ainda anunciava uma contagem de
+telas e de alvos de toque que a suíte já tinha superado. Um teste de mutação confirma que ele reprova de
+verdade: trocar um comando e um número no README faz o teste sair com código 1 e apontar exatamente os
+dois.
+
 ### Contraste e toque
 
 `pnpm test:contraste` abre 9 telas na demonstração, lê a cor calculada de cada elemento com texto, acha o
@@ -323,7 +340,7 @@ tela mudar, o teste de layout gera a captura nova.
 ### Conferência em tela pequena
 
 A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O
-`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre onze telas em
+`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre doze telas em
 360×740 e reprova quando:
 
 - alguma tela rola para o lado (`scrollWidth > innerWidth`) — o sintoma clássico de tabela ou
@@ -332,7 +349,7 @@ A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e
   desenho);
 - aparece erro de JavaScript no console.
 
-São 11 telas e 97 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
+São 12 telas e 109 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
 demonstração também deixou de chamar a API do SIGA (não há servidor ali), o que eliminava um erro de
 rede no console sem função nenhuma.
 
@@ -347,7 +364,7 @@ plausíveis. O formulário de criação já preenche o peso quando a avaliação
 SIGA; digitando a descrição à mão dá para errar. Por isso a página da avaliação consulta o peso
 oficial e, quando diverge, mostra o aviso *“O peso aqui não é o peso do SIGA”* com a conta explícita
 (“a nota máxima 20/20 seria enviada como 20; com o peso do SIGA, iria como 10”) e um botão que alinha
-o peso em um clique. `pnpm test:peso` cobre a regra (19 verificações) e o passo 25 do `pnpm e2e`
+o peso em um clique. `pnpm test:peso` cobre a regra (19 verificações) e o passo 25 do `pnpm test:e2e`
 exercita o aviso de ponta a ponta.
 
 ### Trilha de auditoria
@@ -366,7 +383,7 @@ erro). O gatilho existe porque três chamadas da API mandavam a coluna `ator_id`
 erro era engolido por um `catch` vazio: a tabela ficou **vazia** em todas as rodadas de teste até isso
 ser descoberto. Agora a falha de auditoria aparece no log mesmo sem derrubar a requisição.
 
-`pnpm test:auditoria` cobre os gatilhos numa transação revertida; o passo final do `pnpm e2e` confere
+`pnpm test:auditoria` cobre os gatilhos numa transação revertida; o passo final do `pnpm test:e2e` confere
 que a rodada gerou `corrigir_ia`, `revisar_correcao` e `mudar_prazo`, e a limpeza apaga esses
 registros antes de derrubar as contas (senão a cascata os deixaria órfãos).
 
@@ -388,8 +405,8 @@ Mas o gatilho sozinho não bastava: a política de UPDATE do aluno exigia que a 
 transcrição ou o próprio envio era recusado com `new row violates row-level security policy for table
 "submissoes"` — o botão "Devolver" era um beco sem saída, e nenhum teste pegava porque o teste do
 gatilho rodava como `postgres`, sem RLS. A migration 0011 aceita `devolvida` na linha nova (sem
-permitir sair de `enviada`). O passo 26 do `pnpm e2e` percorre o ciclo inteiro pelas telas, e o
-`pnpm e2e:seguranca` confirma que a aluna A grava e reenvia a própria redação devolvida enquanto a
+permitir sair de `enviada`). O passo 26 do `pnpm test:e2e` percorre o ciclo inteiro pelas telas, e o
+`pnpm test:seguranca` confirma que a aluna A grava e reenvia a própria redação devolvida enquanto a
 aluna B não altera a de A.
 
 ### Prazo de entrega
@@ -399,7 +416,7 @@ encerrado”). O professor muda a data na própria avaliação, em **Prazo de en
 o envio para quem faltou e não altera redação enviada nem nota lançada (`mudarPrazoAvaliacao` no
 contrato `Dados`). Redação enviada depois da data aparece marcada como **fora do prazo** na lista e na
 revisão; a marca é informativa. `pnpm test:formato` cobre as fronteiras dessa conta (minuto exato,
-datas ausentes e fusos diferentes); o passo 24 do `pnpm e2e` muda o prazo, confere a marca e remove o
+datas ausentes e fusos diferentes); o passo 24 do `pnpm test:e2e` muda o prazo, confere a marca e remove o
 prazo.
 
 ### A lista de alunos
@@ -430,7 +447,7 @@ o aluno recebe um link que não abre. O ajuste é no painel (Authentication → 
 | Site URL | `https://estatistica-biocientistas-avaliacao.vercel.app` |
 | Redirect URLs | `https://estatistica-biocientistas-avaliacao.vercel.app/**`, `http://localhost:3210/**` |
 
-O passo 22 do `pnpm e2e` percorre o caminho real (gera o link pela API de administração, abre no
+O passo 22 do `pnpm test:e2e` percorre o caminho real (gera o link pela API de administração, abre no
 navegador, define a senha e entra com ela). Já está aplicado no projeto `ozjpshdqpqrpdzisfkzq`.
 
 ### Conferência do lançamento
@@ -438,7 +455,7 @@ navegador, define a senha e entra com ela). Já está aplicado no projeto `ozjps
 `GET /api/siga/notas?turma=…&periodo=…` lê o quadro da turma no SIGA (só leitura, exige sessão de
 professor) e devolve alunos, notas por avaliação e situação. A página da avaliação usa isso para
 comparar o que o app enviou com o que está gravado — enviado ≠ gravado é o erro que deixa o aluno
-sem nota sem ninguém perceber. O passo 21 do `pnpm e2e` cobre esse ciclo e também confere que a rota
+sem nota sem ninguém perceber. O passo 21 do `pnpm test:e2e` cobre esse ciclo e também confere que a rota
 recusa chamada sem sessão.
 
 ### Ajuda ao aluno
@@ -446,7 +463,7 @@ recusa chamada sem sessão.
 `/ajuda` é pública (não exige login) e explica em uma tela: criar a conta, fotografar a folha, conferir
 a transcrição, enviar, prazo e devolutiva — e o que fazer nos problemas comuns (matrícula fora da
 lista, e-mail diferente, foto que não sobe). Está linkada no login, na lista de avaliações do aluno e
-no rodapé da devolutiva. O passo 23 do `pnpm e2e` confere que ela abre sem sessão.
+no rodapé da devolutiva. O passo 23 do `pnpm test:e2e` confere que ela abre sem sessão.
 
 ### Isolamento entre alunos
 

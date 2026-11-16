@@ -1,0 +1,136 @@
+# Operação — um ciclo de avaliação completo
+
+Para quem vai tocar o app sem ninguém por perto. Cada passo diz **onde** fica, **o que conferir** e quanto
+tempo leva. Os rótulos entre aspas são os textos que aparecem na tela.
+
+---
+
+## Antes do semestre (uma vez, ~20 min)
+
+| # | Onde | O que fazer | Como saber que deu certo |
+|---|---|---|---|
+| 1 | `/prof/alunos` | criar a turma com **nome, código no SIGA e período** (ex.: `CBV018GV-A`, `2026/3`) | a turma aparece no painel |
+| 2 | `/prof/alunos` | colar/importar a lista da coordenação no formato `matricula;nome;email` — ou `matricula;nome` se o e-mail não for obrigatório | "Conferir e importar" mostra quantos entraram e quantos já existiam |
+| 3 | terminal | `pnpm backup` | gera `backups/backup-AAAA-MM-DD-HH-MM.json` |
+| 4 | terminal | `pnpm verificar` | "✓ tudo consistente" |
+| 5 | terminal | `pnpm diagnostico` | mostra Supabase, SIGA e IA ligados ou não |
+| 6 | opcional | `pnpm configurar:ia --ensaio …` e depois sem `--ensaio` | `/api/saude` passa a mostrar corretor e leitura ligados |
+
+Sem o passo 6 o app funciona: o aluno digita o texto e você corrige à mão. Com ele, a IA sugere a nota e
+você aprova.
+
+---
+
+## A cada avaliação
+
+### 1. Criar (5 min)
+
+Em **Nova avaliação**:
+
+| Campo | Cuidado |
+|---|---|
+| Tema e instruções | é o que o aluno lê no celular; diga o número de linhas e se é à mão |
+| Valor total | a rubrica precisa somar exatamente isso — o app recusa salvar se não fechar |
+| Rubrica | 3 a 6 critérios; cada um com valor e descrição do que conta |
+| Descrição no SIGA | precisa ser **idêntica** ao nome da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`) |
+| Peso no SIGA | o peso que o SIGA usa para aquela avaliação; a nota é convertida proporcionalmente |
+| Prazo | opcional; depois dele o aluno não abre entrega nova |
+
+### 2. Publicar e acompanhar (2 min por dia)
+
+Publicada, a avaliação aparece para o aluno. Na tela dela, abaixo dos contadores:
+
+- **"X de Y alunos da turma entregaram"** — quantos já entregaram;
+- **"Faltam N"** — toque para ver nome e matrícula de quem não entregou (e quem está **sem cadastro**).
+
+Faltando alguém perto do prazo, **"Estender ou mudar o prazo"** reabre o envio sem mexer em redação já
+enviada nem em nota lançada.
+
+### 3. Corrigir e revisar (o grosso do trabalho)
+
+1. **"Corrigir N pendente(s)"** — se a IA estiver ligada, cada redação leva alguns segundos e cai em
+   **"A revisar"**. Se não estiver, abra a redação e use a correção manual.
+2. Abra a redação do aluno. Confira, nesta ordem:
+   - a **transcrição** contra a aba **"Foto original"** (números e nomes são onde o OCR erra);
+   - a **"Nota por critério"** — ajuste o que discordar; a nota final é a soma;
+   - os **pontos fortes** e os **pontos a desenvolver** (o aluno lê isso).
+3. **"Salvar alterações"** e **"Aprovar e liberar para o aluno"**. A partir daí a devolutiva fica visível.
+4. Se o texto precisa ser refeito, use **"Devolver para o aluno reescrever"**: o aluno reenvia e a redação
+   volta para "A revisar" — não vai para o SIGA até nova aprovação.
+
+### 4. Lançar no SIGA (2 min)
+
+Pré-requisitos: a avaliação existe no SIGA com a **mesma descrição** e o **peso** confere.
+
+1. **"Lançar N no SIGA"** → a confirmação lista aluno por aluno o número exato que será gravado.
+2. Leia a lista antes de confirmar. Só o que está **aprovado** entra; devolvida e pendente ficam fora.
+3. Confirmado, cada lançamento guarda o que foi enviado e o que o SIGA respondeu (auditoria).
+
+| Resposta do SIGA | Significa | O que fazer |
+|---|---|---|
+| 403 | chave inválida/expirada | pedir a chave atualizada e atualizar `SIGA_API_KEY` |
+| 404 | turma, período ou descrição não existem | conferir os três; a descrição precisa ser idêntica |
+| 409 | nota já lançada para aquele aluno | conferir no SIGA; o app não sobrescreve |
+| 5xx | SIGA fora do ar | tentar mais tarde; nada se perde, o botão continua ali |
+
+### 5. Fechar (5 min)
+
+| # | O que | Por quê |
+|---|---|---|
+| 1 | conferir as notas no diário do SIGA | o SIGA é a fonte oficial |
+| 2 | baixar o **CSV** da avaliação | planilha independente: nome, matrícula, nota bruta, nota final, decisão |
+| 3 | `pnpm backup` | cópia do banco fora do Supabase |
+| 4 | `pnpm verificar` | confere rubricas, notas e vínculos |
+| 5 | `pnpm fotos:limpar` depois de tudo lançado | apaga do bucket as fotos que não estão em uso |
+
+---
+
+## Calendário sugerido
+
+| Quando | O que |
+|---|---|
+| D−7 | criar e publicar a avaliação |
+| D | prazo encerra; conferir **"Faltam N"** e decidir se estende |
+| D+1 | corrigir e revisar (bloco de 1 h para 7 alunos) |
+| D+2 | lançar no SIGA e conferir o diário |
+| D+3 | backup + `pnpm verificar` |
+
+---
+
+## Se algo der errado
+
+| Sintoma | Primeiro passo | Depois |
+|---|---|---|
+| Aluno diz que não consegue entrar | conferir na lista: matrícula e e-mail iguais aos dele | `/prof/alunos` → editar o cadastro |
+| "Minha matrícula não está na lista" | procurar a matrícula na lista da turma | importar de novo ou corrigir a linha |
+| A foto não abre na revisão | **"Tentar de novo"** (o link é temporário) | corrigir pela transcrição; pedir nova foto se necessário |
+| Transcrição ruim | comparar com a foto; ajustar o texto | pedir foto com mais luz / usar digitação |
+| Correção automática falha | `pnpm diagnostico` e `/api/saude` | corrigir à mão; a fila não trava |
+| Nota estranha no SIGA | conferir o **peso** da avaliação no app e no SIGA | "Peso no SIGA" na tela da avaliação alinha |
+| Nada faz sentido | `pnpm verificar` | `pnpm backup` antes de qualquer correção manual no banco |
+
+---
+
+## Segurança e senhas
+
+- A senha do professor se troca em **Perfil** → **"Salvar alterações"**. Use uma senha só deste app.
+- Chaves (Supabase, SIGA, IA, Vercel) ficam em `~/.dsh/secrets/avaliacoes.env`, fora do repositório, e na
+  Vercel como variáveis de ambiente. Nunca no código.
+- O bucket das fotos é privado: cada abertura gera um link assinado e temporário.
+- Antes de apagar qualquer coisa no banco, faça `pnpm backup`. Turma apagada leva junto alunos,
+  avaliações e redações.
+
+---
+
+## Como saber que o sistema está saudável
+
+```bash
+pnpm verificar          # dados: rubricas, notas, vínculos
+pnpm test:e2e           # fluxo completo pelas telas, em modo demonstração
+pnpm test:producao      # o app publicado, ponta a ponta (não lança nota no SIGA)
+pnpm e2e:mobile         # layout e alvos de toque em 360×740
+pnpm test:contraste     # legibilidade dos textos
+pnpm test:documentacao  # este guia não ficou para trás
+```
+
+Os três últimos não precisam de credencial nenhuma: rodam contra a demonstração local.

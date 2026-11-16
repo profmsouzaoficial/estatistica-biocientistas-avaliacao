@@ -2,6 +2,9 @@
 
 Tudo é feito pelo celular, mas a tela de revisão é mais confortável no computador.
 
+> Para o ciclo completo de uma avaliação — antes do semestre, cada etapa, calendário e o que fazer em
+> cada erro — veja [operacao.md](operacao.md). Este guia explica as telas; aquele diz a ordem.
+
 ## 1. Entrar
 
 1. Abra o endereço do aplicativo.

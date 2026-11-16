@@ -38,7 +38,8 @@
     "test:configuracao": "node scripts/testar-configuracao.mjs",
     "test:configuracao:vercel": "node scripts/testar-configuracao-vercel.mjs",
     "e2e:contraste": "node e2e/contraste.mjs",
-    "test:contraste": "node e2e/contraste.mjs"
+    "test:contraste": "node e2e/contraste.mjs",
+    "test:documentacao": "node scripts/testar-documentacao.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
