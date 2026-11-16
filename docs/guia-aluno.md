@@ -35,6 +35,9 @@ turma.
 E-mail e senha. Se esqueceu a senha, use **Esqueci minha senha** na tela de entrada: chega um link no
 e-mail (confira o spam). O link vale por uma hora.
 
+Se o link expirar ou já tiver sido usado, o app **avisa** ao abrir: “Este link expirou… peça outro
+abaixo” — e a tela já traz o campo para pedir um novo. Você não precisa adivinhar o que aconteceu.
+
 ![Tela inicial do aluno com as avaliações](img/aluno-inicio.png)
 
 Cada cartão é uma avaliação. O selo à direita diz em que pé você está:
@@ -110,8 +113,11 @@ correção**.
 
 ## 7. Seus dados
 
-Em **Perfil** você troca nome, telefone, curso e senha. O e-mail é o da lista da turma e não muda
-pelo app — se precisar trocar, fale com o professor.
+Em **Perfil** você troca nome, telefone, curso e senha. Ao trocar a senha, o app pede a **senha
+atual** antes de aceitar a nova — é o que impede alguém que pegou seu celular destravado de trocar a senha
+e tomar a conta. Depois da troca, os **outros aparelhos** que estavam conectados saem sozinhos.
+
+O e-mail é o da lista da turma e não muda pelo app — se precisar trocar, fale com o professor.
 
 O que o app guarda, por quê e por quanto tempo está em **Privacidade**, no rodapé. Em resumo: nome,
 matrícula, e-mail, curso, a foto e o texto da redação, a correção e a nota. Nada é usado para outro
@@ -125,6 +131,8 @@ fim, e a foto fica em área privada.
 | “Este e-mail é diferente do que consta na lista” | use o e-mail institucional que está na lista da turma |
 | “Esta matrícula já foi cadastrada” | você (ou alguém com a sua matrícula) já criou a conta: use **Esqueci minha senha** |
 | Não chega o e-mail de recuperação | confira spam/lixo eletrônico e se digitou o e-mail institucional; o link vale 1 hora |
+| “Este link expirou” | peça outro na mesma tela (**Esqueci minha senha** → seu e-mail); cada link vale uma hora e só funciona uma vez |
+| “Senha atual incorreta” ao trocar a senha | digite a senha que você usa hoje; se esqueceu, saia e use **Esqueci minha senha** |
 | “Prazo encerrado” | o prazo passou; fale com o professor |
 | A foto não carrega | tente de novo com sinal melhor; se persistir, use **Galeria** com uma foto tirada antes |
 | O texto lido está muito errado | **Trocar a foto** e refazer com mais luz; ou corrija o texto à mão antes de enviar |

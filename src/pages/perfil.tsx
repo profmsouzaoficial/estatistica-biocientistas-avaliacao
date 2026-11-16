@@ -14,6 +14,7 @@ export function Perfil() {
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState<{ tom: 'verde' | 'vermelho'; texto: string } | null>(null)
 
+  const [senhaAtual, setSenhaAtual] = useState('')
   const [senha, setSenha] = useState('')
   const [senha2, setSenha2] = useState('')
   const [trocando, setTrocando] = useState(false)
@@ -39,14 +40,18 @@ export function Perfil() {
     e.preventDefault()
     if (!d) return
     setMsgSenha(null)
+    if (!senhaAtual) return setMsgSenha({ tom: 'vermelho', texto: 'Informe a senha atual.' })
     if (senha.length < 8) return setMsgSenha({ tom: 'vermelho', texto: 'A senha precisa ter ao menos 8 caracteres.' })
     if (senha !== senha2) return setMsgSenha({ tom: 'vermelho', texto: 'As duas senhas não conferem.' })
+    if (senha === senhaAtual)
+      return setMsgSenha({ tom: 'vermelho', texto: 'A nova senha precisa ser diferente da atual.' })
     setTrocando(true)
     try {
-      await d.alterarSenha(senha)
+      await d.alterarSenha(senha, senhaAtual)
+      setSenhaAtual('')
       setSenha('')
       setSenha2('')
-      setMsgSenha({ tom: 'verde', texto: 'Senha alterada.' })
+      setMsgSenha({ tom: 'verde', texto: 'Senha alterada. Os outros aparelhos que estavam conectados saíram.' })
     } catch (e) {
       setMsgSenha({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Falha ao alterar a senha.' })
     } finally {
@@ -88,6 +93,13 @@ export function Perfil() {
             <h2 className="text-[15px] font-medium text-tinta">Alterar senha</h2>
           </div>
           <form onSubmit={trocarSenha} className="space-y-3.5">
+            <Campo
+              rotulo="Senha atual"
+              type="password"
+              autoComplete="current-password"
+              value={senhaAtual}
+              onChange={(e) => setSenhaAtual(e.target.value)}
+            />
             <Campo
               rotulo="Nova senha"
               type="password"

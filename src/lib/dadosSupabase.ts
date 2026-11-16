@@ -158,9 +158,22 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       perfilCache = perfilCache ? { ...perfilCache, ...p } : perfilCache
     },
 
-    async alterarSenha(novaSenha) {
+    async alterarSenha(novaSenha, senhaAtual) {
+      const { data: sessao } = await sb.auth.getSession()
+      const email = sessao.session?.user.email
+      if (!sessao.session || !email) {
+        throw new Error('Abra o link enviado por e-mail para definir a nova senha.')
+      }
+      // Trocar a senha a partir de um aparelho já aberto é o caminho do perfil.
+      // Aqui a senha antiga é conferida: sessão aberta não basta (celular na mesa).
+      if (senhaAtual !== undefined) {
+        const { error: erroAtual } = await sb.auth.signInWithPassword({ email, password: senhaAtual })
+        if (erroAtual) throw new Error('Senha atual incorreta.')
+      }
       const { error } = await sb.auth.updateUser({ password: novaSenha })
       if (error) throw new Error(error.message)
+      // Quem trocou a senha por desconfiança precisa que os outros aparelhos saiam.
+      await sb.auth.signOut({ scope: 'others' }).catch(() => undefined)
     },
 
     // ---------------- aluno ----------------

@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { ClipboardList, LayoutDashboard, UserRound, Users } from 'lucide-react'
 import { ProvedorRota, casarRota, usarRota, Link } from './lib/router'
 import { ProvedorSessao, usarSessao } from './lib/sessao'
+import { guardarAvisoDoLink, lerErroDoLink } from './lib/linkRecuperacao'
 import { Carregando } from './components/ui'
 import { Cadastrar, Entrar, Recuperar, Redefinir } from './pages/auth'
 import { AlunoAvaliacao, AlunoInicio } from './pages/aluno'
@@ -35,6 +36,15 @@ function Roteador() {
 
   useEffect(() => {
     if (carregando) return
+    // Link de recuperação que expirou ou já foi usado: o Supabase devolve o erro
+    // no hash e nenhuma sessão. Sem isto, a pessoa cai no login sem explicação.
+    const erroDoLink = lerErroDoLink(window.location.hash, window.location.search)
+    if (erroDoLink) {
+      guardarAvisoDoLink(erroDoLink)
+      window.history.replaceState({}, '', window.location.pathname)
+      navegar('/recuperar')
+      return
+    }
     if (window.location.hash.includes('type=recovery') && perfil) {
       navegar('/redefinir')
       return
@@ -47,6 +57,7 @@ function Roteador() {
       perfil &&
       PUBLICAS.includes(limpo) &&
       limpo !== '/redefinir' &&
+      limpo !== '/recuperar' &&
       limpo !== '/privacidade' &&
       limpo !== '/ajuda'
     ) {
@@ -72,6 +83,9 @@ function Roteador() {
   }
 
   if (limpo === '/redefinir') return <Redefinir />
+  // Quem já está conectado também pode receber um link vencido (o celular guarda
+  // a sessão). Sem esta linha, o aviso do link sumia e a pessoa voltava ao início.
+  if (limpo === '/recuperar') return <Recuperar />
   if (limpo === '/privacidade') return <Privacidade />
   if (limpo === '/ajuda') return <Ajuda />
   if (limpo === '/perfil') return <ComBarra><Perfil /></ComBarra>

@@ -199,9 +199,44 @@ async function main() {
   ok = (await medir(page, 'aluno · perfil')) && ok
   await foto(page, 'mobile-06-perfil')
 
+  // troca de senha: a atual é conferida antes de trocar
+  const trocarSenha = async (atual, nova) => {
+    await page.getByLabel('Senha atual').fill(atual)
+    await page.getByLabel('Nova senha', { exact: true }).fill(nova)
+    await page.getByLabel('Repita a nova senha').fill(nova)
+    await page.getByRole('button', { name: 'Alterar senha' }).click()
+  }
+  await trocarSenha('senha-errada', 'outrasenha123')
+  await page.getByText('Senha atual incorreta.').waitFor({ timeout: 15000 })
+  await trocarSenha('demo12345', 'outrasenha123')
+  await page.getByText(/Senha alterada\. Os outros aparelhos/).waitFor({ timeout: 15000 })
+  // devolve a senha da demonstração para o resto da suíte
+  await trocarSenha('outrasenha123', 'demo12345')
+  await page.getByText(/Senha alterada/).waitFor({ timeout: 15000 })
+
   await page.goto(`${WEB}/ajuda`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'ajuda')) && ok
   await foto(page, 'mobile-07-ajuda')
+
+  // link de recuperação vencido: o aluno precisa entender o que houve
+  await page.goto(
+    `${WEB}/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired`,
+    { waitUntil: 'networkidle' },
+  )
+  await page.getByText(/O link não funcionou/).waitFor({ timeout: 15000 })
+  await page.getByText(/expirou/).first().waitFor({ timeout: 15000 })
+  ok = (await medir(page, 'link de recuperação vencido')) && ok
+  await foto(page, 'mobile-14-link-vencido')
+
+  // /redefinir sem sessão: orientação em vez de formulário que falha
+  await page.evaluate(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  })
+  await page.goto(`${WEB}/redefinir`, { waitUntil: 'networkidle' })
+  await page.getByText(/Abra o link do e-mail/).waitFor({ timeout: 15000 })
+  ok = (await medir(page, 'redefinir sem sessão')) && ok
+  await foto(page, 'mobile-15-redefinir-sem-sessao')
 
   // ---- professor ---------------------------------------------------------
   await page.goto(WEB, { waitUntil: 'networkidle' })

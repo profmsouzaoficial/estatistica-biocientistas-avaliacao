@@ -531,13 +531,15 @@ export function criarDadosDemo(): Dados {
       }
     },
 
-    async alterarSenha(novaSenha) {
+    async alterarSenha(novaSenha, senhaAtual) {
       const atual = exigir()
       const alvo = base.perfis.find((x) => x.id === atual.id)
-      if (alvo) {
-        alvo.senha = novaSenha
-        gravar()
+      if (!alvo) return
+      if (senhaAtual !== undefined && senhaAtual !== (alvo.senha ?? SENHA_DEMO)) {
+        throw new Error('Senha atual incorreta.')
       }
+      alvo.senha = novaSenha
+      gravar()
     },
 
     async avaliacoesDoAluno() {

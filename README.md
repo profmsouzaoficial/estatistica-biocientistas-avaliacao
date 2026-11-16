@@ -233,6 +233,23 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Senha: o caminho de quem já perdeu o acesso
+
+O fluxo de recuperação tinha três buracos, todos no mesmo lugar — o aluno sem acesso e sem paciência.
+
+| Situação | Antes | Agora |
+|---|---|---|
+| link expirado ou já usado | caía na tela de login **sem explicação**; o erro do Supabase era descartado | o app lê `#error=…`, traduz e mostra “Este link expirou… peça outro abaixo” na tela de recuperação |
+| link vencido com sessão aberta (celular que guarda login) | o roteador devolvia ao início e o aviso sumia | `/recuperar` abre para quem está conectado |
+| abrir `/redefinir` sem sessão | formulário que falhava com mensagem em inglês | orientação em português + link para pedir outro |
+| trocar a senha no **Perfil** | bastava a sessão aberta (celular na mesa) | pede a **senha atual**, recusa a nova igual à antiga e **desconecta os outros aparelhos** |
+
+`src/lib/linkRecuperacao.ts` traduz os códigos do GoTrue (`otp_expired`, `access_denied`, `invalid`) e
+guarda o recado em `sessionStorage`, porque o hash é limpo logo depois. `pnpm test:recuperacao` cobre 9
+casos com hashes reais do Supabase — inclusive o fluxo PKCE, que põe o erro na query em vez do hash — e
+reprova se a mensagem mostrar texto em inglês. O `e2e:mobile` abre o link vencido de verdade e confere o
+aviso na tela (15 telas, 125 alvos).
+
 ### A lista da turma, lida dos bytes
 
 O caminho que todo semestre começa — importar a lista — tinha um defeito silencioso: o app lia o
@@ -280,7 +297,7 @@ fundo efetivo subindo a árvore e aplica a fórmula de luminância da WCAG. Repr
 4.79 · `ambar` #a74d08 = 4.79) e o botão desativado virou cinza com texto escuro — continua dizendo
 “Corrigir 0 pendente(s)”, agora legível.
 
-`pnpm e2e:mobile` mede os alvos de toque das 13 telas principais em 360×740 e reprova qualquer controle
+`pnpm e2e:mobile` mede os alvos de toque das 15 telas principais em 360×740 e reprova qualquer controle
 abaixo de 40px. Foi ele que achou as abas “Transcrição/Foto original” (32px) e o “Voltar para a lista”
 (20px) na tela de revisão.
 
@@ -360,7 +377,7 @@ tela mudar, o teste de layout gera a captura nova.
 ### Conferência em tela pequena
 
 A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O
-`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre treze telas em
+`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre quinze telas em
 360×740 e reprova quando:
 
 - alguma tela rola para o lado (`scrollWidth > innerWidth`) — o sintoma clássico de tabela ou
@@ -369,7 +386,7 @@ A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e
   desenho);
 - aparece erro de JavaScript no console.
 
-São 13 telas e 120 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
+São 15 telas e 125 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
 demonstração também deixou de chamar a API do SIGA (não há servidor ali), o que eliminava um erro de
 rede no console sem função nenhuma.
 

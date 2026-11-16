@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { AlertCircle, ArrowRight, BookOpen, KeyRound, Mail } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
+import { limparAvisoDoLink, lerAvisoDoLink, type ErroDoLink } from '../lib/linkRecuperacao'
 import { usarRota } from '../lib/router'
 import { Link } from '../lib/router'
 import { Alerta, Botao, Campo, Selecao } from '../components/ui'
@@ -317,6 +318,11 @@ export function Recuperar() {
   const [enviado, setEnviado] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  // recado deixado pelo roteador quando o link de recuperação falhou
+  const [avisoDoLink, setAvisoDoLink] = useState<ErroDoLink | null>(null)
+  useEffect(() => {
+    setAvisoDoLink(lerAvisoDoLink())
+  }, [])
 
   async function submeter(e: React.FormEvent) {
     e.preventDefault()
@@ -325,6 +331,8 @@ export function Recuperar() {
     setEnviando(true)
     try {
       await d.recuperarSenha(email)
+      limparAvisoDoLink()
+      setAvisoDoLink(null)
       setEnviado(true)
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Falha ao enviar.')
@@ -362,6 +370,11 @@ export function Recuperar() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          {avisoDoLink ? (
+            <Alerta tom="vermelho" titulo="O link não funcionou">
+              {avisoDoLink.mensagem}
+            </Alerta>
+          ) : null}
           {erro ? <Alerta tom="vermelho">{erro}</Alerta> : null}
           <Botao type="submit" largo carregando={enviando} icone={<Mail className="size-4" />}>
             Enviar link
@@ -375,7 +388,7 @@ export function Recuperar() {
 // ---------------------------------------------------------------------------
 
 export function Redefinir() {
-  const { d } = usarSessao()
+  const { d, perfil } = usarSessao()
   const { navegar } = usarRota()
   const [senha, setSenha] = useState('')
   const [senha2, setSenha2] = useState('')
@@ -407,6 +420,24 @@ export function Redefinir() {
         <Alerta tom="verde" titulo="Senha alterada">
           Tudo certo. Estamos abrindo o aplicativo…
         </Alerta>
+      </MolduraAuth>
+    )
+  }
+
+  // Sem sessão não há o que salvar: o link já foi usado, expirou ou a pessoa
+  // abriu /redefinir direto. Melhor dizer isso do que mostrar um formulário
+  // que vai falhar em inglês.
+  if (!perfil) {
+    return (
+      <MolduraAuth>
+        <div className="space-y-4">
+          <Alerta tom="vermelho" titulo="Abra o link do e-mail">
+            Para definir uma nova senha, use o link que enviamos para o seu e-mail. Se ele expirou, peça outro.
+          </Alerta>
+          <Link href="/recuperar" className="block text-center text-[14px] text-verde underline-offset-2 hover:underline">
+            Pedir um link novo
+          </Link>
+        </div>
       </MolduraAuth>
     )
   }

@@ -107,6 +107,8 @@ Pré-requisitos: a avaliação existe no SIGA com a **mesma descrição** e o **
 | Transcrição ruim | comparar com a foto; ajustar o texto | pedir foto com mais luz / usar digitação |
 | Correção automática falha | `pnpm diagnostico` e `/api/saude` | corrigir à mão; a fila não trava |
 | Nota estranha no SIGA | conferir o **peso** da avaliação no app e no SIGA | "Peso no SIGA" na tela da avaliação alinha |
+| Aluno perdeu a senha | ele mesmo usa **Esqueci minha senha** (link vale 1 h) | se o e-mail da lista estiver errado, corrija o cadastro e mande pedir de novo |
+| Aluno diz “o link expirou” | mandar pedir outro, na mesma tela | o app já explica isso ao abrir o link vencido |
 | Nada faz sentido | `pnpm verificar` | `pnpm backup` antes de qualquer correção manual no banco |
 
 ---

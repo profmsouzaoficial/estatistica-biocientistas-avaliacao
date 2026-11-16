@@ -107,7 +107,12 @@ export interface Dados {
   validarMatricula(turmaId: string, matricula: string, email: string): Promise<MotivoValidacao>
   recuperarSenha(email: string): Promise<void>
   atualizarPerfil(p: { nome_completo: string; telefone: string | null; curso: string }): Promise<void>
-  alterarSenha(novaSenha: string): Promise<void>
+  /**
+   * Define a nova senha. Com `senhaAtual`, confere a senha antiga antes de
+   * trocar (caminho de "Alterar senha" no perfil); sem ela, exige a sessão
+   * aberta pelo link do e-mail (caminho de recuperação).
+   */
+  alterarSenha(novaSenha: string, senhaAtual?: string): Promise<void>
 
   // aluno
   avaliacoesDoAluno(): Promise<AvaliacaoDoAluno[]>
