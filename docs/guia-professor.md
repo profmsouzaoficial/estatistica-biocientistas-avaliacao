@@ -32,6 +32,10 @@ certo. A lista desaparece quando tudo estiver pronto — se ela sumiu, não falt
 > Marcar a caixa é o modo mais seguro (só o dono do e-mail cadastrado entra). Desmarque apenas
 > quando não houver mesmo como obter os e-mails da turma.
 
+No cadastro, o aluno precisa aceitar o **aviso de privacidade** (link em outra aba). O aceite fica
+com data e hora no banco, e o texto do aviso — o que é guardado, para onde vai, por quanto tempo e
+como pedir exclusão — está em `/privacidade`, legível também sem login.
+
 > O código do SIGA é o que define para onde as notas vão. Errar aqui lança nota na turma errada.
 
 ## 3. Criar a avaliação

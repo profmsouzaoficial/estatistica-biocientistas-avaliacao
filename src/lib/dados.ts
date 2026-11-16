@@ -22,6 +22,8 @@ export interface Cadastro {
   curso: string
   turma_id: string
   senha: string
+  /** O aluno marcou o aviso de privacidade; o banco grava a data em profiles.consentimento_em. */
+  consentimento?: boolean
 }
 
 export type MotivoValidacao =

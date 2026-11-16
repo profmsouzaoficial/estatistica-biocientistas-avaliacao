@@ -11,8 +11,11 @@ import { Perfil } from './pages/perfil'
 import { ProfessorInicio, ProfessorNovaAvaliacao } from './pages/professor'
 import { ProfessorAvaliacao, ProfessorRevisao } from './pages/professorAvaliacao'
 import { ProfessorAlunos } from './pages/professorAlunos'
+import { Privacidade } from './pages/privacidade'
 
-const PUBLICAS = ['/entrar', '/cadastrar', '/recuperar', '/redefinir']
+// /privacidade é pública mas não redireciona quem já está logado: o aviso
+// precisa ser legível antes de criar a conta e depois, a qualquer momento.
+const PUBLICAS = ['/entrar', '/cadastrar', '/recuperar', '/redefinir', '/privacidade']
 
 export default function App() {
   return (
@@ -39,7 +42,7 @@ function Roteador() {
       navegar('/entrar')
       return
     }
-    if (perfil && PUBLICAS.includes(limpo) && limpo !== '/redefinir') {
+    if (perfil && PUBLICAS.includes(limpo) && limpo !== '/redefinir' && limpo !== '/privacidade') {
       navegar('/')
     }
   }, [carregando, perfil, limpo, navegar])
@@ -53,6 +56,7 @@ function Roteador() {
   }
 
   if (!perfil) {
+    if (limpo === '/privacidade') return <Privacidade />
     if (limpo === '/cadastrar') return <Cadastrar />
     if (limpo === '/recuperar') return <Recuperar />
     if (limpo === '/redefinir') return <Redefinir />
@@ -60,6 +64,7 @@ function Roteador() {
   }
 
   if (limpo === '/redefinir') return <Redefinir />
+  if (limpo === '/privacidade') return <Privacidade />
   if (limpo === '/perfil') return <ComBarra><Perfil /></ComBarra>
 
   if (perfil.papel === 'professor') {

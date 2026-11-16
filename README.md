@@ -78,7 +78,8 @@ Variáveis lidas pelo servidor (nunca expostas ao navegador): `SUPABASE_SERVICE_
 
 Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutura) e
 `0002_encerrada.sql` (avaliação encerrada continua visível ao aluno, mas não aceita entrega nova) e
-`0003_email_opcional.sql` (turma sem e-mails na lista, com o e-mail informado no cadastro):
+`0003_email_opcional.sql` (turma sem e-mails na lista, com o e-mail informado no cadastro) e
+`0004_consentimento.sql` (data do aceite do aviso de privacidade em `profiles.consentimento_em`):
 
 | Tabela | Papel |
 |---|---|
@@ -234,7 +235,9 @@ Chromium em viewport de celular e valida o banco ao final:
 8. o professor cria uma terceira avaliação e **encerra as entregas**; o teste tenta inserir uma
    submissão pela API REST com o token do aluno e exige **403** da RLS;
 9. o aluno vê "Entregas encerradas" sem botão de envio e o professor **reabre**;
-10. o professor desmarca a exigência de e-mail e importa um aluno só com matrícula e nome;
+10. o cadastro só libera depois do aceite do aviso de privacidade (`/privacidade`), e o aceite é
+    conferido no banco;
+11. o professor desmarca a exigência de e-mail e importa um aluno só com matrícula e nome;
     esse aluno se cadastra informando o próprio e-mail, e o banco confere que o e-mail e o
     `user_id` ficaram gravados na lista.
 

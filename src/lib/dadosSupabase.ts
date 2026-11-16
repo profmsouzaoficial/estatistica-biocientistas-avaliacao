@@ -106,6 +106,7 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
             matricula: entrada.matricula.trim(),
             curso: entrada.curso.trim(),
             turma_id: entrada.turma_id,
+            consentimento: entrada.consentimento === true ? 'true' : 'false',
           },
         },
       })

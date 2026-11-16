@@ -268,15 +268,39 @@ async function main() {
     await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
     await page.getByLabel('Turma').selectOption({ index: 1 })
     await page.getByLabel('Nome completo').fill(ALUNO.nome)
-    await page.getByLabel('Matrícula').fill(ALUNO.matricula)
+    await page.getByLabel('Matrícula', { exact: true }).fill(ALUNO.matricula)
     await page.getByLabel('E-mail institucional').fill(ALUNO.email)
     await page.getByLabel('Curso').fill('Ciências Biológicas')
     await page.getByLabel('Senha', { exact: true }).fill(ALUNO.senha)
     await page.getByLabel('Repita a senha').fill(ALUNO.senha)
-    await page.getByRole('button', { name: 'Criar conta' }).click()
+
+    // sem marcar o aviso de privacidade, o cadastro não vai
+    const botaoCriar = page.getByRole('button', { name: 'Criar conta' })
+    if (!(await botaoCriar.isDisabled())) throw new Error('O cadastro deveria exigir o aceite do aviso de privacidade.')
+    // o link abre em outra aba de propósito: voltar pela mesma aba apagaria o formulário
+    const linkAviso = page.getByRole('link', { name: 'aviso de privacidade' })
+    if ((await linkAviso.getAttribute('target')) !== '_blank') {
+      throw new Error('O aviso de privacidade deveria abrir em outra aba.')
+    }
+    await page.getByRole('checkbox').check()
+    if (await botaoCriar.isDisabled()) throw new Error('Com o aviso aceito, o cadastro deveria liberar.')
+    await botaoCriar.click()
     await page.waitForLoadState('networkidle')
     await page.getByText('Redação 1 — Testes diagnósticos').first().waitFor()
-    await foto(page, '04-aluno-inicio')
+    await foto(page, '05-aluno-inicio')
+
+    await page.goto(`${WEB}/privacidade`, { waitUntil: 'networkidle' })
+    await page.getByText('O que é guardado').waitFor()
+    await page.getByText('us-west-2').waitFor()
+    await foto(page, '04-aviso-privacidade')
+    await page.goto(`${WEB}/`, { waitUntil: 'networkidle' })
+
+    const consentimento = await supabaseRest(
+      `profiles?email=eq.${encodeURIComponent(ALUNO.email)}&select=consentimento_em`,
+    )
+    if (!consentimento?.[0]?.consentimento_em) {
+      throw new Error('O consentimento do aviso de privacidade não foi gravado em profiles.')
+    }
 
     // ---- 5. aluno envia a foto --------------------------------------------
     console.log('  ▸ 5/17 aluno fotografa e envia')
@@ -289,7 +313,7 @@ async function main() {
     await page.locator('input[type=file]').first().setInputFiles(foto_)
     await page.getByRole('button', { name: 'Usar esta foto' }).click()
     await page.getByText('Confira a transcrição').waitFor({ timeout: 40000 })
-    await foto(page, '05-transcricao')
+    await foto(page, '06-transcricao')
     await page.getByRole('checkbox').check()
     await page.getByRole('button', { name: 'Enviar redação' }).click()
     await page.getByText('Redação enviada').waitFor()
@@ -304,19 +328,19 @@ async function main() {
     console.log(`     avaliação aberta em ${page.url()}`)
     await page.getByRole('button', { name: /Corrigir 1 pendente/ }).click()
     await page.getByRole('button', { name: /Corrigir 0 pendente/ }).waitFor({ timeout: 60000 })
-    await foto(page, '07-avaliacao-corrigida')
+    await foto(page, '08-avaliacao-corrigida')
 
     // ---- 7. revisa, aprova e lança no SIGA --------------------------------
     console.log('  ▸ 7/17 revisa, aprova e lança no SIGA')
     await page.getByRole('button', { name: new RegExp(ALUNO.nome) }).click()
     await page.waitForURL(/\/revisao\//)
     await page.getByText('Nota por critério').waitFor()
-    await foto(page, '08-revisao')
+    await foto(page, '09-revisao')
     await page.getByRole('button', { name: /Aprovar e liberar/ }).click()
     await page.getByText('Revisão salva').waitFor()
     await page.getByRole('button', { name: /Lançar .* no SIGA/ }).click()
     await page.getByText('Lançada no SIGA').waitFor({ timeout: 30000 })
-    await foto(page, '09-lancado-siga')
+    await foto(page, '10-lancado-siga')
 
     // ---- 8. aluno vê a devolutiva -----------------------------------------
     console.log('  ▸ 8/17 aluno vê a devolutiva')
@@ -326,7 +350,7 @@ async function main() {
     await page.getByText('Redação 1 — Testes diagnósticos').first().click()
     await page.waitForURL(/\/devolutiva$/)
     await page.getByText('Pontos fortes').waitFor()
-    await foto(page, '10-devolutiva')
+    await foto(page, '11-devolutiva')
     const nota = await page.locator('body').innerText()
 
     // ---- 9. confere o registro do lançamento ------------------------------
@@ -396,12 +420,19 @@ async function main() {
     }
     await page.getByLabel('Pontos fortes').fill('Explica a ideia de razão de chances.\nUsa um exemplo numérico claro.')
     await page.getByLabel('A desenvolver').fill('Interpretar o intervalo de confiança do OR.')
-    await foto(page, '11-corrigindo-a-mao')
+    await foto(page, '12-corrigindo-a-mao')
     await page.getByRole('button', { name: /Salvar ajustes e liberar/ }).click()
     await page.getByText('Revisão salva').waitFor()
-    await page.getByRole('button', { name: /Lançar .* no SIGA/ }).click()
-    await page.getByText('Lançada no SIGA').waitFor({ timeout: 30000 })
-    await foto(page, '12-manual-lancada')
+
+    // lançamento em lote, pela página da avaliação, com confirmação
+    await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao2}`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: /Lançar 1 no SIGA/ }).click()
+    await page.getByText(/Confirmar 1 lançamento/).waitFor()
+    await foto(page, '13-confirmar-lancamento')
+    await page.getByRole('button', { name: 'Confirmar lançamento' }).click()
+    await page.getByText(/1 nota\(s\) lançadas no SIGA/).waitFor({ timeout: 40000 })
+    await page.getByText('lançada').first().waitFor()
+    await foto(page, '14-manual-lancada')
 
 
     const manuais = await supabaseRest(
@@ -438,7 +469,7 @@ async function main() {
     await page.getByRole('button', { name: /Encerrar entregas/ }).click()
     await page.getByText('Entregas encerradas. Os alunos continuam vendo').waitFor({ timeout: 20000 })
     await page.getByText('entregas encerradas').first().waitFor()
-    await foto(page, '13-avaliacao-encerrada')
+    await foto(page, '15-avaliacao-encerrada')
 
     // ---- 14. o banco recusa entrega nova ---------------------------------
     console.log('  ▸ 14/17 banco recusa entrega em avaliação encerrada')
@@ -482,7 +513,7 @@ async function main() {
     if (await paginaAluno.getByRole('button', { name: /Fotografar minha redação/ }).count()) {
       throw new Error('A avaliação encerrada ainda oferece o botão de envio.')
     }
-    await foto(paginaAluno, '14-aluno-entregas-encerradas')
+    await foto(paginaAluno, '16-aluno-entregas-encerradas')
     await contextoAluno.close()
 
     await page.getByRole('button', { name: /Reabrir entregas/ }).click()
@@ -515,15 +546,16 @@ async function main() {
     await pagRecl.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
     await pagRecl.getByLabel('Turma').selectOption({ index: 1 })
     await pagRecl.getByLabel('Nome completo').fill(RECLAMANTE.nome)
-    await pagRecl.getByLabel('Matrícula').fill(RECLAMANTE.matricula)
+    await pagRecl.getByLabel('Matrícula', { exact: true }).fill(RECLAMANTE.matricula)
     await pagRecl.getByLabel('E-mail institucional').fill(RECLAMANTE.email)
     await pagRecl.getByLabel('Curso').fill('Ciências Biológicas')
     await pagRecl.getByLabel('Senha', { exact: true }).fill(RECLAMANTE.senha)
     await pagRecl.getByLabel('Repita a senha').fill(RECLAMANTE.senha)
+    await pagRecl.getByRole('checkbox').check()
     await pagRecl.getByRole('button', { name: 'Criar conta' }).click()
     await pagRecl.waitForFunction(() => !location.pathname.startsWith('/cadastrar'), null, { timeout: 30000 })
     await pagRecl.getByText('Redação 1 — Testes diagnósticos').first().waitFor({ timeout: 30000 })
-    await foto(pagRecl, '15-aluno-sem-email-na-lista')
+    await foto(pagRecl, '17-aluno-sem-email-na-lista')
     await contextoRecl.close()
 
     const turmasTeste = await supabaseRest(`turmas?codigo_siga=eq.${ALUNO.codigo}&select=id`)

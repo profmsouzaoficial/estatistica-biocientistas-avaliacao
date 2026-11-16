@@ -29,12 +29,18 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [progresso, setProgresso] = useState<string | null>(null)
   const [resultado, setResultado] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState<string | null>(null)
+  const [confirmandoLancamento, setConfirmandoLancamento] = useState(false)
+  const [codigoTurma, setCodigoTurma] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     if (!d) return
     const [av, subs] = await Promise.all([d.avaliacao(id), d.submissoesDaAvaliacao(id)])
     setAvaliacao(av)
     setItens(subs)
+    if (av) {
+      const turmas = await d.turmasTodas().catch(() => [])
+      setCodigoTurma(turmas.find((t) => t.id === av.turma_id)?.codigo_siga ?? null)
+    }
   }, [d, id])
 
   useEffect(() => {
@@ -100,6 +106,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   }
 
   async function lancarAprovadas() {
+    setConfirmandoLancamento(false)
     if (!d || aLancar.length === 0) return
     setErro(null)
     setResultado(null)
@@ -232,13 +239,32 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           </Botao>
           <Botao
             variante="secundario"
-            onClick={lancarAprovadas}
-            disabled={aLancar.length === 0 || !!progresso}
+            onClick={() => setConfirmandoLancamento(true)}
+            disabled={aLancar.length === 0 || !!progresso || confirmandoLancamento}
             icone={<UploadCloud className="size-4" />}
           >
             Lançar {aLancar.length} no SIGA
           </Botao>
         </div>
+
+        {confirmandoLancamento ? (
+          <Alerta tom="ambar" titulo={`Confirmar ${aLancar.length} lançamento(s)?`}>
+            <p className="text-[13.5px] leading-snug">
+              Vai gravar <strong>{aLancar.length} nota(s)</strong> em{' '}
+              <strong>{avaliacao.descricao_siga ?? 'avaliação sem descrição no SIGA'}</strong>
+              {codigoTurma ? ` · turma ${codigoTurma}` : ''}. Depois do envio, a nota aparece no SIGA
+              e não há como desfazer por aqui — confira a lista antes.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Botao onClick={lancarAprovadas} carregando={!!progresso}>
+                Confirmar lançamento
+              </Botao>
+              <Botao variante="secundario" onClick={() => setConfirmandoLancamento(false)}>
+                Cancelar
+              </Botao>
+            </div>
+          </Alerta>
+        ) : null}
 
         {avaliacao.descricao_siga ? (
           <p className="px-1 text-[12.5px] text-tinta-suave">

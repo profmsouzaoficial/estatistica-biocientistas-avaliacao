@@ -144,6 +144,7 @@ export function Cadastrar() {
   const [curso, setCurso] = useState('Ciências Biológicas')
   const [senha, setSenha] = useState('')
   const [senha2, setSenha2] = useState('')
+  const [consentiu, setConsentiu] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -166,6 +167,9 @@ export function Cadastrar() {
     if (senha.length < 8) return setErro('A senha precisa ter ao menos 8 caracteres.')
     if (senha !== senha2) return setErro('As duas senhas não conferem.')
     if (!turmaId) return setErro('Escolha sua turma.')
+    if (!consentiu) {
+      return setErro('Para criar a conta, leia o aviso de privacidade e marque a caixa de concordância.')
+    }
 
     setEnviando(true)
     try {
@@ -179,6 +183,7 @@ export function Cadastrar() {
         curso,
         turma_id: turmaId,
         senha,
+        consentimento: consentiu,
       })
       if (r.precisaConfirmarEmail) {
         setAviso('Conta criada! Enviamos um link de confirmação para o seu e-mail. Depois de confirmar, volte e entre.')
@@ -259,6 +264,28 @@ export function Cadastrar() {
           onChange={(e) => setSenha2(e.target.value)}
         />
 
+        <label className="flex items-start gap-2.5 rounded-xl bg-papel-fundo px-3 py-2.5">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 accent-[var(--color-verde)]"
+            checked={consentiu}
+            onChange={(e) => setConsentiu(e.target.checked)}
+          />
+          <span className="text-[13px] leading-snug text-tinta-suave">
+            Li o{' '}
+            <a
+              href="/privacidade"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-verde underline-offset-2 hover:underline"
+            >
+              aviso de privacidade
+            </a>{' '}
+            e concordo com o uso dos meus dados (nome, matrícula, e-mail, foto e texto da redação) para corrigir a
+            redação e lançar a nota no SIGA.
+          </span>
+        </label>
+
         {erro ? (
           <div className="flex items-start gap-2 rounded-xl bg-vermelho-claro px-3 py-2.5 text-[13.5px] text-vermelho">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -267,7 +294,7 @@ export function Cadastrar() {
         ) : null}
         {aviso ? <Alerta tom="verde">{aviso}</Alerta> : null}
 
-        <Botao type="submit" largo carregando={enviando}>
+        <Botao type="submit" largo carregando={enviando} disabled={!consentiu}>
           Criar conta
         </Botao>
       </form>
