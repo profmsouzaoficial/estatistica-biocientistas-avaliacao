@@ -260,6 +260,31 @@ desenvolver e uma linha de transparência: se a sugestão veio de um modelo, o a
 sugerida por IA e aprovada (ou ajustada) pelo professor, que é quem responde pela nota. Quando a
 correção é manual, a linha diz isso. O nome técnico do modelo aparece só na sua tela.
 
+## Ligar a IA de correção
+
+Enquanto a IA não estiver ligada, o app funciona: o aluno digita o texto (ou você dita a transcrição) e
+você corrige à mão, critério por critério. Para ligar a correção automática, uma pessoa com acesso ao
+projeto roda **um comando** na pasta do código:
+
+```bash
+pnpm configurar:ia --ensaio \
+  --base https://SEU-SERVICO.coolify.app/v1 --modelo Qwen2.5-7B-Instruct --chave sk-... \
+  --visao-modelo Qwen2.5-VL-7B-Instruct --foto ~/uma-redacao-sua.jpg
+```
+
+`--ensaio` só mostra o plano. Sem ele, o comando grava as variáveis, publica na Vercel, refaz o deploy,
+testa a correção com uma redação de exemplo, testa a leitura da **sua** foto e confere em `/api/saude` se
+corretor, leitura e SIGA aparecem ligados.
+
+O detalhe que economiza um serviço: se o modelo do Coolify enxerga imagem (Qwen2.5-VL, MiniCPM-V,
+Llama 3.2 Vision), o **mesmo endpoint e a mesma chave** servem para corrigir e para ler a foto —
+`--visao-modelo` cuida disso. Só é preciso outro provedor (Google Vision, por exemplo) se o modelo do
+Coolify for só de texto.
+
+Depois de ligado, a tela da avaliação mostra "Corrigir N pendente(s)"; a correção leva alguns segundos
+por redação, e cada uma cai na fila "A revisar" para sua aprovação. Se o modelo estiver fora do ar, o
+app avisa e a correção manual continua disponível.
+
 ## 7. Acompanhar
 
 - **Painel**: quantas redações aguardam correção, revisão e lançamento.
@@ -274,5 +299,5 @@ correção é manual, a linha diz isso. O nome técnico do modelo aparece só na
 | "Esta avaliação não tem descrição do SIGA" | preencha `Descrição no SIGA` na criação |
 | SIGA responde 403 | chave `SIGA_API_KEY` inválida ou expirada |
 | SIGA responde 404 | turma, período ou descrição não existem no SIGA |
-| Correção falha | `LLM_BASE_URL`/`LLM_MODEL` no ar; veja `GET /api/saude` |
-| Transcrição vazia | foto escura/torta; peça nova foto ou use a digitação manual |
+| Correção falha | rode `pnpm configurar:ia --ensaio` para conferir URL/modelo; veja `GET /api/saude` |
+| Transcrição vazia | foto escura/torta; peça nova foto ou use a digitação manual; teste com `pnpm test:ocr:foto` |

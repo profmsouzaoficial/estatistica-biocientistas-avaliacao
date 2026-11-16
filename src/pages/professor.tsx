@@ -190,13 +190,13 @@ function PrimeirosPassos({
       ok: saude?.corretor.configurado,
       titulo: 'Conectar a IA de correção (opcional)',
       certo: `Modelo ${saude?.corretor.modelo ?? 'configurado'}`,
-      falta: 'Sem IA, você corrige à mão pela revisão.',
+      falta: 'Sem IA, você corrige à mão pela revisão. Para ligar, quem cuida do código roda pnpm configurar:ia.',
     },
     {
       ok: saude?.ocr.configurado,
       titulo: 'Conectar a leitura das fotos (opcional)',
       certo: `Transcrição por ${saude?.ocr.modelo ?? saude?.ocr.provedor ?? 'serviço externo'}`,
-      falta: 'Sem OCR, o aluno digita o texto e a foto fica como comprovante.',
+      falta: 'Sem OCR, o aluno digita o texto e a foto fica como comprovante (mesmo comando: --visao-modelo).',
     },
   ]
 
