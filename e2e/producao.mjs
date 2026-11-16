@@ -78,10 +78,17 @@ async function sair(pagina) {
 }
 
 async function escolherTurma(pagina, trecho) {
+  // A lista de turmas chega depois do formulário: esperar pelo rótulo e pela
+  // opção evita pegar o <select> errado (o de capítulo) no meio do carregamento.
   const porRotulo = pagina.getByLabel('Turma').first()
-  const select = (await porRotulo.count()) ? porRotulo : pagina.locator('select').first()
+  const temRotulo = await porRotulo
+    .waitFor({ state: 'visible', timeout: 15000 })
+    .then(() => true)
+    .catch(() => false)
+  const select = temRotulo ? porRotulo : pagina.locator('select').first()
   const opcao = select.locator('option', { hasText: trecho }).first()
-  const valor = await opcao.getAttribute('value')
+  await opcao.waitFor({ state: 'attached', timeout: 20000 }).catch(() => {})
+  const valor = await opcao.getAttribute('value').catch(() => null)
   if (!valor) throw new Error(`A turma "${trecho}" não apareceu na lista.`)
   await select.selectOption(valor)
 }
@@ -127,6 +134,30 @@ const page = await contexto.newPage()
 page.setDefaultTimeout(45000)
 
 try {
+  // O build publicado continua acessível e deixa ampliar? A marca de versão diz
+  // se o site é novo o bastante para cobrar isso; build anterior vira aviso.
+  {
+    await page.goto(`${WEB}/entrar`, { waitUntil: 'networkidle' })
+    const marca = await page.evaluate(() => document.querySelector('meta[name="app-versao"]')?.content ?? null)
+    const viewport = await page.evaluate(
+      () => document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? '',
+    )
+    const fonte = await page.evaluate(() => {
+      const campo = document.querySelector('input[type="email"], input[type="text"], input')
+      return campo ? parseFloat(getComputedStyle(campo).fontSize) : null
+    })
+    const trava = /maximum-scale|user-scalable\s*=\s*(no|0)/i.test(viewport)
+    if (!marca) {
+      console.log('  ! build publicado sem marca de versão: pulando a conferência de zoom')
+    } else if (trava) {
+      throw new Error(`O site publicado trava o zoom (“${viewport}”).`)
+    } else if (fonte !== null && fonte < 16) {
+      throw new Error(`Campo do login com fonte de ${fonte}px — o iOS amplia sozinho ao focar.`)
+    } else {
+      console.log(`      zoom liberado · campo de login com ${fonte}px · versão ${marca}`)
+    }
+  }
+
   passo('1/10 professor entra')
   await entrar(page, PROFESSOR.email, PROFESSOR.senha)
   await page.getByText('Painel do professor').first().waitFor()
@@ -234,7 +265,7 @@ try {
   if (!/7([.,]0)?/.test(textoDevolutiva)) throw new Error('A devolutiva não mostra a nota 7.')
   await foto(page, 'prod-06-devolutiva')
 
-  passo('9/10 professor abre o lançamento no SIGA e cancela')
+  passo('9/10 professor abre o lançamento no SIGA, cancela e vê o histórico vazio')
   await sair(page)
   await entrar(page, PROFESSOR.email, PROFESSOR.senha)
   await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}`, { waitUntil: 'networkidle' })
@@ -247,6 +278,14 @@ try {
   await foto(page, 'prod-07-confirmacao-siga')
   await page.getByRole('button', { name: /Cancelar/ }).click()
   console.log('      confirmação conferida e cancelada — nada foi lançado no SIGA')
+
+  // O histórico é a prova de auditoria do lançamento: precisa existir no build
+  // publicado e responder vazio quando nada foi lançado (filtro por turma e
+  // descrição do SIGA + RLS do professor).
+  await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}/historico`, { waitUntil: 'networkidle' })
+  await page.getByText('Nenhum lançamento ainda').waitFor({ timeout: 20000 })
+  await foto(page, 'prod-08-historico-vazio')
+  console.log('      histórico de lançamentos abriu vazio (nada foi lançado)')
 
   passo('10/10 professor remove a turma pela tela')
   await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
