@@ -179,6 +179,15 @@ extensão. Se uma redação for enviada depois da data — prazo encurtado depoi
 ela aparece marcada em âmbar como **fora do prazo** na lista e na revisão. A marca é informativa: não
 muda a nota.
 
+Encurtar o prazo de uma avaliação que já recebeu entregas mexe nessa marca, então o app **avisa antes
+de gravar**: “2 entregas já feitas passariam a ser marcadas como fora do prazo”, com **Confirmar nova
+data** e **Cancelar**. Não é proibição — é para a marca não aparecer sem você saber. Para simplesmente
+fechar o envio sem recategorizar ninguém, use **Encerrar entregas**.
+
+Ao criar a avaliação, uma data no passado é recusada de saída (a avaliação nasceria fechada e o aluno
+leria “Prazo encerrado” em algo recém-publicado). Corrija a data e, se precisar mudá-la depois, use o
+próprio cartão do prazo.
+
 ### Conferir se a nota chegou ao SIGA
 
 Depois de lançar, a página da avaliação tem o cartão **O que já está no SIGA**. Ele lê o quadro da

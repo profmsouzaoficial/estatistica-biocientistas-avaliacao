@@ -348,6 +348,20 @@ async function main() {
     const descricaoEscolhida = await page.getByLabel('Descrição da avaliação no SIGA').inputValue()
     if (descricaoEscolhida !== 'TVC 1') throw new Error(`seletor do SIGA preencheu "${descricaoEscolhida}"`)
     await page.getByLabel('Data no SIGA').fill('2026-11-20')
+
+    // Prazo no passado: a avaliação nasceria fechada. O formulário precisa
+    // recusar com uma frase que diga o que fazer (o banco também recusa, mas a
+    // mensagem dele é técnica).
+    await page.getByLabel('Prazo de entrega (opcional)').fill('2020-03-10T19:00')
+    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
+    await page.getByText(/Esse prazo já passou/).waitFor({ timeout: 15000 })
+    if (!/\/prof\/avaliacoes\/nova$/.test(new URL(page.url()).pathname)) {
+      throw new Error('O formulário aceitou prazo no passado e saiu da tela de criação.')
+    }
+    await foto(page, '02b-prazo-no-passado')
+    await page.getByLabel('Prazo de entrega (opcional)').fill('')
+    console.log('      prazo no passado recusado, com o motivo na tela')
+
     await page.getByRole('button', { name: 'Publicar avaliação' }).click()
     await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
     const idAvaliacao = page.url().split('/').pop()
@@ -910,6 +924,11 @@ async function main() {
     await page.getByRole('button', { name: 'Definir um prazo' }).click()
     await page.locator('input[type="datetime-local"]').fill('2026-11-01T18:00')
     await page.getByRole('button', { name: 'Salvar prazo' }).click()
+    // Encurtar o prazo de quem já entregou muda o aviso de atraso: a tela pede
+    // confirmação e diz quantas entregas mudam de estado antes de gravar.
+    await page.getByText(/passaria\(m\) a ser marcada/).waitFor({ timeout: 20000 })
+    await foto(page, '25b-confirmar-prazo')
+    await page.getByRole('button', { name: 'Confirmar nova data' }).click()
     await page.getByText(/Prazo atualizado/).waitFor({ timeout: 20000 })
     // a redação já enviada passa a estar depois do prazo: fica marcada, sem mexer na nota
     await page.getByText('· fora do prazo').waitFor({ timeout: 20000 })

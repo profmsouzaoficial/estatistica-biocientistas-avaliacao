@@ -511,6 +511,18 @@ revisão; a marca é informativa. `pnpm test:formato` cobre as fronteiras dessa 
 datas ausentes e fusos diferentes); o passo 24 do `pnpm test:e2e` muda o prazo, confere a marca e remove o
 prazo.
 
+Duas coisas dão errado com data digitada à mão, e as duas agora são tratadas antes de gravar:
+
+| Situação | Antes | Agora |
+|---|---|---|
+| Prazo no passado ao criar | salvava; a avaliação nascia “encerrada” e o aluno não entendia | o formulário recusa com o motivo e o banco também (`trg_avaliacao_prazo`, migration 0012 — só na criação; mudar para uma data passada depois é legítimo e pede confirmação) |
+| Encurtar o prazo de quem já entregou | gravava calado; o aluno que entregou no prazo passava a aparecer como atrasado | a tela diz quantas entregas mudam de estado e só grava depois do **Confirmar nova data** |
+
+A conta do aviso fica em `src/lib/prazos.ts` (funções puras, sem relógio dentro) e o `pnpm test:prazos`
+cobre 16 casos: prazo vazio, data inválida, prazo no passado, encurtar, estender, remover e o caso de
+quem já estava atrasado não contar duas vezes. O passo 3 do `pnpm test:e2e` tenta publicar com data no
+passado e confere a recusa; o passo 24 confirma o aviso de encurtamento.
+
 ### A lista de alunos
 
 `pnpm test:csv` roda 16 verificações sobre o leitor da lista (`src/lib/csv.ts`) — o texto que o

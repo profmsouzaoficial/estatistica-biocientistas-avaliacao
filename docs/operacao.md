@@ -75,7 +75,7 @@ Em **Nova avaliação**:
 | Rubrica | 3 a 6 critérios; cada um com valor e descrição do que conta |
 | Descrição no SIGA | precisa ser **idêntica** ao nome da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`) |
 | Peso no SIGA | o peso que o SIGA usa para aquela avaliação; a nota é convertida proporcionalmente |
-| Prazo | opcional; depois dele o aluno não abre entrega nova |
+| Prazo | opcional; depois dele o aluno não abre entrega nova. Data no passado é recusada (a avaliação nasceria fechada) |
 
 ### 2. Publicar e acompanhar (2 min por dia)
 
@@ -86,6 +86,11 @@ Publicada, a avaliação aparece para o aluno. Na tela dela, abaixo dos contador
 
 Faltando alguém perto do prazo, **"Estender ou mudar o prazo"** reabre o envio sem mexer em redação já
 enviada nem em nota lançada.
+
+Encurtar o prazo é legítimo, mas tem efeito colateral: quem já entregou pode passar a ser marcado como
+**fora do prazo**. A tela mede isso antes de gravar e pede confirmação — “2 entregas já feitas
+passariam a ser marcadas como fora do prazo”. Se a intenção é só fechar o envio, use **Encerrar
+entregas**, que não recategoriza ninguém.
 
 ### 3. Corrigir e revisar (o grosso do trabalho)
 

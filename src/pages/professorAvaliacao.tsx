@@ -20,7 +20,16 @@ import {
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
-import { atrasoDeEntrega, formatarData, formatarDataHora, formatarNota, formatarPontos, plural } from '../lib/formato'
+import {
+  atrasoDeEntrega,
+  formatarData,
+  formatarDataHora,
+  formatarNota,
+  formatarPontos,
+  paraInputLocal,
+  plural,
+} from '../lib/formato'
+import { avisoDaMudanca, efeitoDaMudanca } from '../lib/prazos'
 import { notaParaSiga } from '../lib/types'
 import type {
   Avaliacao,
@@ -92,6 +101,9 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [prazoNovo, setPrazoNovo] = useState('')
   const [prazoEmEdicao, setPrazoEmEdicao] = useState(false)
+  // Mudança de prazo que precisa de confirmação (encurta e alguém deixaria de
+  // estar no prazo, ou já nasce no passado e fecha o envio na hora).
+  const [prazoPendente, setPrazoPendente] = useState<{ iso: string; aviso: string } | null>(null)
   const [confirmandoLancamento, setConfirmandoLancamento] = useState(false)
   const [turma, setTurma] = useState<Turma | null>(null)
   const [sigaTem, setSigaTem] = useState<boolean | null>(null)
@@ -213,13 +225,27 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     }
   }
 
-  /** Valor do <input datetime-local>: data e hora locais, sem fuso. */
-  function paraInputLocal(iso: string | null): string {
-    if (!iso) return ''
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return ''
-    const p = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+  /**
+   * Antes de gravar, mede o efeito sobre quem já entregou. Encurtar prazo é
+   * legítimo, mas marcar alguém como atrasado sem avisar não é: quando há
+   * efeito, a gravação só acontece depois do "Confirmar".
+   */
+  function conferirPrazo(novo: string) {
+    setErro(null)
+    setResultado(null)
+    const iso = novo ? new Date(novo).toISOString() : ''
+    const enviados = (itens ?? []).map((i) => i.submissao?.enviado_em ?? null)
+    const efeito = efeitoDaMudanca({
+      enviados,
+      prazoAtual: avaliacao?.prazo_em ?? null,
+      prazoNovo: iso || null,
+    })
+    const aviso = avisoDaMudanca(efeito, iso || null)
+    if (aviso) {
+      setPrazoPendente({ iso, aviso })
+      return
+    }
+    void salvarPrazo(iso)
   }
 
   async function salvarPrazo(novo: string) {
@@ -231,6 +257,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       await d.mudarPrazoAvaliacao(id, novo ? new Date(novo).toISOString() : null)
       await carregar()
       setPrazoEmEdicao(false)
+      setPrazoPendente(null)
       setResultado(
         novo
           ? 'Prazo atualizado. Quem já enviou continua enviado; quem não enviou passa a poder entregar até a nova data.'
@@ -502,7 +529,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               </label>
               <Botao
                 type="button"
-                onClick={() => salvarPrazo(prazoNovo)}
+                onClick={() => conferirPrazo(prazoNovo)}
                 carregando={ocupado === 'prazo'}
                 disabled={!prazoNovo || ocupado === 'prazo'}
               >
@@ -510,7 +537,10 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               </Botao>
               <button
                 type="button"
-                onClick={() => setPrazoEmEdicao(false)}
+                onClick={() => {
+                  setPrazoEmEdicao(false)
+                  setPrazoPendente(null)
+                }}
                 className="pb-2 text-[12.5px] text-tinta-suave hover:text-tinta"
               >
                 Cancelar
@@ -541,9 +571,33 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               ) : null}
             </div>
           )}
+          {prazoPendente ? (
+            <Alerta tom="ambar" titulo="Confirme a mudança de prazo">
+              <p>{prazoPendente.aviso}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Botao
+                  type="button"
+                  variante="secundario"
+                  onClick={() => void salvarPrazo(prazoPendente.iso)}
+                  carregando={ocupado === 'prazo'}
+                  disabled={ocupado === 'prazo'}
+                >
+                  Confirmar nova data
+                </Botao>
+                <button
+                  type="button"
+                  onClick={() => setPrazoPendente(null)}
+                  className="text-[12.5px] text-tinta-suave underline-offset-2 hover:text-tinta hover:underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </Alerta>
+          ) : null}
           <p className="text-[12.5px] leading-snug text-tinta-fraca">
             Depois do prazo o aluno não abre entrega nova. Mudar a data reabre o envio para quem faltou —
-            não altera redação já enviada nem nota já lançada.
+            não altera redação já enviada nem nota já lançada. Encurtar o prazo de quem já entregou pede
+            confirmação, porque muda o aviso de atraso.
           </p>
         </Cartao>
 

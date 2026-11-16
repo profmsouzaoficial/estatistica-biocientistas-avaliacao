@@ -43,7 +43,8 @@
     "test:contraste": "node e2e/contraste.mjs",
     "test:documentacao": "node scripts/testar-documentacao.mjs",
     "test:recuperacao": "node scripts/testar-recuperacao.mjs",
-    "test:versao": "node scripts/testar-versao.mjs"
+    "test:versao": "node scripts/testar-versao.mjs",
+    "test:prazos": "node scripts/testar-prazos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

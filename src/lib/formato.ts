@@ -88,3 +88,21 @@ export function primeiroNome(nome: string): string {
 export function plural(n: number, singular: string, plural_: string): string {
   return `${n} ${n === 1 ? singular : plural_}`
 }
+
+/** Valor do `<input type="datetime-local">`: data e hora locais, sem fuso. */
+export function paraInputLocal(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+/**
+ * "Agora" no formato do `datetime-local`, para usar como `min` do campo.
+ * Um minuto à frente: o minuto corrente já pode ter passado, e o seletor do
+ * navegador não deve oferecer uma data que o validador vai recusar.
+ */
+export function agoraParaInput(): string {
+  return paraInputLocal(new Date(Date.now() + 60_000).toISOString())
+}

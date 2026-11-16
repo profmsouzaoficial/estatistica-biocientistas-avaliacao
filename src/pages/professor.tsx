@@ -6,7 +6,8 @@ import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
 import { CAPITULOS } from '../lib/livro'
 import type { AvaliacaoSiga, Criterio, Diagnostico, Esperado, ResumoAvaliacao, Turma } from '../lib/types'
-import { formatarNota } from '../lib/formato'
+import { agoraParaInput, formatarNota } from '../lib/formato'
+import { validarPrazoCriacao } from '../lib/prazos'
 
 // ---------------------------------------------------------------------------
 
@@ -394,6 +395,10 @@ export function ProfessorNovaAvaliacao() {
     if (total <= 0) return setErro('O valor total precisa ser maior que zero.')
     if (rubrica.some((c) => !c.nome.trim())) return setErro('Todo critério precisa de um nome.')
     if (!somaOk) return setErro(`A rubrica soma ${soma} mas o valor total é ${total}.`)
+    // O banco também recusa prazo antes da abertura, mas a mensagem dele não
+    // explica o que fazer — esta explica.
+    const prazoOk = validarPrazoCriacao(prazo)
+    if (!prazoOk.ok) return setErro(prazoOk.mensagem ?? 'Prazo inválido.')
 
     setSalvando(true)
     try {
@@ -437,7 +442,10 @@ export function ProfessorNovaAvaliacao() {
           </Alerta>
         ) : null}
 
-        <form onSubmit={salvar} className="space-y-4">
+        {/* noValidate: as mensagens são nossas, em pt-BR e dizendo o que fazer.
+            O `required` continua nos campos para leitores de tela anunciarem a
+            obrigatoriedade, mas quem barra (e explica) é o `salvar`. */}
+        <form onSubmit={salvar} className="space-y-4" noValidate>
           <Cartao className="space-y-3.5">
             <select className="campo" value={turmaId} onChange={(e) => setTurmaId(e.target.value)} required>
               <option value="">Turma…</option>
@@ -495,6 +503,9 @@ export function ProfessorNovaAvaliacao() {
               rotulo="Prazo de entrega (opcional)"
               type="datetime-local"
               value={prazo}
+              // `min` impede o seletor de oferecer datas que já passaram; o
+              // validador no envio cobre quem digita à mão.
+              min={agoraParaInput()}
               onChange={(e) => setPrazo(e.target.value)}
             />
           </Cartao>
