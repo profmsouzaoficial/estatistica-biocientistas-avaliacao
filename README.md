@@ -225,6 +225,15 @@ banco); `pnpm fotos:limpar --apagar` remove. A remoção de turma pela tela já 
 um erro explicativo. O plano Hobby da Vercel corta funções em ~60 s; para um modelo grande rodando
 em CPU, use `pnpm corrigir:lote` na sua máquina — o script já espera 10 minutos por redação.
 
+### Antes de publicar
+
+1. `pnpm lint` (tipos) e `pnpm build`.
+2. `pnpm test:e2e` com o professor configurado — o teste local usa o Supabase de produção e o
+   SIGA **simulado**, então ele pega desde erro de tela até coluna que falta no banco (foi assim
+   que a coluna `escala` de `lancamentos_siga` apareceu).
+3. `pnpm db:aplicar` se houver migration nova.
+4. `pnpm test:producao` depois do deploy — cria e apaga uma turma descartável, sem lançar nota.
+
 ### Verificação de produção
 
 `pnpm test:producao` roda o fluxo real contra a Vercel: cria uma turma e um aluno
