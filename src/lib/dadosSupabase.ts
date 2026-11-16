@@ -18,6 +18,7 @@ import type {
   Esperado,
   LancamentoSiga,
   QuadroSiga,
+  QuadroNotasSiga,
   Perfil,
   ResumoAvaliacao,
   StatusAvaliacao,
@@ -467,6 +468,11 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     async avaliacoesDoSiga(turma, periodo) {
       const q = new URLSearchParams({ turma, periodo })
       return api<QuadroSiga>(`/siga/avaliacoes?${q.toString()}`)
+    },
+
+    async notasDoSiga(turma, periodo) {
+      const q = new URLSearchParams({ turma, periodo })
+      return api<QuadroNotasSiga>(`/siga/notas?${q.toString()}`)
     },
 
     async saude() {

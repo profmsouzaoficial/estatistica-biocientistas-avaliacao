@@ -243,6 +243,14 @@ com a rubrica e o prompt do app, e mostra nota, tempo e se a ordem se manteve. �
 LLM_BASE_URL=http://127.0.0.1:11434/v1 LLM_API_KEY=ollama pnpm comparar:modelos
 ```
 
+### Conferência do lançamento
+
+`GET /api/siga/notas?turma=…&periodo=…` lê o quadro da turma no SIGA (só leitura, exige sessão de
+professor) e devolve alunos, notas por avaliação e situação. A página da avaliação usa isso para
+comparar o que o app enviou com o que está gravado — enviado ≠ gravado é o erro que deixa o aluno
+sem nota sem ninguém perceber. O passo 21 do `pnpm e2e` cobre esse ciclo e também confere que a rota
+recusa chamada sem sessão.
+
 ### Isolamento entre alunos
 
 `pnpm test:seguranca` cria duas contas descartáveis no Supabase de produção, envia uma redação com

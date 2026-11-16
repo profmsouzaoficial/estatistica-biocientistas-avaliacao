@@ -56,6 +56,11 @@ function responderJson(res, status, corpo) {
   res.end(JSON.stringify(corpo))
 }
 
+// Notas lançadas no mock, por matrícula → descrição da avaliação → nota.
+// Fica no escopo do módulo: se ficasse dentro do handler, cada requisição criaria
+// um mapa novo e a conferência nunca acharia o que acabou de ser lançado.
+const notasLancadas = new Map()
+
 let avaliacoes = [
   { id: 'mock-1', descricao: 'TVC 1', peso: 10, data: '20/11/2026' },
   { id: 'mock-2', descricao: 'TVC 2', peso: 20, data: '11/12/2026' },
@@ -117,6 +122,13 @@ const servidor = createServer(async (req, res) => {
       return responderJson(res, 403, { detail: 'X-API-Key ausente ou inválida (mock).' })
     }
     if (url.pathname === '/api/lancar-notas') {
+      // Guarda o que foi lançado: a consulta do quadro (GET /api/notas) devolve
+      // isso, e assim o teste confere o ciclo "lancei → aparece no SIGA".
+      for (const [matricula, nota] of Object.entries(corpo?.notas_json ?? {})) {
+        const chave = String(corpo?.descricao_avaliacao ?? '')
+        if (!notasLancadas.has(matricula)) notasLancadas.set(matricula, {})
+        notasLancadas.get(matricula)[chave] = Number(nota)
+      }
       return responderJson(res, 200, {
         ok: true,
         turma: corpo?.turma,
@@ -139,11 +151,19 @@ const servidor = createServer(async (req, res) => {
     if (url.pathname === '/api/notas') {
       const turma = url.searchParams.get('turma') ?? ''
       const periodo = url.searchParams.get('periodo') ?? ''
+      const alunos = [...notasLancadas.entries()].map(([matricula, notas]) => ({
+        matricula,
+        nome: `Aluno ${matricula}`,
+        notas,
+        nota_final: null,
+        frequencia: 'FS',
+        situacao: 'Matriculado',
+      }))
       return responderJson(res, 200, {
         consulta: { turma, periodo, id_turma: 'mock-turma', id_periodo: 'mock-periodo' },
         avaliacoes,
-        alunos: [],
-        resumo: {},
+        alunos,
+        resumo: { total_alunos: alunos.length },
         origem: 'mock',
       })
     }

@@ -9,6 +9,7 @@ import type {
   ResumoAvaliacao,
   StatusAvaliacao,
   QuadroSiga,
+  QuadroNotasSiga,
   Submissao,
   SubmissaoDoProfessor,
   Turma,
@@ -142,6 +143,8 @@ export interface Dados {
   lancarNoSiga(correcaoId: string): Promise<LancamentoSiga>
   /** Avaliações que já existem no SIGA para a turma/período. */
   avaliacoesDoSiga(turma: string, periodo: string): Promise<QuadroSiga>
+  /** Quadro de notas da turma no SIGA (leitura). Usado para conferir os lançamentos. */
+  notasDoSiga(turma: string, periodo: string): Promise<QuadroNotasSiga>
   /** Diagnóstico do servidor (OCR, corretor, SIGA); null no modo demonstração. */
   saude(): Promise<Diagnostico | null>
 }

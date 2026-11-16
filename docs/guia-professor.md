@@ -109,6 +109,23 @@ Na tela da avaliação:
 A nota final é sempre `soma dos critérios ÷ valor total × 10`, arredondada a uma casa. Não é o
 modelo que decide a nota no SIGA.
 
+### Conferir se a nota chegou ao SIGA
+
+Depois de lançar, a página da avaliação tem o cartão **O que já está no SIGA**. Ele lê o quadro da
+turma na API do SIGA (só leitura) e compara, aluno por aluno, o que o app enviou com o que está
+gravado:
+
+| Selo | Significado | O que fazer |
+|---|---|---|
+| **confere** | o valor enviado e o do SIGA são iguais | nada |
+| **diverge** | o SIGA tem outro valor naquela coluna | confira a descrição da avaliação e lance de novo |
+| **não chegou** | o app registrou o envio, mas o SIGA mostra vazio | lance de novo; se repetir, veja o log em `lancamentos_siga` |
+| **a lançar** | ainda não foi enviado | use **Lançar N no SIGA** |
+| **só no SIGA** | há nota no SIGA sem envio registrado no app | nota lançada à mão, direto no SIGA |
+
+O cartão não altera nada. É o fecho do ciclo: sem ele, "lancei" e "está lá" seriam a mesma frase — e
+não são.
+
 **Tempo:** com o modelo em CPU, cada correção leva de 45 a 90 segundos. A hospedagem atual corta
 pedidos em 60 s, então, para a turma inteira, o caminho é o lote no servidor do modelo
 (`pnpm corrigir:lote`) — ele corrige sem limite de tempo e a tela passa a mostrar as correções

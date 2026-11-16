@@ -124,6 +124,24 @@ export interface AvaliacaoSiga {
   data: string | null
 }
 
+export interface NotaDoAlunoSiga {
+  matricula: string
+  nome: string
+  /** Nota por descrição de avaliação, como o SIGA devolve (null = sem nota). */
+  notas: Record<string, number | null>
+  nota_final: number | null
+  frequencia: string | null
+  situacao: string | null
+}
+
+export interface QuadroNotasSiga {
+  consulta: QuadroSiga['consulta']
+  avaliacoes: AvaliacaoSiga[]
+  alunos: NotaDoAlunoSiga[]
+  resumo: Record<string, unknown> | null
+  avisos: string[]
+}
+
 export interface QuadroSiga {
   consulta: {
     turma: string

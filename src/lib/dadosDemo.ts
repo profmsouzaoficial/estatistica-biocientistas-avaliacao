@@ -823,6 +823,30 @@ export function criarDadosDemo(): Dados {
       }
     },
 
+    async notasDoSiga(turma: string, periodo: string) {
+      // Modo demonstração: mostra o quadro como se as notas do app já estivessem lá.
+      const alunosDemo = base.perfis
+        .filter((p) => p.papel === 'aluno')
+        .map((p) => ({
+          matricula: p.matricula ?? '',
+          nome: p.nome_completo,
+          notas: { 'TVC 1': Number((6 + Math.random() * 3).toFixed(1)), 'TVC 2': null } as Record<string, number | null>,
+          nota_final: null,
+          frequencia: 'FS',
+          situacao: 'Matriculado',
+        }))
+      return {
+        consulta: { turma, periodo, id_turma: null, id_periodo: null, gerado_em: new Date().toISOString() },
+        avaliacoes: [
+          { id: 'demo-1', descricao: 'TVC 1', peso: 10, data: '25/09/2026' },
+          { id: 'demo-2', descricao: 'TVC 2', peso: 20, data: '27/11/2026' },
+        ],
+        alunos: alunosDemo,
+        resumo: null,
+        avisos: ['Modo demonstração: valores inventados para a tela funcionar.'],
+      }
+    },
+
     async salvarRevisao(correcaoId: string, revisao: Revisao) {
       const c = base.correcoes.find((x) => x.id === correcaoId)
       if (!c) throw new Error('Correção não encontrada.')

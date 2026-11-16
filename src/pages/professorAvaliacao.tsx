@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Download, Eye, ImageOff, Loader2, Lock, Pencil, Send, Sparkles, Trash2, Undo2, Unlock, UploadCloud } from 'lucide-react'
+import { CheckCircle2, Download, Eye, ImageOff, Loader2, Lock, Pencil, RefreshCw, Send, Sparkles, Trash2, Undo2, Unlock, UploadCloud } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
 import { formatarData, formatarDataHora, formatarNota, formatarPontos, plural } from '../lib/formato'
 import { notaParaSiga } from '../lib/types'
-import type { Avaliacao, CriterioNota, SubmissaoDoProfessor, Turma } from '../lib/types'
+import type { Avaliacao, CriterioNota, QuadroNotasSiga, SubmissaoDoProfessor, Turma } from '../lib/types'
 import { api } from '../lib/servidor'
 
 /**
@@ -67,6 +67,10 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [confirmandoLancamento, setConfirmandoLancamento] = useState(false)
   const [turma, setTurma] = useState<Turma | null>(null)
   const [sigaTem, setSigaTem] = useState<boolean | null>(null)
+  const [quadroSiga, setQuadroSiga] = useState<QuadroNotasSiga | null>(null)
+  const [conferindo, setConferindo] = useState(false)
+  const [erroQuadro, setErroQuadro] = useState<string | null>(null)
+  const [lidoEm, setLidoEm] = useState<Date | null>(null)
   const [criandoSiga, setCriandoSiga] = useState(false)
   const [erroSiga, setErroSiga] = useState<string | null>(null)
   // Exclusão da avaliação (só quando ninguém enviou e nada foi ao SIGA)
@@ -204,6 +208,21 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     if (falhas.length) setErro(falhas.join(' · '))
   }
 
+  async function conferirNoSiga() {
+    if (!turma || !d) return
+    setConferindo(true)
+    setErroQuadro(null)
+    try {
+      const q = await d.notasDoSiga(turma.codigo_siga, turma.periodo)
+      setQuadroSiga(q)
+      setLidoEm(new Date())
+    } catch (e) {
+      setErroQuadro(e instanceof Error ? e.message : 'Não consegui ler o quadro do SIGA.')
+    } finally {
+      setConferindo(false)
+    }
+  }
+
   function exportarCsv() {
     if (!itens || !avaliacao) return
     const linhas = [
@@ -267,6 +286,42 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   }
 
   if (!avaliacao || !itens) return <Carregando />
+
+  /**
+   * Compara o que o app enviou (lançamentos) com o que o SIGA mostra na coluna da
+   * avaliação. É a conferência que fecha o ciclo: enviado ≠ gravado é o erro que
+   * mais dói, porque o aluno fica sem nota e ninguém percebe.
+   */
+  const conferencia = (() => {
+    if (!quadroSiga || !avaliacao.descricao_siga) return []
+    const coluna = avaliacao.descricao_siga
+    const porMatricula = new Map(quadroSiga.alunos.map((a) => [a.matricula, a]))
+    return itens
+      .filter((i) => i.submissao)
+      .map((i) => {
+        const aluno = porMatricula.get(i.aluno.matricula ?? '')
+        const noSiga = aluno?.notas?.[coluna] ?? null
+        const enviada = i.lancamento?.sucesso ? i.lancamento.nota : null
+        const situacao: 'igual' | 'diferente' | 'sumiu' | 'a_lancar' | 'so_no_siga' =
+          enviada == null && noSiga == null
+            ? 'a_lancar'
+            : enviada == null
+              ? 'so_no_siga'
+              : noSiga == null
+                ? 'sumiu'
+                : Math.abs(Number(noSiga) - Number(enviada)) <= 0.01
+                  ? 'igual'
+                  : 'diferente'
+        return {
+          id: i.submissao!.id,
+          nome: i.aluno.nome_completo,
+          matricula: i.aluno.matricula ?? '—',
+          enviada,
+          noSiga: noSiga == null ? null : Number(noSiga),
+          situacao,
+        }
+      })
+  })()
 
   return (
     <>
@@ -435,6 +490,81 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             Esta avaliação não tem descrição do SIGA configurada. Preencha na criação para poder lançar as notas.
           </Alerta>
         )}
+
+        {avaliacao.descricao_siga && turma ? (
+          <Cartao>
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-verde">O que já está no SIGA</p>
+              {lidoEm ? (
+                <span className="shrink-0 text-[11.5px] text-tinta-fraca">
+                  lido às {lidoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-1 text-[12.5px] leading-snug text-tinta-suave">
+              Lê o quadro de <strong className="font-medium text-tinta">{turma.codigo_siga}</strong> na API do
+              SIGA e compara com o que o app enviou. É só leitura — nada é alterado.
+            </p>
+            {erroQuadro ? (
+              <p className="mt-2 text-[13px] leading-snug text-vermelho">{erroQuadro}</p>
+            ) : null}
+            {!quadroSiga ? (
+              <div className="mt-3">
+                <Botao
+                  variante="secundario"
+                  largo
+                  onClick={conferirNoSiga}
+                  carregando={conferindo}
+                  icone={<RefreshCw className="size-4" />}
+                >
+                  Conferir agora
+                </Botao>
+              </div>
+            ) : conferencia.length === 0 ? (
+              <p className="mt-2 text-[12.5px] text-tinta-suave">Nenhuma redação enviada nesta avaliação ainda.</p>
+            ) : (
+              <>
+                <ul className="mt-3 divide-y divide-borda">
+                  {conferencia.map((l) => (
+                    <li key={l.id} className="flex items-center justify-between gap-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[13.5px] text-tinta">{l.nome}</p>
+                        <p className="text-[11.5px] text-tinta-fraca">
+                          {l.matricula} · app {l.enviada == null ? '—' : formatarNota(l.enviada)} · SIGA{' '}
+                          {l.noSiga == null ? '—' : formatarNota(l.noSiga)}
+                        </p>
+                      </div>
+                      {l.situacao === 'igual' ? (
+                        <Selo tom="verde">
+                          <CheckCircle2 className="size-3.5" aria-hidden /> confere
+                        </Selo>
+                      ) : l.situacao === 'diferente' ? (
+                        <Selo tom="ambar">diverge</Selo>
+                      ) : l.situacao === 'sumiu' ? (
+                        <Selo tom="vermelho">não chegou</Selo>
+                      ) : l.situacao === 'so_no_siga' ? (
+                        <Selo tom="ambar">só no SIGA</Selo>
+                      ) : (
+                        <Selo tom="neutro">a lançar</Selo>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3">
+                  <Botao
+                    variante="secundario"
+                    largo
+                    onClick={conferirNoSiga}
+                    carregando={conferindo}
+                    icone={<RefreshCw className="size-4" />}
+                  >
+                    Conferir de novo
+                  </Botao>
+                </div>
+              </>
+            )}
+          </Cartao>
+        ) : null}
 
         <div className="cartao divide-y divide-borda overflow-hidden">
           {itens.length === 0 ? (
