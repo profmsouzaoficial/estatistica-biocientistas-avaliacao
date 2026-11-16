@@ -484,8 +484,10 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     },
 
     async lancarNoSiga(correcaoId) {
-      const r = await api<{ lancamento: LancamentoSiga }>('/siga/lancar', { correcao_id: correcaoId })
-      return r.lancamento
+      const r = await api<{ lancamento: LancamentoSiga; repetido?: boolean }>('/siga/lancar', {
+        correcao_id: correcaoId,
+      })
+      return { lancamento: r.lancamento, repetido: Boolean(r.repetido) }
     },
 
     async avaliacoesDoSiga(turma, periodo) {

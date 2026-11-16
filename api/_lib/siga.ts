@@ -14,6 +14,24 @@ export interface ResultadoSiga {
   corpo: unknown
 }
 
+/**
+ * O SIGA respondeu fora da faixa 2xx.
+ *
+ * Carrega o status de origem (403, 422…) além do 502 que chega ao navegador. Sem
+ * isso, a auditoria gravava `http_status: null` em toda recusa e o professor não
+ * sabia diferenciar "o SIGA recusou a avaliação" de "não houve resposta" — a
+ * diferença entre corrigir o dado e esperar o servidor voltar.
+ */
+export class ErroSiga extends ErroHttp {
+  constructor(
+    readonly statusSiga: number,
+    mensagem: string,
+    detalhe?: unknown,
+  ) {
+    super(502, 'SIGA_RECUSOU', mensagem, detalhe)
+  }
+}
+
 function base(): string {
   return (envOpcional('SIGA_API_BASE') ?? 'https://siga-api.sparklingtech.com.br').replace(/\/+$/, '')
 }
@@ -86,7 +104,7 @@ export async function lancarNotas(pedido: PedidoLancamento): Promise<ResultadoSi
   })
 
   if (resultado.status < 200 || resultado.status >= 300) {
-    throw new ErroHttp(502, 'SIGA_RECUSOU', mensagemSiga(resultado), resultado.corpo)
+    throw new ErroSiga(resultado.status, mensagemSiga(resultado), resultado.corpo)
   }
   return resultado
 }
@@ -95,7 +113,7 @@ export async function consultarNotas(turma: string, periodo: string): Promise<Re
   const query = new URLSearchParams({ turma, periodo })
   const resultado = await chamar(`/api/notas?${query.toString()}`, { method: 'GET' })
   if (resultado.status < 200 || resultado.status >= 300) {
-    throw new ErroHttp(502, 'SIGA_RECUSOU', mensagemSiga(resultado), resultado.corpo)
+    throw new ErroSiga(resultado.status, mensagemSiga(resultado), resultado.corpo)
   }
   return resultado
 }
@@ -123,7 +141,7 @@ export async function criarAvaliacao(pedido: PedidoAvaliacao): Promise<Resultado
     }),
   })
   if (resultado.status < 200 || resultado.status >= 300) {
-    throw new ErroHttp(502, 'SIGA_RECUSOU', mensagemSiga(resultado), resultado.corpo)
+    throw new ErroSiga(resultado.status, mensagemSiga(resultado), resultado.corpo)
   }
   return resultado
 }

@@ -935,6 +935,11 @@ export function criarDadosDemo(): Dados {
     async lancarNoSiga(correcaoId) {
       const c = base.correcoes.find((x) => x.id === correcaoId)
       if (!c) throw new Error('Correção não encontrada.')
+      // Mesma regra do servidor: lançamento igual já feito não vai de novo.
+      const anterior = base.lancamentos.find(
+        (l) => l.correcao_id === correcaoId && l.sucesso && l.nota === c.nota_final,
+      )
+      if (anterior) return { lancamento: anterior, repetido: true }
       const s = base.submissoes.find((x) => x.id === c.submissao_id)
       const p = base.perfis.find((x) => x.id === s?.aluno_id)
       const av = base.avaliacoes.find((a) => a.id === s?.avaliacao_id)
@@ -955,7 +960,7 @@ export function criarDadosDemo(): Dados {
       }
       base.lancamentos.push(lancamento)
       gravar()
-      return lancamento
+      return { lancamento, repetido: false }
     },
 
     async historicoLancamentos(avaliacaoId) {

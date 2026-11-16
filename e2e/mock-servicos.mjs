@@ -61,6 +61,14 @@ function responderJson(res, status, corpo) {
 // um mapa novo e a conferência nunca acharia o que acabou de ser lançado.
 const notasLancadas = new Map()
 
+// Quantas vezes o app chamou /api/lancar-notas. Sem isso, "não lançou duas
+// vezes" é fé, não teste: a idempotência só se prova contando chamadas.
+let chamadasLancamento = 0
+
+// Recusa programável: o teste pede ao mock que a próxima chamada falhe, para
+// conferir o que o app grava na auditoria quando o SIGA responde 403.
+let recusarProximaLancamento = null
+
 let avaliacoes = [
   { id: 'mock-1', descricao: 'TVC 1', peso: 10, data: '20/11/2026' },
   { id: 'mock-2', descricao: 'TVC 2', peso: 20, data: '11/12/2026' },
@@ -81,6 +89,28 @@ const servidor = createServer(async (req, res) => {
   console.log(`  [mock] ${req.method} ${url.pathname}`)
 
   if (url.pathname === '/health') return responderJson(res, 200, { status: 'ok' })
+
+  // ---- controle do próprio mock (usado pelos testes) ----------------------
+  if (url.pathname === '/__estado') {
+    return responderJson(res, 200, {
+      chamadas_lancamento: chamadasLancamento,
+      notas: [...notasLancadas.entries()].map(([matricula, porAvaliacao]) => ({ matricula, notas: porAvaliacao })),
+      recusa_programada: recusarProximaLancamento,
+    })
+  }
+  if (url.pathname === '/__recusar-lancamento') {
+    recusarProximaLancamento = {
+      status: Number(corpo?.status ?? 403),
+      detalhe: corpo?.detalhe ?? 'Avaliação fechada para lançamento (mock).',
+    }
+    return responderJson(res, 200, { ok: true, proxima: recusarProximaLancamento })
+  }
+  if (url.pathname === '/__zerar') {
+    chamadasLancamento = 0
+    notasLancadas.clear()
+    recusarProximaLancamento = null
+    return responderJson(res, 200, { ok: true })
+  }
 
   // ---- LLM / visão (compatível com OpenAI) --------------------------------
   if (url.pathname === '/v1/chat/completions') {
@@ -122,6 +152,12 @@ const servidor = createServer(async (req, res) => {
       return responderJson(res, 403, { detail: 'X-API-Key ausente ou inválida (mock).' })
     }
     if (url.pathname === '/api/lancar-notas') {
+      chamadasLancamento += 1
+      if (recusarProximaLancamento) {
+        const recusa = recusarProximaLancamento
+        recusarProximaLancamento = null
+        return responderJson(res, recusa.status, { detail: recusa.detalhe, origem: 'mock' })
+      }
       // Guarda o que foi lançado: a consulta do quadro (GET /api/notas) devolve
       // isso, e assim o teste confere o ciclo "lancei → aparece no SIGA".
       for (const [matricula, nota] of Object.entries(corpo?.notas_json ?? {})) {

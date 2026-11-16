@@ -291,20 +291,28 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     setErro(null)
     setResultado(null)
     let ok = 0
+    let repetidas = 0
     const falhas: string[] = []
     for (let i = 0; i < aLancar.length; i++) {
       const item = aLancar[i]
       setProgresso(`Lançando ${i + 1} de ${aLancar.length} no SIGA…`)
       try {
-        await d.lancarNoSiga(item.correcao!.id)
-        ok++
+        // `repetido` quer dizer que o SIGA não foi chamado de novo: já havia um
+        // lançamento com esta mesma nota. Conta à parte para o professor saber
+        // exatamente o que aconteceu.
+        const r = await d.lancarNoSiga(item.correcao!.id)
+        if (r.repetido) repetidas++
+        else ok++
       } catch (e) {
         falhas.push(`${item.aluno.nome_completo.split(' ')[0]}: ${e instanceof Error ? e.message : 'erro'}`)
       }
     }
     setProgresso(null)
     await carregar()
-    setResultado(`${ok} nota(s) lançadas no SIGA${falhas.length ? `; ${falhas.length} falharam` : ''}.`)
+    const partes = [`${ok} nota(s) lançadas no SIGA`]
+    if (repetidas) partes.push(`${repetidas} já estava(m) lá (nada reenviado)`)
+    if (falhas.length) partes.push(`${falhas.length} falharam`)
+    setResultado(`${partes.join('; ')}.`)
     if (falhas.length) setErro(falhas.join(' · '))
   }
 
@@ -952,6 +960,8 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
   const [desenvolver, setDesenvolver] = useState('')
   const [aba, setAba] = useState<'texto' | 'foto'>('texto')
   const [erro, setErro] = useState<string | null>(null)
+  // Mensagem boa (ex.: "já estava lançada"), separada do vermelho de erro.
+  const [aviso, setAviso] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const escalaSiga = usarEscalaSiga(d)
   const [pronto, setPronto] = useState(false)
@@ -1051,9 +1061,11 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
   async function lancar() {
     if (!d || !item?.correcao) return
     setErro(null)
+    setAviso(null)
     setOcupado('lancando')
     try {
-      await d.lancarNoSiga(item.correcao.id)
+      const r = await d.lancarNoSiga(item.correcao.id)
+      if (r.repetido) setAviso('Esta nota já estava lançada no SIGA com o mesmo valor — nada foi reenviado.')
       await carregar()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Falha ao lançar no SIGA.')
@@ -1097,6 +1109,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
         </button>
 
         {erro ? <Alerta tom="vermelho">{erro}</Alerta> : null}
+        {aviso ? <Alerta tom="verde">{aviso}</Alerta> : null}
         {atrasoDeEntrega(item.submissao.enviado_em, avaliacao?.prazo_em) ? (
           <Alerta tom="ambar" titulo="Entregue fora do prazo">
             Enviada em {formatarDataHora(item.submissao.enviado_em)}

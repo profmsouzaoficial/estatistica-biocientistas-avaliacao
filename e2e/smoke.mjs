@@ -444,6 +444,51 @@ async function main() {
     await page.getByText(new RegExp(ALUNO.matricula)).first().waitFor({ timeout: 15000 })
     await foto(page, '10b-historico-lancamentos')
 
+    // ---- 7b. repetir o lançamento não chama o SIGA outra vez --------------
+    // Clique duplo, F5 ou repetição depois de timeout: o servidor tem de
+    // reconhecer que esta correção já foi lançada com a mesma nota e não
+    // escrever nada novo — nem no SIGA, nem na auditoria.
+    const tokenProfessor = await page.evaluate(() => {
+      const chave = Object.keys(localStorage).find((k) => k.includes('auth-token'))
+      try {
+        return JSON.parse(localStorage.getItem(chave) ?? '{}')?.access_token ?? null
+      } catch {
+        return null
+      }
+    })
+    if (!tokenProfessor) throw new Error('Não achei a sessão do professor para repetir o pedido.')
+    const estadoAntes = await (await fetch('http://127.0.0.1:3199/__estado')).json()
+    const [subDoLancamento] = await supabaseRest(`submissoes?avaliacao_id=eq.${idAvaliacao}&select=id`)
+    const [correcaoDoLancamento] = await supabaseRest(
+      `correcoes?submissao_id=eq.${subDoLancamento.id}&select=id`,
+    )
+    const repeticao = await fetch(`${API}/api/siga/lancar`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${tokenProfessor}` },
+      body: JSON.stringify({ correcao_id: correcaoDoLancamento.id }),
+    })
+    const corpoRepeticao = await repeticao.json()
+    if (repeticao.status !== 200 || corpoRepeticao?.repetido !== true) {
+      throw new Error(
+        `Repetir o lançamento deveria responder 200 com repetido=true; veio ${repeticao.status} ${JSON.stringify(corpoRepeticao)}.`,
+      )
+    }
+    const estadoDepois = await (await fetch('http://127.0.0.1:3199/__estado')).json()
+    if (estadoDepois.chamadas_lancamento !== estadoAntes.chamadas_lancamento) {
+      throw new Error(
+        `O SIGA foi chamado de novo na repetição (${estadoAntes.chamadas_lancamento} → ${estadoDepois.chamadas_lancamento}).`,
+      )
+    }
+    const lancamentosRepetidos = await supabaseRest(
+      `lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}&descricao_avaliacao=eq.${encodeURIComponent('TVC 1')}&select=id,sucesso`,
+    )
+    if (lancamentosRepetidos.length !== 1) {
+      throw new Error(`A repetição criou registro novo na auditoria (${lancamentosRepetidos.length} no total).`)
+    }
+    console.log(
+      `      repetição reconhecida sem chamar o SIGA (${estadoDepois.chamadas_lancamento} chamada(s) até aqui)`,
+    )
+
     // ---- 8. aluno vê a devolutiva -----------------------------------------
     console.log('  ▸ 8/26 aluno vê a devolutiva')
     await sair(page)
@@ -544,6 +589,37 @@ async function main() {
     await page.getByRole('button', { name: /Lançar 1 no SIGA/ }).click()
     await page.getByText(/Confirmar 1 lançamento/).waitFor()
     await foto(page, '13-confirmar-lancamento')
+
+    // Primeiro, o SIGA recusa: o professor precisa ver o motivo e a auditoria
+    // guardar o status real (antes ficava null e o histórico não dizia nada).
+    await fetch('http://127.0.0.1:3199/__recusar-lancamento', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ status: 422, detalhe: 'A avaliação está fechada para lançamento.' }),
+    })
+    await page.getByRole('button', { name: 'Confirmar lançamento' }).click()
+    await page.getByText(/1 falharam/).waitFor({ timeout: 40000 })
+    await page.getByText(/O SIGA respondeu 422/).waitFor({ timeout: 20000 })
+    await foto(page, '13b-siga-recusou')
+
+    const recusados = await supabaseRest(
+      `lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}&descricao_avaliacao=eq.${encodeURIComponent('TVC 2')}&sucesso=is.false&select=http_status,erro`,
+    )
+    if (recusados.length !== 1) throw new Error(`Esperava 1 recusa registrada, encontrei ${recusados.length}.`)
+    if (recusados[0].http_status !== 422) {
+      throw new Error(`A auditoria devia guardar o HTTP 422 do SIGA; guardou ${recusados[0].http_status}.`)
+    }
+    if (!/SIGA/i.test(recusados[0].erro ?? '')) {
+      throw new Error(`A recusa ficou sem motivo legível: ${JSON.stringify(recusados[0].erro)}.`)
+    }
+    await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao2}/historico`, { waitUntil: 'networkidle' })
+    await page.getByText(/Recusado · HTTP 422/).first().waitFor({ timeout: 20000 })
+    await foto(page, '13c-historico-recusa')
+    console.log('      recusa registrada com HTTP 422 e visível no histórico')
+
+    // Agora o SIGA aceita e o lançamento se completa.
+    await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao2}`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: /Lançar 1 no SIGA/ }).click()
     await page.getByRole('button', { name: 'Confirmar lançamento' }).click()
     await page.getByText(/1 nota\(s\) lançadas no SIGA/).waitFor({ timeout: 40000 })
     await page.getByText('lançada').first().waitFor()

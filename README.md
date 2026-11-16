@@ -257,6 +257,24 @@ Duas decisões de projeto:
   service role, no servidor. `pnpm test:seguranca` ganhou a prova de que uma aluna **não** lê essa
   tabela.
 
+### Lançar duas vezes não lança duas vezes
+
+O botão de lançar é o único que escreve em sistema de terceiro, e clicar duas vezes (ou repetir depois
+de um timeout) chamava o SIGA duas vezes e criava duas linhas iguais na auditoria. Agora o servidor
+guarda a chave: **`correcao_id` + `nota`**.
+
+| Situação | O que acontece | O que o professor vê |
+|---|---|---|
+| Já lançada com a mesma nota | não chama o SIGA | `Esta nota já estava lançada no SIGA com o mesmo valor — nada foi reenviado.` |
+| Nota mudou depois do lançamento | chama o SIGA de novo | lançamento normal (é correção, não duplicata) |
+| Lote com algumas repetidas | pula as repetidas | `3 nota(s) lançadas no SIGA; 2 já estava(m) lá (nada reenviado)` |
+
+E quando o SIGA **recusa**, a auditoria passou a guardar o status de origem: antes `http_status` era
+`null` em toda falha (só dava para ver o 502 que o app devolve ao navegador), agora fica o 403/422 que
+o SIGA respondeu e o histórico mostra `Recusado · HTTP 422` com a mensagem. A diferença importa:
+`null` = não houve resposta, 422 = o SIGA respondeu e recusou — o professor corrige o dado em vez de
+esperar.
+
 ### Senha: o caminho de quem já perdeu o acesso
 
 O fluxo de recuperação tinha três buracos, todos no mesmo lugar — o aluno sem acesso e sem paciência.

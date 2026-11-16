@@ -5,7 +5,7 @@ import type {
   Criterio,
   Esperado,
   LancamentoAuditado,
-  LancamentoSiga,
+  ResultadoLancamento,
   Perfil,
   ResumoAvaliacao,
   StatusAvaliacao,
@@ -150,7 +150,7 @@ export interface Dados {
   /** Cria correção zerada para o professor preencher sem depender do Llama. */
   corrigirManual(submissaoId: string): Promise<Correcao>
   salvarRevisao(correcaoId: string, revisao: Revisao): Promise<void>
-  lancarNoSiga(correcaoId: string): Promise<LancamentoSiga>
+  lancarNoSiga(correcaoId: string): Promise<ResultadoLancamento>
   /**
    * Todas as tentativas de lançamento desta avaliação, com sucesso e falha, da
    * mais recente para a mais antiga. É a trilha de auditoria que o professor lê.

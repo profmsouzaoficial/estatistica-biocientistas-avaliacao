@@ -115,6 +115,18 @@ export interface LancamentoSiga {
 }
 
 /**
+ * O que voltou de um pedido de lançamento.
+ *
+ * `repetido: true` significa que o servidor encontrou um lançamento bem-sucedido
+ * anterior com a mesma nota e **não chamou o SIGA de novo**. A interface mostra
+ * isso como "já estava lançada", não como erro: nada foi reenviado.
+ */
+export interface ResultadoLancamento {
+  lancamento: LancamentoSiga
+  repetido: boolean
+}
+
+/**
  * Uma tentativa de lançamento como ela ficou registrada em `lancamentos_siga`.
  * Inclui as que falharam: é justamente o registro do que o SIGA recusou, com o
  * motivo, que o professor precisa reencontrar meses depois.

@@ -106,13 +106,20 @@ Pré-requisitos: a avaliação existe no SIGA com a **mesma descrição** e o **
 1. **"Lançar N no SIGA"** → a confirmação lista aluno por aluno o número exato que será gravado.
 2. Leia a lista antes de confirmar. Só o que está **aprovado** entra; devolvida e pendente ficam fora.
 3. Confirmado, cada lançamento guarda o que foi enviado e o que o SIGA respondeu (auditoria).
+4. Repetir não duplica: se aquela correção já foi lançada **com a mesma nota**, o servidor responde
+   `repetido` sem chamar o SIGA e a tela diz "já estava lançada — nada foi reenviado". Se a nota mudou
+   depois do lançamento, o envio acontece de novo (é correção, não duplicata).
 
 | Resposta do SIGA | Significa | O que fazer |
 |---|---|---|
 | 403 | chave inválida/expirada | pedir a chave atualizada e atualizar `SIGA_API_KEY` |
 | 404 | turma, período ou descrição não existem | conferir os três; a descrição precisa ser idêntica |
-| 409 | nota já lançada para aquele aluno | conferir no SIGA; o app não sobrescreve |
+| 409 | o SIGA já tem nota para aquele aluno | conferir no SIGA; o app não sobrescreve sozinho |
+| 422 | o SIGA recusou o dado (avaliação fechada, valor fora da faixa) | ler a mensagem em **Histórico de lançamentos** e corrigir o dado |
 | 5xx | SIGA fora do ar | tentar mais tarde; nada se perde, o botão continua ali |
+
+A recusa fica no histórico com o **HTTP de origem** (`Recusado · HTTP 422`) — antes gravava `null`, o
+que confundia "o SIGA recusou" com "não houve resposta".
 
 ### 5. Fechar (5 min)
 

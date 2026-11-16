@@ -9,7 +9,7 @@ import {
   type Requisicao,
   type Resposta,
 } from '../_lib/http.js'
-import { escalaDaNota, lancarNotas } from '../_lib/siga.js'
+import { ErroSiga, escalaDaNota, lancarNotas } from '../_lib/siga.js'
 
 interface CorrecaoServidor {
   id: string
@@ -131,6 +131,20 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
     escala,
   }
 
+  // Idempotência: se esta correção já foi lançada com a MESMA nota, não chame o
+  // SIGA de novo. Sem isso, um clique duplo ou uma repetição depois de timeout
+  // virava dois lançamentos iguais na auditoria (e duas escritas no SIGA).
+  // Nota diferente é caso legítimo: o professor ajustou e quer corrigir no SIGA.
+  const jaLancado = await selecionarUm<LancamentoServidor>(
+    'lancamentos_siga',
+    `correcao_id=eq.${encodeURIComponent(correcao.id)}&sucesso=is.true&nota=eq.${nota}` +
+      `&select=id,correcao_id,submissao_id,matricula,turma_siga,periodo,descricao_avaliacao,nota,sucesso,http_status,erro,criado_em` +
+      `&order=criado_em.desc&limit=1`,
+  )
+  if (jaLancado) {
+    return ok({ lancamento: jaLancado, repetido: true })
+  }
+
   try {
     const resultado = await lancarNotas({
       turma: turma.codigo_siga,
@@ -161,7 +175,9 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
     await inserir<LancamentoServidor>('lancamentos_siga', {
       ...base,
       sucesso: false,
-      http_status: null,
+      // O status do SIGA (403, 422…) quando houve resposta; null quando a API
+      // nem foi alcançada. A tela de histórico mostra isso ao professor.
+      http_status: erro instanceof ErroSiga ? erro.statusSiga : null,
       payload: {
         turma: turma.codigo_siga,
         descricao_avaliacao: avaliacao.descricao_siga,
