@@ -264,6 +264,13 @@ comparar o que o app enviou com o que está gravado — enviado ≠ gravado é o
 sem nota sem ninguém perceber. O passo 21 do `pnpm e2e` cobre esse ciclo e também confere que a rota
 recusa chamada sem sessão.
 
+### Ajuda ao aluno
+
+`/ajuda` é pública (não exige login) e explica em uma tela: criar a conta, fotografar a folha, conferir
+a transcrição, enviar, prazo e devolutiva — e o que fazer nos problemas comuns (matrícula fora da
+lista, e-mail diferente, foto que não sobe). Está linkada no login, na lista de avaliações do aluno e
+no rodapé da devolutiva. O passo 23 do `pnpm e2e` confere que ela abre sem sessão.
+
 ### Isolamento entre alunos
 
 `pnpm test:seguranca` cria duas contas descartáveis no Supabase de produção, envia uma redação com

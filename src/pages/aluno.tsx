@@ -76,6 +76,14 @@ export function AlunoInicio() {
             </div>
           </>
         )}
+
+        <p className="px-1 text-center text-[12.5px] text-tinta-fraca">
+          Primeira vez? Veja{' '}
+          <Link href="/ajuda" className="underline underline-offset-2 hover:text-verde">
+            como enviar sua redação
+          </Link>
+          .
+        </p>
       </main>
     </>
   )

@@ -77,9 +77,12 @@ export function Entrar() {
               Criar conta
             </Link>
           </p>
-          <p>
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <Link href="/recuperar" className="text-[13px] text-tinta-suave underline-offset-2 hover:underline">
               Esqueci minha senha
+            </Link>
+            <Link href="/ajuda" className="text-[13px] text-tinta-suave underline-offset-2 hover:underline">
+              Como enviar minha redação
             </Link>
           </p>
         </div>
