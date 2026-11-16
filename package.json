@@ -1,0 +1,35 @@
+{
+  "name": "estatistica-biocientistas-avaliacao",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Avaliações por redação — Análise de Dados para Biocientistas (UFJF/GV)",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --host 0.0.0.0",
+    "lint": "tsc --noEmit",
+    "test:e2e": "node e2e/smoke.mjs",
+    "db:aplicar": "node scripts/aplicar-migrations.mjs",
+    "professor:criar": "node scripts/criar-professor.mjs",
+    "corrigir:lote": "node scripts/corrigir-pendentes.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "lucide-react": "^1.72.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "esbuild": "^0.28.2",
+    "playwright": "^1.65.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}
