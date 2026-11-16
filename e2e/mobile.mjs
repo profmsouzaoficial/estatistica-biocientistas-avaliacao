@@ -223,6 +223,15 @@ async function main() {
   ok = (await medir(page, 'professor · nova avaliação')) && ok
   await foto(page, 'mobile-10-professor-nova')
 
+  // a revisão com a foto aberta: é a tela em que o professor decide a nota
+  await page.goto(`${WEB}/prof/avaliacoes/av-demo-1`, { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: /Ana Beatriz/ }).first().click()
+  await page.waitForURL(/\/revisao\//, { timeout: 20000 })
+  await page.getByRole('button', { name: 'Foto original' }).click()
+  await page.locator('img[alt="Foto da redação"]').waitFor({ timeout: 15000 })
+  ok = (await medir(page, 'professor · revisão com foto')) && ok
+  await foto(page, 'mobile-12-professor-revisao')
+
   await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'professor · alunos')) && ok
   await foto(page, 'mobile-11-professor-alunos')

@@ -933,6 +933,11 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
   const [avaliacao, setAvaliacao] = useState<Avaliacao | null>(null)
   const [item, setItem] = useState<SubmissaoDoProfessor | null>(null)
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
+  // A foto vem de uma URL assinada e temporária. Se a rede falhar ou o link
+  // vencer, o professor precisa saber a diferença entre "não tem foto",
+  // "está abrindo" e "não deu para abrir" — antes disso, os três viravam a
+  // mesma tela vazia.
+  const [fotoEstado, setFotoEstado] = useState<'carregando' | 'ok' | 'sem-foto' | 'erro'>('carregando')
   const [criterios, setCriterios] = useState<CriterioNota[]>([])
   const [comentario, setComentario] = useState('')
   const [fortes, setFortes] = useState('')
@@ -942,6 +947,32 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
   const [ocupado, setOcupado] = useState<string | null>(null)
   const escalaSiga = usarEscalaSiga(d)
   const [pronto, setPronto] = useState(false)
+
+
+  const abrirFoto = useCallback(
+    async (caminho: string | null) => {
+      if (!d) return
+      if (!caminho) {
+        setFotoUrl(null)
+        setFotoEstado('sem-foto')
+        return
+      }
+      setFotoEstado('carregando')
+      setFotoUrl(null)
+      try {
+        const url = await d.urlDaFoto(caminho)
+        if (!url) {
+          setFotoEstado('erro')
+          return
+        }
+        setFotoUrl(url)
+        setFotoEstado('ok')
+      } catch {
+        setFotoEstado('erro')
+      }
+    },
+    [d],
+  )
 
   const carregar = useCallback(async () => {
     if (!d) return
@@ -955,10 +986,8 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
       setFortes(achado.correcao.pontos_fortes.join('\n'))
       setDesenvolver(achado.correcao.pontos_desenvolver.join('\n'))
     }
-    if (achado?.submissao.foto_path) {
-      d.urlDaFoto(achado.submissao.foto_path).then(setFotoUrl).catch(() => setFotoUrl(null))
-    }
-  }, [d, avaliacaoId, submissaoId])
+    await abrirFoto(achado?.submissao.foto_path ?? null)
+  }, [d, avaliacaoId, submissaoId, abrirFoto])
 
   useEffect(() => {
     Promise.resolve().then(carregar).catch((e) => setErro(e instanceof Error ? e.message : 'Falha ao carregar.'))
@@ -1052,7 +1081,10 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
     <>
       <AppBar titulo={item.aluno.nome_completo} subtitulo={`Matrícula ${item.aluno.matricula ?? '—'}`} />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-32">
-        <button onClick={voltar} className="text-[13px] text-tinta-suave hover:text-verde">
+        <button
+          onClick={voltar}
+          className="alvo-toque -ml-1 justify-start px-1 text-[13px] text-tinta-suave hover:text-verde"
+        >
           ← Voltar para a lista
         </button>
 
@@ -1076,7 +1108,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
             <button
               key={t}
               onClick={() => setAba(t)}
-              className={`flex-1 rounded-lg py-1.5 text-[13.5px] font-medium transition-colors ${
+              className={`alvo-toque flex-1 rounded-lg text-[13.5px] font-medium transition-colors ${
                 aba === t ? 'bg-white text-tinta shadow-sm' : 'text-tinta-suave'
               }`}
             >
@@ -1090,12 +1122,48 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
             <p className="texto-corrido max-h-[45vh] overflow-y-auto whitespace-pre-wrap text-[14px]">
               {item.submissao.transcrito}
             </p>
-          ) : fotoUrl ? (
-            <img src={fotoUrl} alt="Foto da redação" className="w-full rounded-lg" />
-          ) : (
-            <div className="flex flex-col items-center gap-2 py-8 text-tinta-fraca">
+          ) : fotoEstado === 'ok' && fotoUrl ? (
+            <>
+              <img
+                src={fotoUrl}
+                alt="Foto da redação"
+                className="w-full rounded-lg"
+                // a URL assinada pode vencer com a tela aberta
+                onError={() => setFotoEstado('erro')}
+              />
+              {d?.modo === 'demo' ? (
+                <p className="mt-2 text-[12px] leading-snug text-tinta-fraca">
+                  Imagem de demonstração. No app em uso, esta aba mostra a foto que o aluno enviou.
+                </p>
+              ) : null}
+            </>
+
+          ) : fotoEstado === 'carregando' ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-tinta-fraca" role="status">
+              <Loader2 className="size-5 animate-spin" aria-hidden />
+              <p className="text-[13px]">Abrindo a foto…</p>
+            </div>
+          ) : fotoEstado === 'sem-foto' ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center text-tinta-fraca">
               <ImageOff className="size-6" aria-hidden />
-              <p className="text-[13px]">Foto indisponível.</p>
+              <p className="text-[13px]">Esta redação foi entregue sem foto.</p>
+              <p className="max-w-[34ch] text-[12px] leading-snug">
+                O aluno digitou o texto no lugar da foto — a transcrição ao lado é o que ele escreveu.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-8 text-center text-tinta-fraca">
+              <ImageOff className="size-6" aria-hidden />
+              <p className="text-[13px]">Não consegui abrir a foto agora.</p>
+              <p className="max-w-[34ch] text-[12px] leading-snug">
+                O link da foto é temporário. Tente de novo; a correção pode seguir pela transcrição.
+              </p>
+              <button
+                onClick={() => abrirFoto(item.submissao.foto_path)}
+                className="alvo-toque mt-1 text-[13px] font-medium text-verde underline underline-offset-2"
+              >
+                Tentar de novo
+              </button>
             </div>
           )}
         </Cartao>

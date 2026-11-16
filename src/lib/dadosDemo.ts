@@ -592,7 +592,13 @@ export function criarDadosDemo(): Dados {
 
     async urlDaFoto(path) {
       if (!path) return null
-      return base.fotos[path] ?? null
+      const enviada = base.fotos[path]
+      if (enviada) return enviada
+      // As redações de exemplo já existem antes de alguém fotografar. Em vez de
+      // devolver null (e a tela dizer "não consegui abrir"), desenhamos uma folha
+      // com a transcrição em letra cursiva — é o que o professor veria na foto.
+      const submissao = base.submissoes.find((x) => x.foto_path === path)
+      return submissao?.transcrito ? folhaDeExemplo(submissao.transcrito) : null
     },
 
     async transcrever(submissaoId) {
@@ -947,4 +953,43 @@ function blobParaDataUrl(blob: Blob): Promise<string> {
     leitor.onerror = () => reject(new Error('Falha ao ler a imagem.'))
     leitor.readAsDataURL(blob)
   })
+}
+
+/**
+ * Folha de papel pautado com o texto em letra cursiva, como data URI — só para a
+ * demonstração. Serve para a aba "Foto original" mostrar algo parecido com o que
+ * o aluno entrega, inclusive em celular sem rede.
+ */
+function folhaDeExemplo(texto: string): string {
+  const linhas: string[] = []
+  let atual = ''
+  for (const palavra of texto.split(/\s+/)) {
+    if ((atual + ' ' + palavra).trim().length > 42) {
+      linhas.push(atual.trim())
+      atual = palavra
+    } else {
+      atual = `${atual} ${palavra}`
+    }
+    if (linhas.length >= 40) break
+  }
+  if (atual.trim() && linhas.length < 40) linhas.push(atual.trim())
+  if (linhas.length === 40) linhas[39] = `${linhas[39].slice(0, 39)}…`
+
+  const altura = 120 + linhas.length * 26
+  const corpo = linhas
+    .map(
+      (linha, i) =>
+        `<text x="48" y="${86 + i * 26}" font-family="Segoe Script, Bradley Hand, cursive" font-size="15" fill="#22303a">${linha
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')}</text>`,
+    )
+    .join('')
+  const pautas = linhas
+    .map((_, i) => `<line x1="40" y1="${92 + i * 26}" x2="560" y2="${92 + i * 26}" stroke="#c9d6de" stroke-width="1"/>`)
+    .join('')
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="${altura}" viewBox="0 0 600 ${altura}">
+<rect width="600" height="${altura}" fill="#fdfbf4"/><rect x="0" y="0" width="600" height="${altura}" fill="none" stroke="#e3ded0"/>
+<line x1="34" y1="0" x2="34" y2="${altura}" stroke="#e8b4b4" stroke-width="1"/>${pautas}${corpo}</svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
