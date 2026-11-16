@@ -265,8 +265,9 @@ guarda a chave: **`correcao_id` + `nota`**.
 
 | Situação | O que acontece | O que o professor vê |
 |---|---|---|
-| Já lançada com a mesma nota | não chama o SIGA | `Esta nota já estava lançada no SIGA com o mesmo valor — nada foi reenviado.` |
+| O **último** envio foi com a mesma nota | não chama o SIGA | `Esta nota já estava lançada no SIGA com o mesmo valor — nada foi reenviado.` |
 | Nota mudou depois do lançamento | chama o SIGA de novo | lançamento normal (é correção, não duplicata) |
+| Lançou 8, ajustou para 9, voltou para 8 | chama de novo (o SIGA está com 9) | lançamento normal |
 | Lote com algumas repetidas | pula as repetidas | `3 nota(s) lançadas no SIGA; 2 já estava(m) lá (nada reenviado)` |
 
 E quando o SIGA **recusa**, a auditoria passou a guardar o status de origem: antes `http_status` era

@@ -135,14 +135,18 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
   // SIGA de novo. Sem isso, um clique duplo ou uma repetição depois de timeout
   // virava dois lançamentos iguais na auditoria (e duas escritas no SIGA).
   // Nota diferente é caso legítimo: o professor ajustou e quer corrigir no SIGA.
-  const jaLancado = await selecionarUm<LancamentoServidor>(
+  // Compara com o ÚLTIMO lançamento bem-sucedido desta correção, não com qualquer
+  // um: se o professor lançou 8, ajustou para 9 e voltou para 8, o SIGA está com 9
+  // e precisa receber 8 de novo. Procurar "existe algum lançamento com nota 8"
+  // diria "já foi" e deixaria o SIGA com a nota errada.
+  const ultimoLancamento = await selecionarUm<LancamentoServidor>(
     'lancamentos_siga',
-    `correcao_id=eq.${encodeURIComponent(correcao.id)}&sucesso=is.true&nota=eq.${nota}` +
+    `correcao_id=eq.${encodeURIComponent(correcao.id)}&sucesso=is.true` +
       `&select=id,correcao_id,submissao_id,matricula,turma_siga,periodo,descricao_avaliacao,nota,sucesso,http_status,erro,criado_em` +
-      `&order=criado_em.desc&limit=1`,
+      `&order=criado_em.desc,id.desc&limit=1`,
   )
-  if (jaLancado) {
-    return ok({ lancamento: jaLancado, repetido: true })
+  if (ultimoLancamento && Number(ultimoLancamento.nota) === nota) {
+    return ok({ lancamento: ultimoLancamento, repetido: true })
   }
 
   try {
