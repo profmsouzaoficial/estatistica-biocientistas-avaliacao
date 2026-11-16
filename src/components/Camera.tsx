@@ -10,6 +10,11 @@ export interface Foto {
   altura: number
 }
 
+// Uma foto de celular chega com 12 MP e 4 a 8 MB. Reduzir para 1800 px no lado
+// maior dá ~154 dpi numa folha A4 — suficiente para o OCR ler letra de caneta e
+// deixa o arquivo em menos de 1 MB (o teste `pnpm e2e:foto` mede isso com uma
+// foto de 12 MP). Se um dia a transcrição errar letra pequena, este é o número a
+// subir: 2200 px (~188 dpi) custa ~50% mais bytes e nada em complexidade.
 const LADO_MAXIMO = 1800
 const QUALIDADE = 0.85
 

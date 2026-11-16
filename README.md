@@ -233,6 +233,18 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### A foto do celular
+
+Uma câmera de celular produz 12 MP e 4 a 8 MB — acima do limite de 4,5 MB de corpo das funções da
+Vercel, caro no 4G da sala de aula e desnecessário para o OCR. A foto é reduzida **no navegador**
+antes de sair do aparelho: lado maior de 1800 px (≈154 dpi numa folha A4) e JPEG 85%. Em seguida vai
+direto para o bucket privado do Supabase, sem passar pelo corpo da função.
+
+`pnpm e2e:foto` gera uma foto sintética de 4032×3024 **com ruído** (o pior caso para o JPEG, 7,5 MB),
+coloca no seletor de arquivo como o aluno faria e confere o que a tela mostra: 1800×1350, proporção
+mantida, 881 KB (−88,6% em relação ao original), 194 ms de processamento e pré-visualização
+renderizada. Se o app parar de comprimir, o teste acusa antes de o primeiro aluno tentar enviar no 4G.
+
 ### Guia do aluno
 
 `docs/guia-aluno.md` é a página que o professor manda para a turma antes da primeira entrega: como se
