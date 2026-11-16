@@ -15,7 +15,8 @@
     "corrigir:lote": "node scripts/corrigir-pendentes.mjs",
     "diagnostico": "node scripts/diagnostico.mjs",
     "turma:planilha": "node scripts/importar-siga.mjs",
-    "test:parser": "node scripts/testar-parser.mjs"
+    "test:parser": "node scripts/testar-parser.mjs",
+    "test:ocr": "node scripts/testar-ocr.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

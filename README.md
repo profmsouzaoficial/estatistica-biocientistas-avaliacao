@@ -210,6 +210,17 @@ com 504 — a tela agora explica isso e sugere as saídas:
 | Turma inteira com modelo em CPU | `pnpm corrigir:lote` no servidor do modelo (sem limite de tempo) |
 | IA indisponível | correção manual na revisão |
 
+### OCR da foto
+
+A leitura da letra é uma etapa à parte (o Llama é de texto). O caminho recomendado é o **Google
+Cloud Vision** (`VISION_PROVIDER=google-cloud`), que aceita chave de API simples ou o JSON da conta
+de serviço. Passo a passo: [deploy/ocr-google-vision.md](deploy/ocr-google-vision.md).
+Sem credencial, o app funciona: o aluno digita o texto e a foto fica como comprovante.
+
+```bash
+pnpm test:ocr     # confere o envio ao Google e o tratamento de erro, sem chamada real
+```
+
 ### Conferir o prompt com um modelo de verdade
 
 O teste de ponta a ponta roda com um LLM simulado. Para trocar pelo Ollama da máquina (ou por

@@ -8,7 +8,10 @@
  * Provedores aceitos em VISION_PROVIDER:
  *   - openrouter / openai  → qualquer endpoint compatível com /chat/completions
  *   - google               → Gemini (generativelanguage.googleapis.com)
+ *   - google-cloud         → Cloud Vision, DOCUMENT_TEXT_DETECTION (melhor em letra
+ *     manuscrita; aceita chave de API simples ou o JSON da conta de serviço)
  */
+import { createSign } from 'node:crypto'
 import { ErroHttp, envOpcional } from './http.js'
 
 export interface ResultadoTranscricao {
@@ -50,6 +53,9 @@ export async function transcreverImagem(bytes: ArrayBuffer, mimetype: string): P
 
   if (provedor === 'google' || provedor === 'gemini') {
     return transcricaoGoogle(chave, base64, mimetype)
+  }
+  if (provedor === 'google-cloud' || provedor === 'gcv' || provedor === 'google-vision') {
+    return transcricaoCloudVision(chave, base64)
   }
   if (provedor === 'openrouter' || provedor === 'openai' || provedor === 'azure-openai') {
     return transcricaoCompativel(chave, base64, mimetype)
@@ -122,6 +128,104 @@ async function transcricaoGoogle(chave: string, base64: string, mimetype: string
   }
   const conteudo = (dados.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('')
   return finalizar(conteudo, `google:${modelo}`)
+}
+
+// ---------------------------------------------------------------------------
+// Google Cloud Vision — DOCUMENT_TEXT_DETECTION
+//
+// Duas formas de credencial, ambas na mesma variável:
+//   - chave de API simples  → vai na URL (?key=...)
+//   - JSON da conta de serviço → troca por um token OAuth (JWT assinado RS256)
+// ---------------------------------------------------------------------------
+
+interface ContaServico {
+  client_email?: string
+  private_key?: string
+  token_uri?: string
+}
+
+function pareceJson(chave: string): boolean {
+  return chave.trim().startsWith('{')
+}
+
+function baseVision(): string {
+  return (envOpcional('GOOGLE_VISION_BASE') ?? 'https://vision.googleapis.com').replace(/\/+$/, '')
+}
+
+async function tokenDaContaDeServico(conta: ContaServico): Promise<string> {
+  if (!conta.client_email || !conta.private_key) {
+    throw new ErroHttp(503, 'OCR_CREDENCIAL', 'O JSON da conta de serviço precisa de client_email e private_key.')
+  }
+  const agora = Math.floor(Date.now() / 1000)
+  const cabecalho = { alg: 'RS256', typ: 'JWT' }
+  const corpo = {
+    iss: conta.client_email,
+    scope: 'https://www.googleapis.com/auth/cloud-vision',
+    aud: conta.token_uri ?? 'https://oauth2.googleapis.com/token',
+    iat: agora,
+    exp: agora + 3600,
+  }
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const semAssinatura = `${b64(cabecalho)}.${b64(corpo)}`
+  const assinatura = createSign('RSA-SHA256').update(semAssinatura).sign(conta.private_key, 'base64url')
+  const jwt = `${semAssinatura}.${assinatura}`
+
+  const resposta = await fetch(corpo.aud, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
+  })
+  const texto = await resposta.text()
+  if (!resposta.ok) {
+    throw new ErroHttp(502, 'OCR_CREDENCIAL', 'O Google recusou a conta de serviço.', texto.slice(0, 600))
+  }
+  const dados = JSON.parse(texto) as { access_token?: string }
+  if (!dados.access_token) throw new ErroHttp(502, 'OCR_CREDENCIAL', 'O Google não devolveu access_token.')
+  return dados.access_token
+}
+
+async function transcricaoCloudVision(chave: string, base64: string): Promise<ResultadoTranscricao> {
+  let url = `${baseVision()}/v1/images:annotate`
+  const cabecalhos: Record<string, string> = { 'Content-Type': 'application/json' }
+
+  if (pareceJson(chave)) {
+    const conta = JSON.parse(chave) as ContaServico
+    cabecalhos.Authorization = `Bearer ${await tokenDaContaDeServico(conta)}`
+  } else {
+    url += `?key=${encodeURIComponent(chave)}`
+  }
+
+  const resposta = await fetch(url, {
+    method: 'POST',
+    headers: cabecalhos,
+    body: JSON.stringify({
+      requests: [
+        {
+          image: { content: base64 },
+          features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
+          imageContext: { languageHints: ['pt-BR', 'pt'] },
+        },
+      ],
+    }),
+  })
+
+  const texto = await resposta.text()
+  if (!resposta.ok) {
+    throw new ErroHttp(502, 'OCR_FALHOU', `O Cloud Vision respondeu ${resposta.status}.`, texto.slice(0, 600))
+  }
+  const dados = JSON.parse(texto) as {
+    responses?: {
+      fullTextAnnotation?: { text?: string }
+      textAnnotations?: { description?: string }[]
+      error?: { message?: string }
+    }[]
+  }
+  const primeira = dados.responses?.[0]
+  if (primeira?.error?.message) {
+    throw new ErroHttp(502, 'OCR_FALHOU', `Cloud Vision: ${primeira.error.message}`, texto.slice(0, 600))
+  }
+  const conteudo = primeira?.fullTextAnnotation?.text ?? primeira?.textAnnotations?.[0]?.description ?? ''
+  return finalizar(conteudo, 'google-vision:document-text')
 }
 
 // ---------------------------------------------------------------------------
