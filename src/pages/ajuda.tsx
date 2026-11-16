@@ -1,6 +1,7 @@
 import { ArrowLeft, Camera, CheckCircle2, Clock, HelpCircle, Keyboard, Send, UserPlus } from 'lucide-react'
 import { Link } from '../lib/router'
 import { AppBar, Cartao } from '../components/ui'
+import { COMPILADO_EM, VERSAO, quandoFoiCompilado } from '../lib/versao'
 
 /**
  * Instruções para o aluno, dentro do próprio app.
@@ -154,6 +155,10 @@ export function Ajuda() {
             privacidade e dados
           </Link>
           .
+        </p>
+
+        <p className="px-1 text-center text-[11.5px] text-tinta-fraca">
+          Versão {VERSAO} · compilada {quandoFoiCompilado(COMPILADO_EM)}
         </p>
       </main>
     </>

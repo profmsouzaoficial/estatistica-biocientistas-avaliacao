@@ -258,6 +258,16 @@ try {
   await page.getByText(/Turma .* removida/).waitFor({ timeout: 30000 })
   turmaId = null
 
+  // O site publicado carrega a marca de versão? Sem ela, `pnpm versao` não
+  // consegue dizer se a produção acompanha o repositório. Pode ser um build
+  // anterior ao marcador — avisa sem derrubar o teste.
+  const marca = await page.evaluate(() => document.querySelector('meta[name="app-versao"]')?.content ?? null)
+  const { commitLocal } = await import('../scripts/versao.mjs')
+  const commit = commitLocal()
+  if (!marca) console.log('\n  ⚠ o site no ar é um build anterior à marca de versão (rode `pnpm publicar`)')
+  else if (commit && marca !== commit) console.log(`\n  ⚠ no ar: ${marca} · repositório: ${commit} (rode \`pnpm publicar\`)`)
+  else console.log(`\n  ✓ versão no ar confere com o repositório: ${marca}`)
+
   console.log('\n✓ Produção verificada de ponta a ponta (sem lançar nota no SIGA)')
   console.log(`  turma ${TURMA.codigo} · aluno ${ALUNO.matricula} · avaliação ${idAvaliacao}`)
 } catch (erro) {

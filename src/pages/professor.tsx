@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle2, ChevronRight, Circle, ClipboardCheck, Plus, RefreshCw, Users } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
+import { COMPILADO_EM, VERSAO, quandoFoiCompilado } from '../lib/versao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
 import { CAPITULOS } from '../lib/livro'
@@ -120,6 +121,11 @@ export function ProfessorInicio() {
             <ChevronRight className="size-4 text-tinta-fraca" aria-hidden />
           </Cartao>
         </Link>
+
+        {/* Qual versão está no ar: o professor confere, e o suporte também. */}
+        <p className="px-1 text-center text-[11.5px] text-tinta-fraca">
+          Versão {VERSAO} · compilada {quandoFoiCompilado(COMPILADO_EM)}
+        </p>
       </main>
     </>
   )

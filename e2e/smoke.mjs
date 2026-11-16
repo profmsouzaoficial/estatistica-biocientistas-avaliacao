@@ -264,6 +264,18 @@ async function main() {
   await esperarHttp(`${WEB}/`, 'web')
   console.log('  ▸ serviços no ar\n')
 
+  // O HTML que o app serve carrega o commit. Se esta marca sumir, `pnpm versao`
+  // e `pnpm publicar` passam a mentir — o teste avisa antes.
+  {
+    const { lerVersaoDoHtml, commitLocal } = await import('../scripts/versao.mjs')
+    const html = await (await fetch(`${WEB}/`)).text()
+    const marca = lerVersaoDoHtml(html)
+    if (!marca) throw new Error('O HTML servido não tem <meta name="app-versao">.')
+    const commit = commitLocal()
+    if (commit && marca !== commit) throw new Error(`HTML diz ${marca}, repositório está em ${commit}.`)
+    console.log(`  ▸ marca de versão no HTML: ${marca}\n`)
+  }
+
   const navegador = await chromium.launch()
   const contexto = await navegador.newContext({
     viewport: { width: 390, height: 844 },

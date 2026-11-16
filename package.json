@@ -32,6 +32,8 @@
     "e2e:mobile": "node e2e/mobile.mjs",
     "e2e:foto": "node e2e/foto.mjs",
     "verificar": "node scripts/conferir-dados.mjs",
+    "versao": "node scripts/versao.mjs",
+    "publicar": "node scripts/publicar.mjs",
     "test:integridade": "node scripts/testar-integridade.mjs",
     "configurar:ia": "node scripts/configurar-ia.mjs",
     "test:ocr:foto": "node scripts/ocr-real.mjs",
@@ -40,7 +42,8 @@
     "e2e:contraste": "node e2e/contraste.mjs",
     "test:contraste": "node e2e/contraste.mjs",
     "test:documentacao": "node scripts/testar-documentacao.mjs",
-    "test:recuperacao": "node scripts/testar-recuperacao.mjs"
+    "test:recuperacao": "node scripts/testar-recuperacao.mjs",
+    "test:versao": "node scripts/testar-versao.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

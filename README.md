@@ -671,6 +671,29 @@ vercel --prod
 `vercel.json` já define região `gru1`, função com 300 s / 1024 MB e rewrite de SPA. As variáveis
 `VITE_*` são embutidas no build; as demais ficam só no servidor.
 
+### Publicar sem ficar no escuro
+
+Cada build carrega o commit do Git — `<meta name="app-versao" content="abc1234">` no HTML e
+`Versão abc1234 · compilada hoje às 18:40` no rodapé da ajuda e no painel do professor. Com isso:
+
+```bash
+pnpm versao     # commit do repositório × commit no ar (sai 1 se a produção estiver atrás)
+pnpm publicar   # publica só quando há diferença e espera a versão nova aparecer
+```
+
+Por que a cerimônia: em 16/11/2026 a conta bateu o teto de **100 deploys/dia** do plano Hobby e a
+produção ficou três commits atrás — descoberto só quando o teste de fumaça procurou uma tela que
+existia no código e não no site. `pnpm publicar` reconhece a recusa por cota
+(`api-deployments-free-per-day`) e diz quando tentar de novo; se o deploy passa mas o cache de borda
+ainda serve o HTML antigo, ele continua esperando em vez de anunciar sucesso.
+
+| Situação | `pnpm versao` | O que fazer |
+|---|---|---|
+| produção = repositório | `✓ produção roda o mesmo código` | nada |
+| produção atrás | `! produção está atrás` | `pnpm publicar` |
+| sem a marca no HTML | `(site no ar, mas sem a marca app-versao…)` | build anterior ao marcador: publique uma vez |
+| site fora do ar | `(não consegui ler: …)` | conferir a Vercel antes de publicar |
+
 Detalhe que custa caro: as funções usam **ESM** (`"type": "module"` no `package.json`), então todo
 import relativo em `api/` termina em `.js` (`./_lib/http.js`). Sem isso o runtime da Vercel sobe a
 função e ela morre com `FUNCTION_INVOCATION_FAILED` — o build passa, o erro só aparece na chamada.

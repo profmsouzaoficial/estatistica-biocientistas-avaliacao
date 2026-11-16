@@ -21,6 +21,32 @@ você aprova.
 
 ---
 
+### Publicar uma versão nova (quando o app muda)
+
+O site é a Vercel; o código fica no GitHub. Publicar **não** é automático — um push não vai
+para o ar sozinho, e isso é bom: você decide quando a turma vê a versão nova.
+
+| Passo | Comando | O que confirma |
+|---|---|---|
+| 1 | `pnpm versao` | mostra o commit do repositório e o que está no ar (`meta app-versao`) |
+| 2 | `pnpm publicar` | publica só se a produção estiver atrás; espera a versão nova aparecer |
+| 3 | `pnpm test:producao` | roda o teste de fumaça no site publicado |
+
+Duas travas que já custaram caro:
+
+- **Cota de deploys.** O plano Hobby aceita **100 deploys por dia**. Ao bater o teto, a Vercel recusa
+  e o site continua no código antigo, sem aviso na tela. `pnpm publicar` detecta a recusa e diz quando
+  tentar de novo (o contador zera à meia-noite UTC — 21h de Brasília).
+- **Deploy não é publicação.** O `vercel --prod` pode terminar "com sucesso" e a versão antiga
+  continuar no ar por cache. Por isso o script espera a marca de versão nova aparecer no HTML, em vez
+  de confiar no comando.
+
+O rodapé da tela **Ajuda** e o fim do painel do professor mostram `Versão abc1234 · compilada hoje às
+18:40` — é a mesma marca que o `pnpm versao` lê. Se o professor mandar uma captura de tela, dá para
+saber exatamente qual código gerou aquilo.
+
+---
+
 ## A cada avaliação
 
 ### 1. Criar (5 min)
