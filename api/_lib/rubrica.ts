@@ -332,31 +332,46 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
   }
   const { json } = decodificarJson(conteudo) as {
     json: {
-    criterios?: { id?: string; valor?: unknown; justificativa?: unknown }[]
-    pontos_fortes?: unknown
-    pontos_desenvolver?: unknown
+      criterios?: { id?: string; valor?: unknown; justificativa?: unknown }[]
+      pontos_fortes?: unknown
+      pontos_desenvolver?: unknown
       comentario?: unknown
       confianca?: unknown
     }
   }
 
+  return montarCorrecao(json, entrada.rubrica, modelo)
+}
+
+/**
+ * Converte o JSON cru do modelo na correção final, com limites e valores padrão.
+ * Separado da chamada HTTP para poder ser testado sem rede (scripts/testar-rubrica.mjs).
+ */
+export function montarCorrecao(
+  json: {
+    criterios?: { id?: string; valor?: unknown; justificativa?: unknown }[]
+    pontos_fortes?: unknown
+    pontos_desenvolver?: unknown
+    comentario?: unknown
+    confianca?: unknown
+  },
+  rubrica: CriterioRubrica[],
+  modelo: string,
+): SaidaCorrecao {
   const recebidos = Array.isArray(json.criterios) ? json.criterios : []
 
   // Correção parcial é pior que correção nenhuma: o aluno receberia 0 em critérios
   // que o modelo simplesmente não chegou a avaliar. Exige todos os critérios.
-  const faltando = entrada.rubrica.filter(
-    (c, indice) => !recebidos.some((r) => r?.id === c.id) && !recebidos[indice],
-  )
+  const faltando = rubrica.filter((c, indice) => !recebidos.some((r) => r?.id === c.id) && !recebidos[indice])
   if (faltando.length > 0) {
     throw new ErroHttp(
       502,
       'RESPOSTA_INCOMPLETA',
-      `O modelo avaliou ${entrada.rubrica.length - faltando.length} de ${entrada.rubrica.length} critérios. Aumente LLM_MAX_TOKENS e corrija de novo, ou use a correção manual.`,
-      conteudo.slice(-400),
+      `O modelo avaliou ${rubrica.length - faltando.length} de ${rubrica.length} critérios. Aumente LLM_MAX_TOKENS e corrija de novo, ou use a correção manual.`,
     )
   }
-  const criterios: CriterioAvaliado[] = entrada.rubrica.map((c) => {
-    const achado = recebidos.find((r) => r.id === c.id) ?? recebidos[entrada.rubrica.findIndex((x) => x.id === c.id)]
+  const criterios: CriterioAvaliado[] = rubrica.map((c) => {
+    const achado = recebidos.find((r) => r.id === c.id) ?? recebidos[rubrica.findIndex((x) => x.id === c.id)]
     const valorNumerico = typeof achado?.valor === 'number' ? achado.valor : Number(String(achado?.valor ?? '').replace(',', '.'))
     const valor = Number.isFinite(valorNumerico) ? arredondar(limitar(valorNumerico, 0, c.valor)) : 0
     const justificativa =
@@ -367,7 +382,7 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
   })
 
   const notaBruta = arredondar(criterios.reduce((t, c) => t + c.valor, 0))
-  const valorTotal = entrada.rubrica.reduce((t, c) => t + c.valor, 0)
+  const valorTotal = rubrica.reduce((t, c) => t + c.valor, 0)
   const notaFinal = Math.round((notaBruta / (valorTotal || 1)) * 100) / 10
 
   const confianca =

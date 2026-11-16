@@ -225,6 +225,13 @@ banco); `pnpm fotos:limpar --apagar` remove. A remoção de turma pela tela já 
 um erro explicativo. O plano Hobby da Vercel corta funções em ~60 s; para um modelo grande rodando
 em CPU, use `pnpm corrigir:lote` na sua máquina — o script já espera 10 minutos por redação.
 
+### A conta da nota
+
+`pnpm test:rubrica` roda 21 verificações sobre a normalização da resposta do modelo — valor acima do
+máximo do critério, número em texto, vírgula decimal, critério faltando, critério fora de ordem,
+campos ausentes. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e
+testa a função que decide a nota.
+
 ### Isolamento entre alunos
 
 `pnpm test:seguranca` cria duas contas descartáveis no Supabase de produção, envia uma redação com
