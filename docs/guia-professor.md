@@ -24,6 +24,13 @@ certo. A lista desaparece quando tudo estiver pronto — se ela sumiu, não falt
    vírgula e tabulação também funcionam).
 3. **Conferir e importar** mostra quantos entraram e o que foi recusado (matrícula repetida,
    e-mail inválido).
+4. **Sem os e-mails?** Desmarque **Exigir o e-mail na lista** logo abaixo da turma e importe só
+   `matrícula;nome`. Nesse modo, cada aluno digita o próprio e-mail no cadastro e o e-mail fica
+   registrado na lista — a matrícula continua sendo a chave, e ninguém entra com matrícula de
+   outra pessoa sem saber o nome dela. A lista do SIGA (`pnpm turma:planilha`) já vem assim.
+
+> Marcar a caixa é o modo mais seguro (só o dono do e-mail cadastrado entra). Desmarque apenas
+> quando não houver mesmo como obter os e-mails da turma.
 
 > O código do SIGA é o que define para onde as notas vão. Errar aqui lança nota na turma errada.
 

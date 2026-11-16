@@ -37,6 +37,8 @@ const mensagens: Record<MotivoValidacao, string> = {
   email: 'Este e-mail não é o que consta na lista da turma. Use o e-mail institucional cadastrado.',
   ja_cadastrado: 'Esta matrícula já tem cadastro. Use "Esqueci minha senha" para recuperar o acesso.',
   dados_incompletos: 'Preencha turma, matrícula e e-mail.',
+  sem_email_na_lista:
+    'A lista desta turma ainda não tem os e-mails. Peça ao professor para conferir a lista — ou avise que o cadastro está bloqueado.',
   erro: 'Não foi possível validar agora. Tente novamente.',
 }
 

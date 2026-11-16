@@ -24,7 +24,14 @@ export interface Cadastro {
   senha: string
 }
 
-export type MotivoValidacao = 'ok' | 'matricula' | 'email' | 'ja_cadastrado' | 'dados_incompletos' | 'erro'
+export type MotivoValidacao =
+  | 'ok'
+  | 'matricula'
+  | 'email'
+  | 'ja_cadastrado'
+  | 'dados_incompletos'
+  | 'sem_email_na_lista'
+  | 'erro'
 
 export interface NovaAvaliacao {
   turma_id: string
@@ -96,6 +103,8 @@ export interface Dados {
   mudarStatusAvaliacao(id: string, status: StatusAvaliacao): Promise<void>
   alunosDaTurma(turmaId: string): Promise<Esperado[]>
   importarAlunos(turmaId: string, linhas: LinhaImportacao[]): Promise<{ inseridos: number; atualizados: number }>
+  /** Liga/desliga a exigência de e-mail já cadastrado na lista da turma. */
+  definirExigenciaDeEmail(turmaId: string, exige: boolean): Promise<void>
   submissoesDaAvaliacao(avaliacaoId: string): Promise<SubmissaoDoProfessor[]>
   corrigir(submissaoId: string): Promise<Correcao>
   /** Cria correção zerada para o professor preencher sem depender do Llama. */

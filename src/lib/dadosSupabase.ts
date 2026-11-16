@@ -331,6 +331,11 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       return { inseridos, atualizados: registros.length - inseridos }
     },
 
+    async definirExigenciaDeEmail(turmaId, exige) {
+      const { error } = await sb.from('turmas').update({ exige_email: exige }).eq('id', turmaId)
+      if (error) throw new Error(error.message)
+    },
+
     async submissoesDaAvaliacao(avaliacaoId) {
       const { data: subs, error } = await sb
         .from('submissoes')

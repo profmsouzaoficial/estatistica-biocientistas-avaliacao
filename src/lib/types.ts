@@ -9,6 +9,8 @@ export interface Turma {
   periodo: string
   curso: string
   ativo: boolean
+  /** false = a lista pode vir sem e-mail; o aluno informa o dele no cadastro. */
+  exige_email: boolean
 }
 
 export interface Perfil {

@@ -77,7 +77,8 @@ Variáveis lidas pelo servidor (nunca expostas ao navegador): `SUPABASE_SERVICE_
 ## 4. Banco de dados
 
 Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutura) e
-`0002_encerrada.sql` (avaliação encerrada continua visível ao aluno, mas não aceita entrega nova):
+`0002_encerrada.sql` (avaliação encerrada continua visível ao aluno, mas não aceita entrega nova) e
+`0003_email_opcional.sql` (turma sem e-mails na lista, com o e-mail informado no cadastro):
 
 | Tabela | Papel |
 |---|---|
@@ -188,8 +189,12 @@ pnpm turma:planilha -- --turma CBV018GV-A --periodo 2026/3
 ```
 
 Lê o quadro do SIGA (somente leitura) e grava `importacao/turma-CBV018GV-A-2026-3.csv` com
-matrícula e nome preenchidos e a coluna de e-mail vazia. O SIGA não expõe e-mail, então esse
-campo é o único que precisa ser colado à mão antes de enviar o CSV em *Turmas e alunos*.
+matrícula e nome preenchidos e a coluna de e-mail vazia. O SIGA não expõe e-mail. Duas saídas:
+
+1. colar os e-mails à mão antes de enviar o CSV; ou
+2. desmarcar **Exigir o e-mail na lista** em *Turmas e alunos* — aí a lista vale só com matrícula
+   e nome (migration `0003_email_opcional.sql`), e o aluno informa o próprio e-mail no cadastro;
+   o e-mail digitado fica gravado em `alunos_esperados` e as próximas consultas já o mostram.
 A pasta `importacao/` está no `.gitignore` (contém nomes de alunos).
 
 ### Correção sem IA
@@ -228,7 +233,10 @@ Chromium em viewport de celular e valida o banco ao final:
 7. o teste confere a segunda nota, a decisão `ajustada` e o texto gravado em `pontos_fortes`;
 8. o professor cria uma terceira avaliação e **encerra as entregas**; o teste tenta inserir uma
    submissão pela API REST com o token do aluno e exige **403** da RLS;
-9. o aluno vê "Entregas encerradas" sem botão de envio e o professor **reabre**.
+9. o aluno vê "Entregas encerradas" sem botão de envio e o professor **reabre**;
+10. o professor desmarca a exigência de e-mail e importa um aluno só com matrícula e nome;
+    esse aluno se cadastra informando o próprio e-mail, e o banco confere que o e-mail e o
+    `user_id` ficaram gravados na lista.
 
 Capturas em `e2e/resultados/`. Nada é enviado ao SIGA de verdade: `SIGA_API_BASE` aponta para o mock.
 

@@ -303,6 +303,7 @@ Em populações de baixa prevalência, um teste muito sensível pode gerar muito
         nome: 'Biociências — Turma A',
         codigo_siga: 'CBV018GV-A',
         periodo: '2026/3',
+        exige_email: true,
         curso: 'Ciências Biológicas',
         ativo: true,
       },
@@ -610,7 +611,7 @@ export function criarDadosDemo(): Dados {
     },
 
     async criarTurma(t) {
-      const nova: Turma = { id: uid(), ativo: true, ...t }
+      const nova: Turma = { id: uid(), ativo: true, exige_email: true, ...t }
       base.turmas.push(nova)
       gravar()
       return nova
@@ -679,6 +680,13 @@ export function criarDadosDemo(): Dados {
       }
       gravar()
       return { inseridos, atualizados: linhas.length - inseridos }
+    },
+
+    async definirExigenciaDeEmail(turmaId, exige) {
+      const t = base.turmas.find((x) => x.id === turmaId)
+      if (!t) throw new Error('Turma não encontrada.')
+      t.exige_email = exige
+      gravar()
     },
 
     async submissoesDaAvaliacao(avaliacaoId) {
