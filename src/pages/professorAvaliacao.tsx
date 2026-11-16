@@ -25,6 +25,7 @@ import type {
   Avaliacao,
   AvaliacaoSiga,
   CriterioNota,
+  Esperado,
   QuadroNotasSiga,
   SubmissaoDoProfessor,
   Turma,
@@ -104,6 +105,9 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [pedindoExclusao, setPedindoExclusao] = useState(false)
   const [tituloConfirmado, setTituloConfirmado] = useState('')
   const [erroExclusao, setErroExclusao] = useState<string | null>(null)
+  // Quem está na lista da turma e ainda não enviou — o professor precisa disso
+  // antes de fechar o prazo, não depois.
+  const [esperados, setEsperados] = useState<Esperado[]>([])
   // A escala do SIGA vem do servidor (SIGA_ESCALA); 0–10 é o padrão.
   const escalaSiga = usarEscalaSiga(d)
 
@@ -113,6 +117,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     setAvaliacao(av)
     setItens(subs)
     if (av) {
+      d.alunosDaTurma(av.turma_id).then(setEsperados).catch(() => setEsperados([]))
       const turmas = await d.turmasTodas().catch(() => [])
       const achada = turmas.find((t) => t.id === av.turma_id) ?? null
       setTurma(achada)
@@ -180,6 +185,12 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       ),
     [itens],
   )
+
+  const faltam = useMemo(() => {
+    if (!esperados.length) return []
+    const entregaram = new Set((itens ?? []).map((i) => i.aluno.matricula).filter(Boolean) as string[])
+    return esperados.filter((e) => !entregaram.has(e.matricula))
+  }, [esperados, itens])
 
   async function mudarStatus(novo: 'publicada' | 'encerrada') {
     if (!d) return
@@ -541,6 +552,45 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           <Contador rotulo="A revisar" valor={aRevisar.length} />
           <Contador rotulo="A lançar" valor={aLancar.length} />
         </div>
+
+        {esperados.length > 0 ? (
+          <Cartao className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[13px] text-tinta-suave">
+                <strong className="font-medium text-tinta">{itens.length}</strong> de {esperados.length} alunos
+                da turma entregaram
+              </p>
+              {faltam.length === 0 ? (
+                <span className="rounded-lg bg-verde-claro px-2 py-1 text-[11.5px] font-medium text-verde-escuro">
+                  todos entregaram
+                </span>
+              ) : null}
+            </div>
+            {faltam.length > 0 ? (
+              <details className="group">
+                <summary className="alvo-toque cursor-pointer justify-start text-[13px] text-vermelho">
+                  Faltam {faltam.length}: {faltam.slice(0, 2).map((e) => e.nome_completo.split(' ')[0]).join(', ')}
+                  {faltam.length > 2 ? ` e mais ${faltam.length - 2}` : ''}
+                </summary>
+                <ul className="mt-2 space-y-1.5">
+                  {faltam.map((e) => (
+                    <li key={e.id} className="flex items-baseline justify-between gap-2 text-[13px]">
+                      <span className="text-tinta">{e.nome_completo}</span>
+                      <span className="shrink-0 font-mono text-[11.5px] text-tinta-fraca">
+                        {e.matricula}
+                        {e.user_id ? '' : ' · sem cadastro'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[12px] leading-snug text-tinta-fraca">
+                  Quem não entregou fica sem nota nesta avaliação. Para abrir uma segunda chance, estenda o
+                  prazo abaixo — o aluno vê o botão de envio de novo.
+                </p>
+              </details>
+            ) : null}
+          </Cartao>
+        ) : null}
 
         <div className="flex flex-wrap gap-2">
           <Botao

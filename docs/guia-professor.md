@@ -129,7 +129,18 @@ Cada aprovação, devolução, mudança de prazo e encerramento de entregas entr
 com a data, o seu usuário e o valor anterior. Se alguém perguntar "por que a nota mudou depois do
 lançamento?" ou "quando o prazo foi estendido?", a resposta está lá — não depende de memória.
 
-### Devolver uma redação
+### Quem ainda não entregou
+
+Abaixo dos contadores, a linha de **entregas da turma** mostra “3 de 4 alunos da turma entregaram” e, se
+alguém faltou, **Faltam N** com o primeiro nome. Toque para abrir a lista com nome e matrícula; quem
+aparece como **sem cadastro** ainda não criou a conta no app.
+
+Use isso antes de fechar o prazo: quem não entregou fica sem nota nesta avaliação. Para dar segunda
+chance, **Estender ou mudar o prazo** reabre o envio — não mexe em redação já enviada nem em nota já
+lançada. A contagem considera só entrega confirmada pelo aluno: rascunho salvo no meio do caminho não
+conta, porque rascunho ele ainda pode mudar.
+
+## Devolver uma redação
 
 Na revisão, **Devolver para o aluno** manda a redação de volta com o seu comentário. O aluno vê
 “Devolvida para ajuste”, reabre, corrige e reenvia. O reenvio volta para a sua fila como

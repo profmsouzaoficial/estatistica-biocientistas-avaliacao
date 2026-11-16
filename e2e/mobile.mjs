@@ -216,6 +216,8 @@ async function main() {
   await page.goto(`${WEB}/prof/avaliacoes/av-demo-1`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'professor · avaliação')) && ok
   await foto(page, 'mobile-09-professor-avaliacao')
+  await page.getByText(/alunos da turma entregaram/).first().waitFor({ timeout: 15000 })
+  await page.getByText(/^Faltam \d+/).first().waitFor({ timeout: 15000 })
 
   await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'professor · nova avaliação')) && ok

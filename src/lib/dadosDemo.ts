@@ -112,6 +112,20 @@ function baseInicial(): Base {
       turma_id: turmaId,
       senha: SENHA_DEMO,
     },
+    // Aluno que existe na lista e ainda não entregou: é assim que o professor vê
+    // "faltam N" antes de fechar o prazo. Sem alguém faltando, esse caso nunca
+    // apareceria na demonstração.
+    {
+      id: 'aluno-demo-4',
+      papel: 'aluno',
+      nome_completo: 'Diego Ramos Teixeira',
+      matricula: '2026301004',
+      email: 'diego@demo.local',
+      curso: 'Ciências Biológicas',
+      telefone: null,
+      turma_id: turmaId,
+      senha: SENHA_DEMO,
+    },
     {
       id: 'aluno-demo-3',
       papel: 'aluno',
