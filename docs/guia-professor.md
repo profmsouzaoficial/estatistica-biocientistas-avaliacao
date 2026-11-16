@@ -116,6 +116,14 @@ Na tela da avaliação:
 A nota final é sempre `soma dos critérios ÷ valor total × 10`, arredondada a uma casa. Não é o
 modelo que decide a nota no SIGA.
 
+### Devolver uma redação
+
+Na revisão, **Devolver para o aluno** manda a redação de volta com o seu comentário. O aluno vê
+“Devolvida para ajuste”, reabre, corrige e reenvia. O reenvio volta para a sua fila como
+**a revisar** — os critérios da rodada anterior ficam ali como ponto de partida, para você ajustar em
+vez de começar do zero. Enquanto você não aprovar de novo, o aluno continua vendo “Em correção”, sem
+nota.
+
 ### Estender o prazo
 
 Aluno que adoeceu, queda de internet na véspera: entre na avaliação e use **Prazo de entrega →

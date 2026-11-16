@@ -136,8 +136,17 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     () => (itens ?? []).filter((i) => i.correcao && i.correcao.decisao === 'pendente'),
     [itens],
   )
+  // "A lançar" é só o que o professor aprovou (ou ajustou e aprovou). Uma
+  // correção rejeitada — devolvida ao aluno — não pode entrar na fila do SIGA:
+  // o servidor recusaria com 409, mas o botão estaria mentindo.
   const aLancar = useMemo(
-    () => (itens ?? []).filter((i) => i.correcao && i.correcao.decisao !== 'pendente' && !i.lancamento?.sucesso),
+    () =>
+      (itens ?? []).filter(
+        (i) =>
+          i.correcao &&
+          (i.correcao.decisao === 'aprovada' || i.correcao.decisao === 'ajustada') &&
+          !i.lancamento?.sucesso,
+      ),
     [itens],
   )
 

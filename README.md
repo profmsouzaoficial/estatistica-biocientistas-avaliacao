@@ -233,6 +233,19 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Devolver e reenviar
+
+O professor pode devolver a redação ("reenvie com a segunda folha"): a submissão volta como
+**devolvida**, o aluno reabre, corrige o texto e reenvia. Quando o reenvio acontece, a correção
+anterior volta para **pendente** (gatilho `trg_reenvio_redacao`, migration 0009) — sem isso a redação
+reenviada não entrava na fila de revisão e caía em "Lançar no SIGA" com uma decisão que ninguém
+aprovou (o servidor recusava com `409 NAO_APROVADA`, mas o botão aparecia). A fila de lançamento agora
+só considera decisões `aprovada` e `ajustada`.
+
+`pnpm test:reenvio` exercita o gatilho dentro de uma transação que termina em `ROLLBACK` (nada fica no
+banco): devolução → reenvio devolve a decisão para pendente, reenvio sem devolução não mexe em nada e
+aprovação já dada não é desfeita.
+
 ### Prazo de entrega
 
 O prazo é bloqueante: passada a data, o aluno não abre entrega nova (o botão fica em “Prazo
