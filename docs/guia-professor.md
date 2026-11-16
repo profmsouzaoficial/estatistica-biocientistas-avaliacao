@@ -137,6 +137,21 @@ A remoção leva junto a lista, as avaliações, as redações e **as fotos** gu
 (a mensagem final informa quantas fotos foram apagadas).
 Se já houver nota lançada no SIGA, o app recusa — o histórico do lançamento não pode desaparecer.
 
+### Excluir uma avaliação criada por engano
+
+No fim da página de cada avaliação existe o cartão **Excluir esta avaliação**. Ele só funciona
+enquanto ninguém enviou redação e nenhuma nota foi ao SIGA — duas travas deliberadas:
+
+| Situação | O que acontece |
+|---|---|
+| Rascunho ou avaliação sem entregas | Apaga com confirmação pelo título |
+| Já tem redação enviada | O app recusa e explica: apagar tiraria a entrega do aluno |
+| Já tem nota lançada no SIGA | O app recusa: o histórico do lançamento não pode desaparecer |
+
+Se você publicou com o peso ou a rubrica errados e **ninguém enviou ainda**, basta excluir e criar de
+novo. Se já houver entregas, encerre as entregas, crie a avaliação corrigida e deixe a antiga como
+histórico (ou remova a turma inteira, quando o período acabar).
+
 ### Quando a correção automática demora
 
 A hospedagem gratuita da Vercel corta qualquer função em 60 segundos. O app espera até 55 s pelo

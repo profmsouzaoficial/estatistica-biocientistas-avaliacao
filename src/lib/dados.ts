@@ -80,6 +80,15 @@ export interface ResumoTurma {
   lancadas: number
 }
 
+export type RespostaApagarAvaliacao =
+  | { ok: true; titulo: string }
+  | {
+      ok: false
+      motivo: 'sem_permissao' | 'nao_encontrada' | 'tem_submissoes' | 'tem_lancamentos'
+      submissoes?: number
+      lancadas?: number
+    }
+
 export type RespostaApagarTurma =
   | { ok: true; alunos: number; avaliacoes: number; fotos_apagadas?: number }
   | { ok: false; motivo: 'sem_permissao' | 'nao_encontrada' | 'tem_lancamentos'; lancadas?: number }
@@ -116,6 +125,8 @@ export interface Dados {
   resumoTurma(turmaId: string): Promise<ResumoTurma>
   /** Apaga a turma e tudo que pertence a ela; recusa se já há nota lançada no SIGA. */
   apagarTurma(turmaId: string): Promise<RespostaApagarTurma>
+  /** Apaga uma avaliação sem redações enviadas e sem nota lançada no SIGA. */
+  apagarAvaliacao(avaliacaoId: string): Promise<RespostaApagarAvaliacao>
   resumoAvaliacoes(): Promise<ResumoAvaliacao[]>
   criarAvaliacao(dados: NovaAvaliacao): Promise<Avaliacao>
   mudarStatusAvaliacao(id: string, status: StatusAvaliacao): Promise<void>

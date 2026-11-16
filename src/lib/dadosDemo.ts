@@ -709,6 +709,18 @@ export function criarDadosDemo(): Dados {
       return { ok: true as const, alunos: base.esperados.length, avaliacoes: avaliacoes.length }
     },
 
+    async apagarAvaliacao(avaliacaoId) {
+      const avaliacao = base.avaliacoes.find((a) => a.id === avaliacaoId)
+      if (!avaliacao) return { ok: false as const, motivo: 'nao_encontrada' as const }
+      const submissoes = base.submissoes.filter((s) => s.avaliacao_id === avaliacaoId)
+      if (submissoes.length > 0) {
+        return { ok: false as const, motivo: 'tem_submissoes' as const, submissoes: submissoes.length }
+      }
+      base.avaliacoes = base.avaliacoes.filter((a) => a.id !== avaliacaoId)
+      gravar()
+      return { ok: true as const, titulo: avaliacao.titulo }
+    },
+
     async definirExigenciaDeEmail(turmaId, exige) {
       const t = base.turmas.find((x) => x.id === turmaId)
       if (!t) throw new Error('Turma não encontrada.')

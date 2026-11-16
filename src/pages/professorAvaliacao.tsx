@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Download, ImageOff, Loader2, Pencil, Send, Sparkles, Undo2, UploadCloud, Lock, Unlock, Eye } from 'lucide-react'
+import { CheckCircle2, Download, Eye, ImageOff, Loader2, Lock, Pencil, Send, Sparkles, Trash2, Undo2, Unlock, UploadCloud } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
-import { Alerta, AppBar, BarraIndeterminada, Botao, Carregando, Cartao, Selo } from '../components/ui'
-import { formatarData, formatarDataHora, formatarNota, formatarPontos } from '../lib/formato'
+import { Alerta, AppBar, BarraIndeterminada, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
+import { formatarData, formatarDataHora, formatarNota, formatarPontos, plural } from '../lib/formato'
 import { notaParaSiga } from '../lib/types'
 import type { Avaliacao, CriterioNota, SubmissaoDoProfessor, Turma } from '../lib/types'
 import { api } from '../lib/servidor'
@@ -69,6 +69,10 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [sigaTem, setSigaTem] = useState<boolean | null>(null)
   const [criandoSiga, setCriandoSiga] = useState(false)
   const [erroSiga, setErroSiga] = useState<string | null>(null)
+  // Exclusão da avaliação (só quando ninguém enviou e nada foi ao SIGA)
+  const [pedindoExclusao, setPedindoExclusao] = useState(false)
+  const [tituloConfirmado, setTituloConfirmado] = useState('')
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null)
   // A escala do SIGA vem do servidor (SIGA_ESCALA); 0–10 é o padrão.
   const escalaSiga = usarEscalaSiga(d)
 
@@ -236,6 +240,32 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       </>
     )
   }
+  async function excluirAvaliacao() {
+    if (!d || !avaliacao) return
+    setOcupado('excluindo')
+    setErroExclusao(null)
+    try {
+      const r = await d.apagarAvaliacao(id)
+      if (!r.ok) {
+        setErroExclusao(
+          r.motivo === 'tem_submissoes'
+            ? `Esta avaliação tem ${plural(r.submissoes ?? 0, 'redação enviada', 'redações enviadas')}. Apagar tiraria a entrega do aluno, então o app não deixa — encerre as entregas e crie outra avaliação.`
+            : r.motivo === 'tem_lancamentos'
+              ? `Esta avaliação já tem ${plural(r.lancadas ?? 0, 'nota lançada', 'notas lançadas')} no SIGA. Apagar apagaria o histórico do lançamento.`
+              : r.motivo === 'sem_permissao'
+                ? 'Só o professor pode apagar uma avaliação.'
+                : 'Esta avaliação não existe mais. Atualize a página.',
+        )
+        return
+      }
+      navegar('/')
+    } catch (e) {
+      setErroExclusao(e instanceof Error ? e.message : 'Falha ao excluir a avaliação.')
+    } finally {
+      setOcupado(null)
+    }
+  }
+
   if (!avaliacao || !itens) return <Carregando />
 
   return (
@@ -439,6 +469,62 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             })
           )}
         </div>
+
+        <Cartao>
+          <div className="flex items-start gap-2">
+            <Trash2 className="mt-0.5 size-4 shrink-0 text-tinta-suave" aria-hidden />
+            <div>
+              <h2 className="text-[14px] font-medium text-tinta">Excluir esta avaliação</h2>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-tinta-suave">
+                Apaga a avaliação, as instruções e a rubrica. Não dá para desfazer e não pode ser feito
+                se alguém já enviou redação ou se alguma nota já foi ao SIGA.
+              </p>
+            </div>
+          </div>
+
+          {erroExclusao ? <Alerta tom="vermelho">{erroExclusao}</Alerta> : null}
+
+          {itens.length > 0 ? (
+            <Alerta tom="ambar">
+              Há {plural(itens.length, 'redação enviada', 'redações enviadas')} — a avaliação não pode ser
+              excluída.
+            </Alerta>
+          ) : pedindoExclusao ? (
+            <div className="space-y-3">
+              <Campo
+                rotulo={`Digite "${avaliacao.titulo}" para confirmar`}
+                value={tituloConfirmado}
+                onChange={(e) => setTituloConfirmado(e.target.value)}
+                autoComplete="off"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Botao
+                  variante="perigo"
+                  onClick={excluirAvaliacao}
+                  carregando={ocupado === 'excluindo'}
+                  disabled={tituloConfirmado.trim() !== avaliacao.titulo.trim()}
+                  icone={<Trash2 className="size-4" />}
+                >
+                  Excluir definitivamente
+                </Botao>
+                <Botao
+                  variante="secundario"
+                  onClick={() => {
+                    setPedindoExclusao(false)
+                    setTituloConfirmado('')
+                    setErroExclusao(null)
+                  }}
+                >
+                  Cancelar
+                </Botao>
+              </div>
+            </div>
+          ) : (
+            <Botao variante="secundario" onClick={() => setPedindoExclusao(true)} icone={<Trash2 className="size-4" />}>
+              Quero excluir…
+            </Botao>
+          )}
+        </Cartao>
       </main>
     </>
   )

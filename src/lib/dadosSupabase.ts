@@ -6,6 +6,7 @@ import type {
   NovaAvaliacao,
   Revisao,
   LinhaImportacao,
+  RespostaApagarAvaliacao,
   RespostaApagarTurma,
 } from './dados'
 import { api, configurarToken } from './servidor'
@@ -282,6 +283,12 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       // Passa pelo servidor para apagar também as fotos do bucket privado — o
       // SQL sozinho não alcança o Storage.
       return api<RespostaApagarTurma>('/turma-excluir', { turma_id: turmaId })
+    },
+
+    async apagarAvaliacao(avaliacaoId) {
+      const { data, error } = await sb.rpc('apagar_avaliacao', { p_avaliacao: avaliacaoId })
+      if (error) throw new Error(error.message)
+      return data as RespostaApagarAvaliacao
     },
 
     async resumoAvaliacoes() {
