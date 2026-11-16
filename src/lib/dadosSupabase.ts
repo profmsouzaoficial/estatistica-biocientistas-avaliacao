@@ -341,6 +341,11 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       if (error) throw new Error(error.message)
     },
 
+    async mudarPesoSigaAvaliacao(id, pesoSiga) {
+      const { error } = await sb.from('avaliacoes').update({ peso_siga: pesoSiga }).eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+
     async alunosDaTurma(turmaId) {
       const { data, error } = await sb
         .from('alunos_esperados')

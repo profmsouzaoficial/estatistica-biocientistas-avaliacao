@@ -21,8 +21,16 @@ import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
 import { atrasoDeEntrega, formatarData, formatarDataHora, formatarNota, formatarPontos, plural } from '../lib/formato'
 import { notaParaSiga } from '../lib/types'
-import type { Avaliacao, CriterioNota, QuadroNotasSiga, SubmissaoDoProfessor, Turma } from '../lib/types'
+import type {
+  Avaliacao,
+  AvaliacaoSiga,
+  CriterioNota,
+  QuadroNotasSiga,
+  SubmissaoDoProfessor,
+  Turma,
+} from '../lib/types'
 import { api } from '../lib/servidor'
+import { acharAvaliacaoSiga, divergenciaDePeso } from '../lib/siga'
 
 /**
  * Escala em que o SIGA recebe a nota. Quem manda é o servidor (SIGA_ESCALA, em
@@ -85,6 +93,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [confirmandoLancamento, setConfirmandoLancamento] = useState(false)
   const [turma, setTurma] = useState<Turma | null>(null)
   const [sigaTem, setSigaTem] = useState<boolean | null>(null)
+  const [avalSiga, setAvalSiga] = useState<AvaliacaoSiga | null>(null)
   const [quadroSiga, setQuadroSiga] = useState<QuadroNotasSiga | null>(null)
   const [conferindo, setConferindo] = useState(false)
   const [erroQuadro, setErroQuadro] = useState<string | null>(null)
@@ -111,14 +120,16 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       // lista oficial para saber se já existe; sem SIGA configurado, não mostra nada.
       if (achada?.codigo_siga && av.descricao_siga) {
         try {
-          const r = await api<{ avaliacoes: { descricao: string }[] }>(
+          const r = await api<{ avaliacoes: AvaliacaoSiga[] }>(
             `/siga/avaliacoes?turma=${encodeURIComponent(achada.codigo_siga)}&periodo=${encodeURIComponent(achada.periodo)}`,
           )
-          const descricao = av.descricao_siga.trim().toLowerCase()
-          setSigaTem(r.avaliacoes.some((a) => a.descricao.trim().toLowerCase() === descricao))
+          const encontrada = acharAvaliacaoSiga(r.avaliacoes, av.descricao_siga)
+          setAvalSiga(encontrada)
+          setSigaTem(encontrada ? true : false)
           setErroSiga(null)
         } catch {
           setSigaTem(null)
+          setAvalSiga(null)
           setErroSiga(null)
         }
       }
@@ -130,6 +141,26 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       .then(carregar)
       .catch((e) => setErro(e instanceof Error ? e.message : 'Falha ao carregar.'))
   }, [carregar])
+
+  const pesoDivergente = divergenciaDePeso(avalSiga, avaliacao?.peso_siga)
+
+  async function alinharPesoComSiga() {
+    if (!d || !avaliacao || !pesoDivergente) return
+    setErro(null)
+    setResultado(null)
+    setOcupado('peso')
+    try {
+      await d.mudarPesoSigaAvaliacao(avaliacao.id, pesoDivergente.pesoSiga)
+      await carregar()
+      setResultado(
+        `Peso alinhado com o SIGA (${formatarPontos(pesoDivergente.pesoSiga)} pontos). As próximas notas já saem na escala certa.`,
+      )
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível mudar o peso.')
+    } finally {
+      setOcupado(null)
+    }
+  }
 
   const pendentes = useMemo(() => (itens ?? []).filter((i) => !i.correcao), [itens])
   const aRevisar = useMemo(
@@ -588,11 +619,48 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           <div className="space-y-2">
             <p className="px-1 text-[12.5px] text-tinta-suave">
               SIGA: <strong className="font-medium text-tinta">{avaliacao.descricao_siga}</strong> · peso{' '}
-              {avaliacao.peso_siga} ·{' '}
+              {avaliacao.peso_siga}
+              {pesoDivergente ? (
+                <span className="text-ambar"> (no SIGA: {formatarPontos(pesoDivergente.pesoSiga)})</span>
+              ) : null}{' '}
+              ·{' '}
               {escalaSiga === 'pontos'
                 ? `nota enviada em pontos (0 a ${formatarPontos(avaliacao.peso_siga)})`
                 : 'nota enviada de 0 a 10'}.
             </p>
+            {pesoDivergente ? (
+              <Alerta tom="ambar" titulo="O peso aqui não é o peso do SIGA">
+                <p className="text-[13.5px] leading-snug">
+                  No SIGA, <strong>{avaliacao.descricao_siga}</strong> vale{' '}
+                  <strong>{formatarPontos(pesoDivergente.pesoSiga)} pontos</strong>; aqui a avaliação está
+                  marcada com peso <strong>{formatarPontos(pesoDivergente.pesoApp)}</strong>.{' '}
+                  {escalaSiga === 'pontos' ? (
+                    <>
+                      A nota máxima ({formatarPontos(avaliacao.valor_total)}/
+                      {formatarPontos(avaliacao.valor_total)}) seria enviada como{' '}
+                      <strong>{formatarPontos(pesoDivergente.pesoApp)}</strong>; com o peso do SIGA, iria como{' '}
+                      <strong>{formatarPontos(pesoDivergente.pesoSiga)}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      As notas saem daqui de 0 a 10 e o SIGA espera a escala desta avaliação — confira a
+                      variável <code className="font-mono text-[12.5px]">SIGA_ESCALA</code> no servidor.
+                    </>
+                  )}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Botao
+                    type="button"
+                    onClick={alinharPesoComSiga}
+                    carregando={ocupado === 'peso'}
+                    disabled={ocupado === 'peso'}
+                  >
+                    Usar o peso do SIGA ({formatarPontos(pesoDivergente.pesoSiga)})
+                  </Botao>
+                  <span className="text-[12.5px] text-tinta-suave">não muda nota já lançada</span>
+                </div>
+              </Alerta>
+            ) : null}
             {sigaTem === false ? (
               <Alerta tom="ambar" titulo="Esta avaliação ainda não existe no SIGA">
                 <p className="text-[13.5px] leading-snug">

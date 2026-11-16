@@ -116,6 +116,13 @@ Na tela da avaliação:
 A nota final é sempre `soma dos critérios ÷ valor total × 10`, arredondada a uma casa. Não é o
 modelo que decide a nota no SIGA.
 
+### O peso tem que ser o do SIGA
+
+A nota sai daqui convertida para a escala da avaliação **no SIGA**. Se este app diz peso 20 e o SIGA
+diz 10, uma redação nota máxima chega como 20 onde o teto é 10. A página da avaliação avisa quando os
+dois pesos não batem e oferece **Usar o peso do SIGA** — um clique, e as próximas notas saem certas.
+Ao criar a avaliação, use a busca do SIGA: o peso vem preenchido.
+
 ### Quem mexeu no quê
 
 Cada aprovação, devolução, mudança de prazo e encerramento de entregas entra na trilha de auditoria

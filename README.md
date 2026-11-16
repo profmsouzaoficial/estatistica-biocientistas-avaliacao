@@ -233,6 +233,20 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### O peso do SIGA manda na escala
+
+A nota que chega ao SIGA não é a nota de 0 a 10 do app: é a nota na escala da avaliação **no SIGA**,
+definida pelo peso dela lá. Com `SIGA_ESCALA=pontos`, o envio é
+`round(bruta / valor_total × peso × 100) / 100`.
+
+Se o peso marcado aqui for outro, a nota chega multiplicada ou dividida — e os dois números parecem
+plausíveis. O formulário de criação já preenche o peso quando a avaliação é escolhida na busca do
+SIGA; digitando a descrição à mão dá para errar. Por isso a página da avaliação consulta o peso
+oficial e, quando diverge, mostra o aviso *“O peso aqui não é o peso do SIGA”* com a conta explícita
+(“a nota máxima 20/20 seria enviada como 20; com o peso do SIGA, iria como 10”) e um botão que alinha
+o peso em um clique. `pnpm test:peso` cobre a regra (19 verificações) e o passo 25 do `pnpm e2e`
+exercita o aviso de ponta a ponta.
+
 ### Trilha de auditoria
 
 Toda decisão que muda o que o aluno vê ou o que vai ao SIGA fica registrada em `auditoria`

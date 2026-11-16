@@ -663,6 +663,14 @@ export function criarDadosDemo(): Dados {
       }
     },
 
+    async mudarPesoSigaAvaliacao(id, pesoSiga) {
+      const a = base.avaliacoes.find((x) => x.id === id)
+      if (a) {
+        a.peso_siga = pesoSiga
+        gravar()
+      }
+    },
+
     async alunosDaTurma(turmaId) {
       return base.esperados.filter((e) => e.turma_id === turmaId).sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'))
     },
