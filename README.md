@@ -210,6 +210,18 @@ com 504 — a tela agora explica isso e sugere as saídas:
 | Turma inteira com modelo em CPU | `pnpm corrigir:lote` no servidor do modelo (sem limite de tempo) |
 | IA indisponível | correção manual na revisão |
 
+### Verificação de produção
+
+`pnpm test:producao` roda o fluxo real contra a Vercel: cria uma turma e um aluno
+descartáveis, publica uma avaliação, o aluno envia (foto + texto), o professor corrige à mão,
+aprova, o aluno vê a devolutiva, a confirmação do SIGA é conferida e **cancelada** — e a turma é
+removida pela própria tela, com a confirmação por código. Nada é lançado no SIGA e a turma real
+não é tocada.
+
+```bash
+SENHA_PROFESSOR=... pnpm test:producao
+```
+
 ### Pré-voo do corretor (Llama do Coolify)
 
 Antes de um aluno enviar redação de verdade, `pnpm test:llm` conversa com o endpoint do Coolify sem

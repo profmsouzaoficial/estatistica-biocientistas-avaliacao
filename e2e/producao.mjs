@@ -122,11 +122,11 @@ const page = await contexto.newPage()
 page.setDefaultTimeout(45000)
 
 try {
-  passo('1/9 professor entra')
+  passo('1/10 professor entra')
   await entrar(page, PROFESSOR.email, PROFESSOR.senha)
   await page.getByText('Painel do professor').first().waitFor()
 
-  passo('2/9 cria turma descartável')
+  passo('2/10 cria turma descartável')
   await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'Nova turma' }).click()
   await page.getByLabel('Nome da turma').fill(TURMA.nome)
@@ -135,7 +135,7 @@ try {
   await page.getByRole('button', { name: 'Criar turma' }).click()
   await page.getByText('Turma criada').waitFor()
 
-  passo('3/9 importa a lista sem e-mail')
+  passo('3/10 importa a lista sem e-mail')
   await escolherTurma(page, TURMA.nome)
   const caixaEmail = page.getByRole('checkbox', { name: /Exigir o e-mail na lista/ })
   if (await caixaEmail.isChecked()) {
@@ -148,7 +148,7 @@ try {
   await page.getByText('e-mail ainda não informado').first().waitFor()
   await foto(page, 'prod-01-lista')
 
-  passo('4/9 publica avaliação')
+  passo('4/10 publica avaliação')
   await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
   await escolherTurma(page, TURMA.nome)
   await page.getByLabel('Título').fill(`Teste de produção ${SUFIXO}`)
@@ -168,7 +168,7 @@ try {
   await page.getByText('Nenhuma redação enviada ainda').waitFor()
   await foto(page, 'prod-02-avaliacao')
 
-  passo('5/9 aluno se cadastra')
+  passo('5/10 aluno se cadastra')
   await sair(page)
   await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
   await escolherTurma(page, TURMA.nome)
@@ -183,7 +183,7 @@ try {
   await page.getByText(new RegExp(`Teste de produção ${SUFIXO}`)).first().waitFor({ timeout: 40000 })
   await foto(page, 'prod-03-aluno-inicio')
 
-  passo('6/9 aluno fotografa e envia (OCR desligado → digita o texto)')
+  passo('6/10 aluno fotografa e envia (OCR desligado → digita o texto)')
   await page.getByText(new RegExp(`Teste de produção ${SUFIXO}`)).first().click()
   await page.getByRole('button', { name: /Fotografar minha redação/ }).click()
   await page.waitForURL(/\/enviar$/)
@@ -199,7 +199,7 @@ try {
   await page.getByText('Redação enviada').waitFor({ timeout: 40000 })
   await foto(page, 'prod-04-enviada')
 
-  passo('7/9 professor corrige à mão e aprova')
+  passo('7/10 professor corrige à mão e aprova')
   await sair(page)
   await entrar(page, PROFESSOR.email, PROFESSOR.senha)
   await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}`, { waitUntil: 'networkidle' })
@@ -215,7 +215,7 @@ try {
   await page.getByText('Revisão salva').waitFor({ timeout: 30000 })
   await foto(page, 'prod-05-revisao')
 
-  passo('8/9 aluno vê a devolutiva')
+  passo('8/10 aluno vê a devolutiva')
   await sair(page)
   await entrar(page, ALUNO.email, ALUNO.senha)
   await page.getByText(new RegExp(`Teste de produção ${SUFIXO}`)).first().waitFor({ timeout: 40000 })
@@ -225,7 +225,7 @@ try {
   if (!/7([.,]0)?/.test(textoDevolutiva)) throw new Error('A devolutiva não mostra a nota 7.')
   await foto(page, 'prod-06-devolutiva')
 
-  passo('9/9 professor abre o lançamento no SIGA e cancela')
+  passo('9/10 professor abre o lançamento no SIGA e cancela')
   await sair(page)
   await entrar(page, PROFESSOR.email, PROFESSOR.senha)
   await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}`, { waitUntil: 'networkidle' })
@@ -276,8 +276,9 @@ async function limpar() {
   }
   const cabecalhos = { apikey: chave, Authorization: `Bearer ${chave}`, Prefer: 'return=minimal' }
 
+  // além da turma desta rodada, varre sobras de rodadas anteriores (prefixos de teste)
   const turmas = await (
-    await fetch(`${url}/rest/v1/turmas?codigo_siga=eq.${encodeURIComponent(TURMA.codigo)}&select=id`, { headers: cabecalhos })
+    await fetch(`${url}/rest/v1/turmas?or=(codigo_siga.eq.${encodeURIComponent(TURMA.codigo)},codigo_siga.like.TESTEPROD-*,codigo_siga.like.APAGAR*)&select=id,codigo_siga`, { headers: cabecalhos })
   ).json()
   if (!Array.isArray(turmas)) {
     console.error('  ⚠ não consegui listar a turma de teste:', JSON.stringify(turmas).slice(0, 160))
@@ -285,7 +286,9 @@ async function limpar() {
   for (const turma of Array.isArray(turmas) ? turmas : []) {
     const resposta = await fetch(`${url}/rest/v1/turmas?id=eq.${turma.id}`, { method: 'DELETE', headers: cabecalhos })
     if (!resposta.ok) {
-      console.error(`  ⚠ falhou apagar a turma ${turma.id}: ${resposta.status} ${(await resposta.text()).slice(0, 160)}`)
+      console.error(`  ⚠ falhou apagar a turma ${turma.codigo_siga}: ${resposta.status} ${(await resposta.text()).slice(0, 160)}`)
+    } else {
+      console.log(`  turma de teste ${turma.codigo_siga} removida`)
     }
   }
 
