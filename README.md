@@ -689,15 +689,19 @@ Cada build carrega o commit do Git — `<meta name="app-versao" content="abc1234
 `Versão abc1234 · compilada hoje às 18:40` no rodapé da ajuda e no painel do professor. Com isso:
 
 ```bash
-pnpm versao     # commit do repositório × commit no ar (sai 1 se a produção estiver atrás)
-pnpm publicar   # publica só quando há diferença e espera a versão nova aparecer
+git push        # o projeto é ligado ao GitHub: push em master publica sozinho
+pnpm versao     # commit do repositório × commit no ar (sai 1 só quando o app está atrás)
+pnpm publicar   # espera o deploy automático; publica pela CLI só com --manual
 ```
 
-Por que a cerimônia: em 16/11/2026 a conta bateu o teto de **100 deploys/dia** do plano Hobby e a
-produção ficou três commits atrás — descoberto só quando o teste de fumaça procurou uma tela que
-existia no código e não no site. `pnpm publicar` reconhece a recusa por cota
-(`api-deployments-free-per-day`) e diz quando tentar de novo; se o deploy passa mas o cache de borda
-ainda serve o HTML antigo, ele continua esperando em vez de anunciar sucesso.
+Por que a cerimônia: em 16/11/2026 a conta bateu o teto de **100 deployments/dia** do plano Hobby
+(janela móvel de 24 h) e a CLI passou a responder `api-deployments-free-per-day`. A conclusão errada
+foi "a produção parou" — o push das 21:25 já tinha publicado o commit. Faltava um jeito de olhar.
+
+O `vercel.json` tem `ignoreCommand`: commit só de `.md`, `docs/`, `scripts/` ou `e2e/` não gera build,
+então documentação não consome cota. E `pnpm versao` distingue os dois casos — mesmo commit, ou
+commits diferentes em que só mudou documentação ("o app no ar é o mesmo"). Publicar pela CLI
+(`--manual`) cria um deployment duplicado do mesmo código; é exceção, não rotina.
 
 | Situação | `pnpm versao` | O que fazer |
 |---|---|---|
@@ -705,6 +709,7 @@ ainda serve o HTML antigo, ele continua esperando em vez de anunciar sucesso.
 | produção atrás | `! produção está atrás` | `pnpm publicar` |
 | sem a marca no HTML | `(site no ar, mas sem a marca app-versao…)` | build anterior ao marcador: publique uma vez |
 | árvore suja | `3 arquivo(s) não commitado(s)` | commitar antes: `vercel --prod` envia o disco, não o commit |
+| só documentação mudou | `✓ o app no ar é o mesmo do repositório` | nada: o build é pulado de propósito |
 | site fora do ar | `(não consegui ler: …)` | conferir a Vercel antes de publicar |
 
 Detalhe que custa caro: as funções usam **ESM** (`"type": "module"` no `package.json`), então todo

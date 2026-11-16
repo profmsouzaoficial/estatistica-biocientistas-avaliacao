@@ -1,83 +1,123 @@
 #!/usr/bin/env node
 /**
- * Publica na Vercel — e confere que o que está no ar é o código testado.
+ * Confere se a produção alcançou o repositório — e só publica à mão se precisar.
  *
- *   pnpm publicar            # publica só se a produção estiver atrás
- *   pnpm publicar --forcar   # publica mesmo que as versões batam
+ *   pnpm publicar           # espera o deploy automático do GitHub
+ *   pnpm publicar --manual  # força um deploy pela CLI (gasta uma cota do dia)
  *
- * Por que este script existe: o plano Hobby da Vercel aceita 100 deployments por
- * dia. Em 16/11/2026 a conta bateu o teto no meio de uma rodada e a produção ficou
- * três commits atrás do repositório, descoberto só quando o teste de fumaça
- * procurou uma tela que existia no código e não no site.
+ * O projeto está ligado ao GitHub: todo push em `master` cria um deployment de
+ * produção. Isso foi descoberto do jeito difícil — em 16/11/2026 a conta bateu o
+ * teto de 100 deployments/dia do plano Hobby (janela móvel de 24 h), a CLI passou
+ * a responder `api-deployments-free-per-day`, e a conclusão errada foi "a produção
+ * está parada". Estava: o push das 21:25 já tinha publicado o commit, e o das
+ * 21:42 também. O que faltava era saber olhar.
  *
- * O script faz três coisas, nesta ordem:
- *   1. compara a versão publicada (`app-versao` no HTML) com o commit atual;
- *   2. se já batem, não gasta deploy — imprime e sai com 0;
- *   3. se publicar, espera a versão nova aparecer no ar, em vez de confiar que
- *      o `vercel --prod` terminou bem.
+ * Então o padrão deste script é esperar, não publicar:
+ *   1. compara a marca `app-versao` do site com o commit atual;
+ *   2. se a produção está atrás, espera o build do GitHub aparecer (até 5 min);
+ *   3. se não aparecer, explica o motivo provável (cota/rollout) e como forçar;
+ *   4. `--manual` pula a espera e roda `vercel --prod` — gastando uma cota.
  *
- * Sai com 0 em sucesso, 1 em falha e 2 quando a Vercel recusa por cota diária
- * (a mensagem explica quando tentar de novo).
+ * Recusa publicar com a árvore suja: o `vercel --prod` envia os arquivos do disco,
+ * não o commit, e a marca de versão passaria a mentir.
  */
 import { spawnSync } from 'node:child_process'
-import { commitLocal, mudancasNaoCommitadas, versaoPublicada } from './versao.mjs'
+import { commitLocal, mudancasNaoCommitadas, mudouApp, versaoPublicada } from './versao.mjs'
 
-const FORCAR = process.argv.includes('--forcar')
-const ESPERA_MAXIMA = 8 * 60 * 1000
+const MANUAL = process.argv.includes('--manual')
+const ESPERA_AUTOMATICA = 5 * 60 * 1000
+const ESPERA_MANUAL = 8 * 60 * 1000
 
-function publicarAgora() {
+async function esperarNoAr(commit, limite) {
+  const inicio = Date.now()
+  let ultima = null
+  while (Date.now() - inicio < limite) {
+    const { versao } = await versaoPublicada()
+    if (versao === commit) return { ok: true, versao }
+    if (versao) ultima = versao
+    await new Promise((r) => setTimeout(r, 10000))
+  }
+  return { ok: false, versao: ultima }
+}
+
+function publicarPelaCli() {
   const r = spawnSync('npx', ['--yes', 'vercel@latest', '--prod', '--yes'], {
     stdio: ['ignore', 'pipe', 'pipe'],
     encoding: 'utf8',
     timeout: 540000,
   })
-  const saida = `${r.stdout ?? ''}${r.stderr ?? ''}`
-  return { ok: r.status === 0, saida }
+  return { ok: r.status === 0, saida: `${r.stdout ?? ''}${r.stderr ?? ''}` }
 }
 
-async function esperarNoAr(commit) {
-  const inicio = Date.now()
-  while (Date.now() - inicio < ESPERA_MAXIMA) {
-    const { versao } = await versaoPublicada()
-    if (versao === commit) return true
-    await new Promise((r) => setTimeout(r, 10000))
+function commitEnviado() {
+  try {
+    const r = spawnSync('git', ['rev-parse', 'origin/master'], { encoding: 'utf8' })
+    return r.status === 0 ? r.stdout.trim().slice(0, 7) : null
+  } catch {
+    return null
   }
-  return false
 }
 
 async function principal() {
   const commit = commitLocal()
   if (!commit) {
-    console.error('\n✗ Não estou dentro de um repositório git; não sei qual versão publicar.\n')
+    console.error('\n✗ Não estou dentro de um repositório git; não sei qual versão conferir.\n')
     process.exit(1)
   }
 
   console.log('\n  Publicar\n')
 
-  // `vercel --prod` envia os arquivos locais, não o commit do Git: publicar com a
-  // árvore suja carimba código não commitado com o hash do último commit — e a
-  // marca de versão passa a mentir.
-  const sujas = mudancasNaoCommitadas()
-  if (sujas && !FORCAR) {
-    console.log(`  ! há ${sujas} arquivo(s) com mudanças não commitadas.`)
-    console.log('    Publique depois de commitar (ou use --forcar, assumindo o risco).\n')
-    process.exit(1)
+  if (MANUAL) {
+    const sujas = mudancasNaoCommitadas()
+    if (sujas) {
+      console.log(`  ! há ${sujas} arquivo(s) com mudanças não commitadas.`)
+      console.log('    Commit antes: o deploy pela CLI envia o disco, não o commit.\n')
+      process.exit(1)
+    }
   }
 
   const antes = await versaoPublicada()
   console.log(`  commit        ${commit}`)
   console.log(`  no ar         ${antes.versao ?? `(${antes.motivo})`}`)
 
-  if (antes.versao === commit && !FORCAR) {
-    console.log('\n  ✓ a produção já roda este commit — nenhum deploy gasto.\n')
+  if (antes.versao === commit) {
+    console.log('\n  ✓ a produção já roda este commit — nada a publicar.\n')
     process.exit(0)
   }
 
-  console.log('\n  ▸ enviando para a Vercel…')
-  const { ok, saida } = publicarAgora()
+  if (antes.versao && mudouApp(antes.versao) === false) {
+    console.log('\n  ✓ desde o deploy mudaram só documentos, scripts ou testes — o app no ar é o mesmo.')
+    console.log('    O `vercel.json` pula o build nesses casos; nenhuma cota é gasta.\n')
+    process.exit(0)
+  }
+
+  if (!MANUAL) {
+    const enviado = commitEnviado()
+    if (enviado && enviado !== commit) {
+      console.log('\n  ! este commit ainda não foi enviado ao GitHub (origin/master está em ' + enviado + ').')
+      console.log('    O deploy automático só acontece depois do push.\n')
+      process.exit(1)
+    }
+
+    console.log('\n  ▸ esperando o deploy automático do GitHub (até 5 min)…')
+    const r = await esperarNoAr(commit, ESPERA_AUTOMATICA)
+    if (r.ok) {
+      console.log(`\n  ✓ publicado pelo GitHub: ${commit} está no ar.\n`)
+      process.exit(0)
+    }
+    console.log('\n  ! o deploy automático não apareceu.')
+    console.log('    Causas comuns: cota de 100 deployments/dia esgotada (janela móvel de 24 h)')
+    console.log('    ou o build do GitHub falhou. Acompanhe em vercel.com → Deployments.')
+    console.log('    Para forçar pela CLI: `pnpm publicar --manual`.\n')
+    process.exit(2)
+  }
+
+  console.log('\n  ▸ publicando pela CLI (usa uma cota do dia)…')
+  const { ok, saida } = publicarPelaCli()
   if (saida.includes('api-deployments-free-per-day')) {
-    console.log('\n  ! a Vercel recusou: cota de deploys do dia esgotada (plano Hobby: 100/dia).')
-    console.log('    O contador zera à meia-noite UTC (21h de Brasília). Nada foi publicado.\n')
+    console.log('\n  ! a Vercel recusou: cota de deploys do dia esgotada (plano Hobby).')
+    console.log('    A janela é móvel: cada deployment de 24 h atrás libera uma vaga.')
+    console.log('    O caminho normal é o push — o GitHub publica sozinho.\n')
     process.exit(2)
   }
   if (!ok) {
@@ -87,11 +127,10 @@ async function principal() {
     process.exit(1)
   }
 
-  console.log('  ▸ deploy aceito; esperando a versão nova aparecer no ar…')
-  const noAr = await esperarNoAr(commit)
-  if (!noAr) {
+  const depois = await esperarNoAr(commit, ESPERA_MANUAL)
+  if (!depois.ok) {
     console.log('\n  ✗ o deploy passou, mas o site ainda não mostra este commit.')
-    console.log('    Confira com `pnpm versao` (pode ser cache de borda; tente de novo em 1 min).\n')
+    console.log('    Confira com `pnpm versao` (cache de borda costuma resolver em 1 min).\n')
     process.exit(1)
   }
   console.log(`\n  ✓ publicado: ${commit} está no ar.\n`)

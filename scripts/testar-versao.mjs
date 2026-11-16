@@ -9,11 +9,12 @@
  * deploys do dia à toa. Por isso cada formato de HTML tem um caso.
  */
 import { build } from 'esbuild'
-import { mkdtempSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { lerVersaoDoHtml } from './versao.mjs'
+import { lerVersaoDoHtml, mudouApp } from './versao.mjs'
 
 let falhas = 0
 function conferir(nome, condicao, detalhe = '') {
@@ -77,9 +78,40 @@ conferir(
 )
 conferir('data inválida não quebra o rodapé', v.quandoFoiCompilado('nada', agora) === '')
 
+// ---- 3. "mudou o app?" num repositório descartável --------------------------
+// É a pergunta que decide se a Vercel pula o build e se `pnpm versao` pode
+// dizer "o app no ar é o mesmo". Errar aqui esconde código novo fora do ar.
+const repo = mkdtempSync(join(tmpdir(), 'repo-'))
+const git = (...args) =>
+  execFileSync('git', ['-c', 'user.email=teste@local', '-c', 'user.name=teste', ...args], { cwd: repo, encoding: 'utf8' })
+git('init', '-q')
+const commitar = (msg) => {
+  git('add', '-A')
+  git('commit', '-q', '-m', msg)
+  return git('rev-parse', '--short', 'HEAD').trim()
+}
+writeFileSync(join(repo, 'README.md'), '# app\n')
+const c1 = commitar('doc inicial')
+mkdirSync(join(repo, 'docs'))
+writeFileSync(join(repo, 'docs', 'guia.md'), 'guia\n')
+const c2 = commitar('só documento')
+mkdirSync(join(repo, 'src'))
+writeFileSync(join(repo, 'src', 'app.ts'), 'export const a = 1\n')
+const c3 = commitar('código')
+
+conferir('commit só de documento não muda o app', mudouApp(c1, c2, repo) === false)
+conferir('commit que mexe em src/ muda o app', mudouApp(c2, c3, repo) === true)
+conferir('commit que mexe em script de teste não muda o app', (() => {
+  mkdirSync(join(repo, 'scripts'))
+  writeFileSync(join(repo, 'scripts', 'x.mjs'), 'console.log(1)\n')
+  const c4 = commitar('script')
+  return mudouApp(c3, c4, repo) === false
+})())
+conferir('commit publicado que não existe aqui devolve null', mudouApp('0000000', 'HEAD', repo) === null)
+
 console.log()
 if (falhas) {
   console.log(`  \x1b[31m${falhas} verificação(ões) falharam.\x1b[0m\n`)
   process.exit(1)
 }
-console.log('  \x1b[32m✓ 11 verificações da marca de versão passaram\x1b[0m\n')
+console.log('  \x1b[32m✓ 15 verificações da marca de versão passaram\x1b[0m\n')

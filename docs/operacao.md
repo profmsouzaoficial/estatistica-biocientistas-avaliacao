@@ -23,26 +23,36 @@ você aprova.
 
 ### Publicar uma versão nova (quando o app muda)
 
-O site é a Vercel; o código fica no GitHub. Publicar **não** é automático — um push não vai
-para o ar sozinho, e isso é bom: você decide quando a turma vê a versão nova.
+O site é a Vercel; o código fica no GitHub. **Todo push em `master` publica sozinho** — o projeto está
+ligado ao repositório. Não é preciso rodar `vercel --prod`; fazer isso cria um segundo deployment do
+mesmo código e gasta cota à toa.
 
 | Passo | Comando | O que confirma |
 |---|---|---|
-| 1 | `pnpm versao` | mostra o commit do repositório e o que está no ar (`meta app-versao`) |
-| 2 | `pnpm publicar` | publica só se a produção estiver atrás; espera a versão nova aparecer |
-| 3 | `pnpm test:producao` | roda o teste de fumaça no site publicado |
+| 1 | `git push` | dispara o build automático da Vercel |
+| 2 | `pnpm versao` | commit do repositório × `<meta name="app-versao">` do site |
+| 3 | `pnpm publicar` | espera o deploy aparecer e só publica pela CLI se ele não vier |
+| 4 | `pnpm test:producao` | roda o fluxo real no site publicado |
 
-Duas travas que já custaram caro:
+O rodapé da tela **Ajuda** e o fim do painel do professor mostram `Versão abc1234 · compilada hoje às
+18:40` — a mesma marca que o `pnpm versao` lê. Se o professor mandar uma captura de tela, dá para saber
+exatamente qual código gerou aquilo.
 
-- **Cota de deploys.** O plano Hobby aceita **100 deploys por dia**. Ao bater o teto, a Vercel recusa
-  e o site continua no código antigo, sem aviso na tela. `pnpm publicar` detecta a recusa e diz quando
-  tentar de novo (o contador zera à meia-noite UTC — 21h de Brasília).
-- **Deploy não é publicação.** O `vercel --prod` pode terminar "com sucesso" e a versão antiga
-  continuar no ar por cache. Por isso o script espera a marca de versão nova aparecer no HTML, em vez
-  de confiar no comando.
+Quatro armadilhas que já custaram caro:
+
+- **Cota de 100 deployments por dia (Hobby).** A janela é **móvel de 24 h**: cada deployment criado há
+  24 h libera uma vaga. Quando a cota aperta, a CLI responde `api-deployments-free-per-day` e o site
+  fica no código antigo, sem aviso na tela — em 16/11/2026 isso levou à conclusão errada de que "a
+  produção parou", quando o push das 21:25 já havia publicado. Por isso o caminho normal é push +
+  `pnpm versao`, não `vercel --prod`.
+- **Commit só de documentação também gastaria cota.** O `vercel.json` agora tem `ignoreCommand`: se a
+  mudança é só em `.md`, `docs/`, `scripts/` ou `e2e/`, a Vercel pula o build. O `pnpm versao` sabe
+  disso e responde "o app no ar é o mesmo do repositório" em vez de acusar atraso.
+- **Deploy não é publicação.** O build pode terminar "com sucesso" e a versão antiga continuar no ar
+  por cache de borda. Por isso o script espera a marca de versão nova aparecer no HTML.
 - **Publicar com arquivo não commitado.** O `vercel --prod` envia os arquivos do disco, não o commit:
   o site sairia com código que não está no GitHub carimbado com o hash do último commit. O
-  `pnpm publicar` recusa nesse caso e diz quantos arquivos faltam commitar.
+  `pnpm publicar --manual` recusa nesse caso e diz quantos arquivos faltam commitar.
 
 O rodapé da tela **Ajuda** e o fim do painel do professor mostram `Versão abc1234 · compilada hoje às
 18:40` — é a mesma marca que o `pnpm versao` lê. Se o professor mandar uma captura de tela, dá para

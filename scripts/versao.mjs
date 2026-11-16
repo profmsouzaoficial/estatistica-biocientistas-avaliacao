@@ -17,7 +17,7 @@
  *   node scripts/versao.mjs            # tabela legível
  *   node scripts/versao.mjs --json     # para scripts
  */
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 
 export const SITE = process.env.SITE_AVALIACOES ?? 'https://estatistica-biocientistas-avaliacao.vercel.app'
 
@@ -38,6 +38,45 @@ export function mudancasNaoCommitadas(cwd = process.cwd()) {
   } catch {
     return 0
   }
+}
+
+/**
+ * O que mudou entre dois commits mexeu no aplicativo?
+ *
+ * Mudança só em documento, script de teste ou `e2e/` não altera o que o aluno e
+ * o professor usam — e o `vercel.json` manda a Vercel pular o build nesses casos
+ * (cota de 100 deploys/dia). Sem esta conta, o `pnpm versao` diria "atrasada"
+ * para sempre depois de um commit de documentação.
+ *
+ * Devolve true/false, ou null quando o commit publicado não existe aqui.
+ */
+export function mudouApp(desde, ate = 'HEAD', cwd = process.cwd()) {
+  if (!desde) return null
+  try {
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', `${desde}^{commit}`], { cwd, stdio: 'ignore' })
+  } catch {
+    return null
+  }
+  const r = spawnSync(
+    'git',
+    [
+      'diff',
+      '--quiet',
+      desde,
+      ate,
+      '--',
+      '.',
+      ':(exclude)*.md',
+      ':(exclude)**/*.md',
+      ':(exclude)docs/**',
+      ':(exclude)scripts/**',
+      ':(exclude)e2e/**',
+    ],
+    { cwd },
+  )
+  if (r.status === 0) return false
+  if (r.status === 1) return true
+  return null
 }
 
 /** Commit do repositório local (curto). */
@@ -79,10 +118,18 @@ async function principal() {
   const sujas = mudancasNaoCommitadas()
   const { versao: publicada, motivo } = await versaoPublicada()
 
-  const estado = !publicada ? 'desconhecida' : publicada === local ? 'igual' : 'atrasada'
+  // "igual" = mesmo commit; "mesmo app" = commits diferentes, mas só documento/script mudou.
+  const soDocumentacao = publicada && publicada !== local ? mudouApp(publicada) === false : false
+  const estado = !publicada
+    ? 'desconhecida'
+    : publicada === local
+      ? 'igual'
+      : soDocumentacao
+        ? 'mesmo-app'
+        : 'atrasada'
   if (json) {
     console.log(JSON.stringify({ commit: local, publicado: publicada, estado, motivo, site: SITE, sujas }))
-    process.exit(!publicada ? 2 : publicada === local ? 0 : 1)
+    process.exit(!publicada ? 2 : estado === 'atrasada' ? 1 : 0)
   }
 
   console.log('\n  Versão publicada × repositório\n')
@@ -92,10 +139,14 @@ async function principal() {
   if (sujas) console.log(`  árvore        ${sujas} arquivo(s) não commitado(s)`)
   console.log()
   if (estado === 'igual') console.log('  ✓ produção roda o mesmo código do repositório.\n')
-  else if (estado === 'atrasada') console.log('  ! produção está atrás. Publique com `pnpm publicar`.\n')
+  else if (estado === 'mesmo-app')
+    console.log(
+      '  ✓ o app no ar é o mesmo do repositório (desde o deploy mudaram só documentos, scripts ou testes).\n',
+    )
+  else if (estado === 'atrasada') console.log('  ! produção está atrás. Rode `pnpm publicar`.\n')
   else console.log('  ! não consegui conferir a versão publicada.\n')
 
-  process.exit(!publicada ? 2 : publicada === local ? 0 : 1)
+  process.exit(!publicada ? 2 : estado === 'atrasada' ? 1 : 0)
 }
 
 // Só roda quando chamado direto (o publicar.mjs importa as funções).
