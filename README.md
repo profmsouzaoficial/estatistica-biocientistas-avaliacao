@@ -176,15 +176,22 @@ Capturas em `e2e/resultados/`. Nada é enviado ao SIGA de verdade: `SIGA_API_BAS
 
 ## 8. Implantação na Vercel
 
+Produção: <https://estatistica-biocientistas-avaliacao.vercel.app>
+
 ```bash
 vercel link
-vercel env add VITE_SUPABASE_URL production
-# … repita para cada variável do .env.example
+vercel env add VITE_SUPABASE_URL production       # valor de SUPABASE_URL
+vercel env add VITE_SUPABASE_ANON_KEY production  # valor de SUPABASE_ANON_KEY
+vercel env add SUPABASE_SERVICE_ROLE_KEY production
 vercel --prod
 ```
 
 `vercel.json` já define região `gru1`, função com 300 s / 1024 MB e rewrite de SPA. As variáveis
 `VITE_*` são embutidas no build; as demais ficam só no servidor.
+
+Detalhe que custa caro: as funções usam **ESM** (`"type": "module"` no `package.json`), então todo
+import relativo em `api/` termina em `.js` (`./_lib/http.js`). Sem isso o runtime da Vercel sobe a
+função e ela morre com `FUNCTION_INVOCATION_FAILED` — o build passa, o erro só aparece na chamada.
 
 ---
 

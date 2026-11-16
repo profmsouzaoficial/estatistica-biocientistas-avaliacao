@@ -8,8 +8,8 @@ import {
   selecionarUm,
   type Requisicao,
   type Resposta,
-} from '../_lib/http'
-import { lancarNotas } from '../_lib/siga'
+} from '../_lib/http.js'
+import { lancarNotas } from '../_lib/siga.js'
 
 interface CorrecaoServidor {
   id: string

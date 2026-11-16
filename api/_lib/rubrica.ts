@@ -6,7 +6,7 @@
  * rubrica dentro do máximo definido pelo professor; a nota final é sempre
  * calculada aqui, de forma determinística e auditável.
  */
-import { ErroHttp, env, envOpcional } from './http'
+import { ErroHttp, env, envOpcional } from './http.js'
 
 export interface CriterioRubrica {
   id: string

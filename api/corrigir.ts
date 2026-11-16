@@ -7,8 +7,8 @@ import {
   supabase,
   type Requisicao,
   type Resposta,
-} from './_lib/http'
-import { corrigirSubmissao } from './_lib/corrigirServico'
+} from './_lib/http.js'
+import { corrigirSubmissao } from './_lib/corrigirServico.js'
 
 async function manipulador(req: Requisicao): Promise<Resposta> {
   if (req.metodo !== 'POST') throw new ErroHttp(405, 'METODO', 'Use POST.')

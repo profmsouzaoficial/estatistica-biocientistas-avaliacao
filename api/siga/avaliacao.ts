@@ -7,8 +7,8 @@ import {
   selecionarUm,
   type Requisicao,
   type Resposta,
-} from '../_lib/http'
-import { criarAvaliacao, dataBr, numeroTvc } from '../_lib/siga'
+} from '../_lib/http.js'
+import { criarAvaliacao, dataBr, numeroTvc } from '../_lib/siga.js'
 
 interface AvaliacaoServidor {
   id: string

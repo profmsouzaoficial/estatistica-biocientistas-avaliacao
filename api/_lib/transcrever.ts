@@ -9,7 +9,7 @@
  *   - openrouter / openai  → qualquer endpoint compatível com /chat/completions
  *   - google               → Gemini (generativelanguage.googleapis.com)
  */
-import { ErroHttp, envOpcional } from './http'
+import { ErroHttp, envOpcional } from './http.js'
 
 export interface ResultadoTranscricao {
   texto: string

@@ -2,8 +2,8 @@
  * Serviço de correção — usado pela rota /api/corrigir e pelo script de lote.
  * Manter a regra num só lugar evita divergência entre a correção avulsa e o lote.
  */
-import { ErroHttp, atualizar, selecionarUm, supabase } from './http'
-import { corrigirRedacao, type CriterioRubrica } from './rubrica'
+import { ErroHttp, atualizar, selecionarUm, supabase } from './http.js'
+import { corrigirRedacao, type CriterioRubrica } from './rubrica.js'
 
 export interface SubmissaoServidor {
   id: string

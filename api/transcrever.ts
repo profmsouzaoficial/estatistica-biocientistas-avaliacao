@@ -9,8 +9,8 @@ import {
   baixarObjeto,
   type Requisicao,
   type Resposta,
-} from './_lib/http'
-import { transcreverImagem } from './_lib/transcrever'
+} from './_lib/http.js'
+import { transcreverImagem } from './_lib/transcrever.js'
 
 interface SubmissaoServidor {
   id: string

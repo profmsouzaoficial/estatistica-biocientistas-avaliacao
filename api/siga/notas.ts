@@ -1,5 +1,5 @@
-import { ErroHttp, criarRota, exigirProfessor, ok, type Requisicao, type Resposta } from '../_lib/http'
-import { consultarNotas } from '../_lib/siga'
+import { ErroHttp, criarRota, exigirProfessor, ok, type Requisicao, type Resposta } from '../_lib/http.js'
+import { consultarNotas } from '../_lib/siga.js'
 
 async function manipulador(req: Requisicao): Promise<Resposta> {
   if (req.metodo !== 'GET' && req.metodo !== 'POST') throw new ErroHttp(405, 'METODO', 'Use GET.')

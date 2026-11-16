@@ -7,7 +7,7 @@
  *   GET  /api/notas?turma&periodo
  * Autenticação: cabeçalho X-API-Key em todas as rotas /api/*.
  */
-import { ErroHttp, env, envOpcional } from './http'
+import { ErroHttp, env, envOpcional } from './http.js'
 
 export interface ResultadoSiga {
   status: number
