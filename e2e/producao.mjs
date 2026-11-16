@@ -159,6 +159,10 @@ try {
   await page.getByLabel('Valor total (pontos)').fill('10')
   // a rubrica que vem na tela soma 20: redistribui para o valor que definimos
   await page.getByRole('button', { name: /Distribuir 10 pts/ }).click()
+  // sem descrição do SIGA o botão de lançar fica desligado (e com razão): aqui
+  // usamos um nome de avaliação que não existe no SIGA só para abrir a
+  // confirmação — o lançamento é cancelado logo depois.
+  await page.getByLabel('Descrição da avaliação no SIGA').fill(`TVC 9 ${SUFIXO}`)
   await page.getByRole('button', { name: 'Publicar avaliação' }).click()
   await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
   idAvaliacao = page.url().split('/').pop()

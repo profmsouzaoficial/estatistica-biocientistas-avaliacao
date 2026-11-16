@@ -208,7 +208,10 @@ export function ProfessorAlunos() {
       setResumo(null)
       setMsg({
         tom: 'verde',
-        texto: `Turma ${turma.codigo_siga} removida, com ${plural(r.alunos, 'aluno', 'alunos')} e ${plural(r.avaliacoes, 'avaliação', 'avaliações')}.`,
+        texto:
+          `Turma ${turma.codigo_siga} removida, com ${plural(r.alunos, 'aluno', 'alunos')} e ` +
+          `${plural(r.avaliacoes, 'avaliação', 'avaliações')}` +
+          `${r.fotos_apagadas ? ` e ${plural(r.fotos_apagadas, 'foto', 'fotos')}` : ''}.`,
       })
     } catch (e) {
       setMsg({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Falha ao remover a turma.' })
