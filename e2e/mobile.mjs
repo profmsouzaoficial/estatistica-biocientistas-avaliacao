@@ -255,6 +255,14 @@ async function main() {
   await page.getByText(/alunos da turma entregaram/).first().waitFor({ timeout: 15000 })
   await page.getByText(/^Faltam \d+/).first().waitFor({ timeout: 15000 })
 
+  // trilha de auditoria do SIGA: sucesso e recusa na mesma tela
+  await page.goto(`${WEB}/prof/avaliacoes/av-demo-2/historico`, { waitUntil: 'networkidle' })
+  await page.getByText(/Aceito pelo SIGA/).first().waitFor({ timeout: 15000 })
+  await page.getByText(/Recusado · HTTP 403/).first().waitFor({ timeout: 15000 })
+  await page.getByText(/fechada para lançamento/).first().waitFor({ timeout: 15000 })
+  ok = (await medir(page, 'professor · histórico de lançamentos')) && ok
+  await foto(page, 'mobile-16-historico-lancamentos')
+
   await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'professor · nova avaliação')) && ok
   await foto(page, 'mobile-10-professor-nova')

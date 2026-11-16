@@ -423,6 +423,13 @@ async function main() {
     await page.getByText('Lançada no SIGA').waitFor({ timeout: 30000 })
     await foto(page, '10-lancado-siga')
 
+    // a tela de histórico tem de mostrar o envio que acabou de ir ao SIGA
+    await page.getByRole('link', { name: 'Histórico de lançamentos' }).click()
+    await page.waitForURL(/\/historico$/)
+    await page.getByText(/Aceito pelo SIGA · HTTP 200/).first().waitFor({ timeout: 30000 })
+    await page.getByText(new RegExp(ALUNO.matricula)).first().waitFor({ timeout: 15000 })
+    await foto(page, '10b-historico-lancamentos')
+
     // ---- 8. aluno vê a devolutiva -----------------------------------------
     console.log('  ▸ 8/26 aluno vê a devolutiva')
     await sair(page)

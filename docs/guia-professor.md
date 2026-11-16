@@ -219,6 +219,24 @@ tudo de novo no site do SIGA. Depois da criação, a conferência já reconhece 
 > relatório), cadastre no SIGA e use **Buscar** na criação da avaliação para copiar a descrição
 > exata — assim o lançamento encontra a coluna certa.
 
+### Histórico de lançamentos
+
+Na tela da avaliação, embaixo da linha do SIGA, o link **Histórico de lançamentos** abre o registro
+de **cada tentativa** de gravar nota — inclusive as recusadas, com a mensagem que o SIGA devolveu:
+
+| Coluna na tela | Para que serve |
+|---|---|
+| Data e hora | quando o envio aconteceu (fuso de Brasília) |
+| Aluno e matrícula | quem recebeu a nota |
+| Nota e escala | o número exato que foi (ou tentaria ser) gravado — `pontos` ou `0–10` |
+| Aceito / Recusado + HTTP | a resposta do servidor do SIGA |
+| Mensagem de erro | o texto do SIGA, quando ele recusa |
+| Baixar CSV | leva o histórico para a planilha do semestre |
+
+Serve para três perguntas que aparecem meses depois: *esta nota foi mesmo lançada?*, *por que o SIGA
+recusou aquele aluno?* e *com que escala a nota foi enviada?*. O registro vem do servidor e **não há
+botão para apagar**: auditoria que o app apaga não serve como comprovante.
+
 ### Remover a turma
 
 No rodapé do cartão da turma existe o link **Remover esta turma…**. Ele mostra quantos alunos,

@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Download,
   Eye,
+  History,
   ImageOff,
   Loader2,
   Lock,
@@ -678,6 +679,13 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                 ? `nota enviada em pontos (0 a ${formatarPontos(avaliacao.peso_siga)})`
                 : 'nota enviada de 0 a 10'}.
             </p>
+            <Link
+              href={`/prof/avaliacoes/${avaliacao.id}/historico`}
+              className="alvo-toque -mx-1 inline-flex items-center gap-1.5 rounded-lg px-1 text-[13px] font-medium text-verde underline-offset-2 hover:underline"
+            >
+              <History className="size-4" aria-hidden />
+              Histórico de lançamentos
+            </Link>
             {pesoDivergente ? (
               <Alerta tom="ambar" titulo="O peso aqui não é o peso do SIGA">
                 <p className="text-[13.5px] leading-snug">

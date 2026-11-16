@@ -336,7 +336,36 @@ Em populações de baixa prevalência, um teste muito sensível pode gerar muito
     avaliacoes,
     submissoes: subs,
     correcoes,
-    lancamentos: [],
+    lancamentos: [
+      {
+        id: 'lanc-demo-1',
+        correcao_id: null,
+        submissao_id: null,
+        matricula: '2026301002',
+        turma_siga: 'CBV018GV-A',
+        periodo: '2026/3',
+        descricao_avaliacao: 'TVC 2',
+        nota: 6.5,
+        sucesso: false,
+        http_status: 403,
+        erro: 'O SIGA recusou: avaliação "TVC 2" fechada para lançamento.',
+        criado_em: dias(-1),
+      },
+      {
+        id: 'lanc-demo-2',
+        correcao_id: null,
+        submissao_id: null,
+        matricula: '2026301001',
+        turma_siga: 'CBV018GV-A',
+        periodo: '2026/3',
+        descricao_avaliacao: 'TVC 2',
+        nota: 8,
+        sucesso: true,
+        http_status: 200,
+        erro: null,
+        criado_em: dias(-1).replace(/T\d/, 'T1'),
+      },
+    ],
     fotos: {},
     sessaoId: null,
   }
@@ -927,6 +956,21 @@ export function criarDadosDemo(): Dados {
       base.lancamentos.push(lancamento)
       gravar()
       return lancamento
+    },
+
+    async historicoLancamentos(avaliacaoId) {
+      const av = base.avaliacoes.find((a) => a.id === avaliacaoId)
+      if (!av?.descricao_siga) return []
+      const turma = base.turmas.find((t) => t.id === av.turma_id)
+      const codigo = turma?.codigo_siga ?? ''
+      const linhas = base.lancamentos
+        .filter((l) => l.turma_siga === codigo && l.descricao_avaliacao === av.descricao_siga)
+        .map((l) => ({
+          ...l,
+          aluno_nome: base.perfis.find((p) => p.matricula === l.matricula)?.nome_completo ?? 'Aluno',
+          escala: 'pontos',
+        }))
+      return linhas.sort((a, b) => b.criado_em.localeCompare(a.criado_em))
     },
   }
 

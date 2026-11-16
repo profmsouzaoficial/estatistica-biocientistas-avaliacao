@@ -125,7 +125,7 @@ conferir(`${ROTULOS.length} rótulos de tela citados existem no app`, semRotulo.
 // ---- 4. contagem de telas do e2e:mobile ------------------------------------
 const mobile = ler('e2e/mobile.mjs')
 const telasMedidas = (mobile.match(/await medir\(/g) ?? []).length
-const palabras = { 9: 'nove', 10: 'dez', 11: 'onze', 12: 'doze', 13: 'treze', 14: 'catorze', 15: 'quinze' }
+const palabras = { 9: 'nove', 10: 'dez', 11: 'onze', 12: 'doze', 13: 'treze', 14: 'catorze', 15: 'quinze', 16: 'dezesseis' }
 const dito = palabras[telasMedidas] ?? String(telasMedidas)
 const contagens = documentos
   .map((d) => ({

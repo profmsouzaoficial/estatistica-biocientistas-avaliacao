@@ -11,6 +11,7 @@ import { Devolutiva } from './pages/devolutiva'
 import { Perfil } from './pages/perfil'
 import { ProfessorInicio, ProfessorNovaAvaliacao } from './pages/professor'
 import { ProfessorAvaliacao, ProfessorRevisao } from './pages/professorAvaliacao'
+import { ProfessorHistorico } from './pages/professorHistorico'
 import { ProfessorAlunos } from './pages/professorAlunos'
 import { Ajuda } from './pages/ajuda'
 import { Privacidade } from './pages/privacidade'
@@ -94,6 +95,9 @@ function Roteador() {
     if (limpo === '/' || limpo === '') return <ComBarra><ProfessorInicio /></ComBarra>
     if (limpo === '/prof/avaliacoes/nova') return <ComBarra><ProfessorNovaAvaliacao /></ComBarra>
     if (limpo === '/prof/alunos') return <ComBarra><ProfessorAlunos /></ComBarra>
+
+    const historico = casarRota('/prof/avaliacoes/:id/historico', caminho)
+    if (historico) return <ProfessorHistorico avaliacaoId={historico.id} />
 
     const revisao = casarRota('/prof/avaliacoes/:id/revisao/:submissao', caminho)
     if (revisao) return <ProfessorRevisao avaliacaoId={revisao.id} submissaoId={revisao.submissao} />

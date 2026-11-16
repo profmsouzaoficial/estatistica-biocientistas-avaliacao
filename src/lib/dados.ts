@@ -4,6 +4,7 @@ import type {
   Correcao,
   Criterio,
   Esperado,
+  LancamentoAuditado,
   LancamentoSiga,
   Perfil,
   ResumoAvaliacao,
@@ -150,6 +151,11 @@ export interface Dados {
   corrigirManual(submissaoId: string): Promise<Correcao>
   salvarRevisao(correcaoId: string, revisao: Revisao): Promise<void>
   lancarNoSiga(correcaoId: string): Promise<LancamentoSiga>
+  /**
+   * Todas as tentativas de lançamento desta avaliação, com sucesso e falha, da
+   * mais recente para a mais antiga. É a trilha de auditoria que o professor lê.
+   */
+  historicoLancamentos(avaliacaoId: string): Promise<LancamentoAuditado[]>
   /** Avaliações que já existem no SIGA para a turma/período. */
   avaliacoesDoSiga(turma: string, periodo: string): Promise<QuadroSiga>
   /** Quadro de notas da turma no SIGA (leitura). Usado para conferir os lançamentos. */

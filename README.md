@@ -233,6 +233,30 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### A auditoria do SIGA, na tela
+
+`lancamentos_siga` guarda cada tentativa — aceita ou recusada — com payload, resposta, HTTP status e
+escala. Até esta rodada, esse registro só existia no banco: para responder *"esta nota foi lançada?"*
+ou *"por que o SIGA recusou?"* era preciso abrir o SQL editor.
+
+Agora a tela da avaliação tem **Histórico de lançamentos** (`/prof/avaliacoes/:id/historico`):
+
+| O que mostra | De onde vem |
+|---|---|
+| data, aluno, matrícula | `lancamentos_siga` + `profiles` |
+| nota e escala (`pontos` ou `0–10`) | coluna `nota` e `escala` (migration 0007) |
+| aceito/recusado, HTTP e mensagem do SIGA | `sucesso`, `http_status`, `erro` |
+| **Baixar CSV** | o mesmo recorte, para a planilha do semestre |
+
+Duas decisões de projeto:
+
+- **Filtra pelo que foi enviado** (turma + descrição do SIGA), não pelos ids atuais. Se uma correção
+  for apagada depois, o lançamento continua no histórico, porque a pergunta é sobre o SIGA, não sobre
+  o banco local.
+- **Não há botão de apagar.** A tela lê com a RLS do professor (`eh_professor()`); escrita é só com a
+  service role, no servidor. `pnpm test:seguranca` ganhou a prova de que uma aluna **não** lê essa
+  tabela.
+
 ### Senha: o caminho de quem já perdeu o acesso
 
 O fluxo de recuperação tinha três buracos, todos no mesmo lugar — o aluno sem acesso e sem paciência.
@@ -297,7 +321,7 @@ fundo efetivo subindo a árvore e aplica a fórmula de luminância da WCAG. Repr
 4.79 · `ambar` #a74d08 = 4.79) e o botão desativado virou cinza com texto escuro — continua dizendo
 “Corrigir 0 pendente(s)”, agora legível.
 
-`pnpm e2e:mobile` mede os alvos de toque das 15 telas principais em 360×740 e reprova qualquer controle
+`pnpm e2e:mobile` mede os alvos de toque das 16 telas principais em 360×740 e reprova qualquer controle
 abaixo de 40px. Foi ele que achou as abas “Transcrição/Foto original” (32px) e o “Voltar para a lista”
 (20px) na tela de revisão.
 
@@ -377,7 +401,7 @@ tela mudar, o teste de layout gera a captura nova.
 ### Conferência em tela pequena
 
 A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O
-`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre quinze telas em
+`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre dezesseis telas em
 360×740 e reprova quando:
 
 - alguma tela rola para o lado (`scrollWidth > innerWidth`) — o sintoma clássico de tabela ou
@@ -386,7 +410,7 @@ A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e
   desenho);
 - aparece erro de JavaScript no console.
 
-São 15 telas e 125 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
+São 16 telas e 128 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
 demonstração também deixou de chamar a API do SIGA (não há servidor ali), o que eliminava um erro de
 rede no console sem função nenhuma.
 

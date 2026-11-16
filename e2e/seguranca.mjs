@@ -282,6 +282,24 @@ try {
     apagarAvaliacao.dados?.motivo ?? `HTTP ${apagarAvaliacao.status}`,
   )
 
+  // A tela "Histórico de lançamentos" lê `lancamentos_siga` direto do navegador:
+  // se a RLS falhar, a aluna B veria as notas lançadas de A no SIGA.
+  const lancamentosB = await fetch(`${base}/rest/v1/lancamentos_siga?select=id,matricula,nota`, {
+    headers: { apikey: anon, Authorization: `Bearer ${tokenB}` },
+  })
+  const corpoLancamentosB = await lancamentosB.text()
+  let linhasLancamentosB = null
+  try {
+    linhasLancamentosB = JSON.parse(corpoLancamentosB)
+  } catch {
+    linhasLancamentosB = null
+  }
+  registrar(
+    'aluna B NÃO lê os lançamentos no SIGA',
+    !Array.isArray(linhasLancamentosB) || linhasLancamentosB.length === 0,
+    `${Array.isArray(linhasLancamentosB) ? linhasLancamentosB.length : 'erro'} linha(s)`,
+  )
+
   const resumo = await rpc(tokenB, 'resumo_turma', { p_turma: turmaId })
   registrar('aluno NÃO lê o resumo da turma', resumo.dados?.ok !== true, resumo.dados?.motivo ?? `HTTP ${resumo.status}`)
 

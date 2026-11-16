@@ -158,6 +158,8 @@ await pagina.goto(`${WEB}/prof/avaliacoes/av-demo-1`, { waitUntil: 'networkidle'
 await medir('professor · avaliação')
 await pagina.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
 await medir('professor · alunos')
+await pagina.goto(`${WEB}/prof/avaliacoes/av-demo-2/historico`, { waitUntil: 'networkidle' })
+await medir('professor · histórico de lançamentos')
 
 await navegador.close()
 servidor.kill('SIGTERM')

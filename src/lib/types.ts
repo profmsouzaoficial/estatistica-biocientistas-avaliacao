@@ -114,6 +114,16 @@ export interface LancamentoSiga {
   criado_em: string
 }
 
+/**
+ * Uma tentativa de lançamento como ela ficou registrada em `lancamentos_siga`.
+ * Inclui as que falharam: é justamente o registro do que o SIGA recusou, com o
+ * motivo, que o professor precisa reencontrar meses depois.
+ */
+export interface LancamentoAuditado extends LancamentoSiga {
+  aluno_nome: string
+  escala: string | null
+}
+
 // ---- SIGA ------------------------------------------------------------------
 
 export interface AvaliacaoSiga {

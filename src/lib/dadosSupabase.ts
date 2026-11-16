@@ -498,6 +498,47 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       return api<QuadroNotasSiga>(`/siga/notas?${q.toString()}`)
     },
 
+    async historicoLancamentos(avaliacaoId) {
+      const { data: avaliacao, error: erroAvaliacao } = await sb
+        .from('avaliacoes')
+        .select('id,turma_id,descricao_siga')
+        .eq('id', avaliacaoId)
+        .maybeSingle()
+      if (erroAvaliacao) throw new Error(`Não consegui ler a avaliação: ${erroAvaliacao.message}`)
+      if (!avaliacao?.descricao_siga) return []
+      const { data: turma, error: erroTurma } = await sb
+        .from('turmas')
+        .select('codigo_siga')
+        .eq('id', avaliacao.turma_id)
+        .maybeSingle()
+      if (erroTurma || !turma) throw new Error('Turma da avaliação não encontrada.')
+      // Filtra pelo que foi realmente enviado (turma + descrição), não pelos ids
+      // atuais: um lançamento antigo continua no histórico mesmo se a correção
+      // ou a submissão forem apagadas depois (o FK vira nulo).
+      const { data, error } = await sb
+        .from('lancamentos_siga')
+        .select('*')
+        .eq('turma_siga', turma.codigo_siga)
+        .eq('descricao_avaliacao', avaliacao.descricao_siga)
+        .order('criado_em', { ascending: false })
+      if (error) throw new Error(`Não consegui ler o histórico: ${error.message}`)
+
+      const linhas = (data ?? []) as (LancamentoSiga & { escala: string | null })[]
+      if (linhas.length === 0) return []
+      const matriculas = [...new Set(linhas.map((l) => l.matricula))]
+      const { data: perfis } = await sb
+        .from('profiles')
+        .select('nome_completo,matricula')
+        .in('matricula', matriculas)
+      const nomes = new Map(
+        ((perfis ?? []) as { nome_completo: string; matricula: string | null }[]).map((p) => [
+          p.matricula ?? '',
+          p.nome_completo,
+        ]),
+      )
+      return linhas.map((l) => ({ ...l, aluno_nome: nomes.get(l.matricula) ?? 'Aluno' }))
+    },
+
     async saude() {
       return api<Diagnostico>('/saude')
     },
