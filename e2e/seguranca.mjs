@@ -228,6 +228,13 @@ try {
     apagar.dados?.motivo ?? `HTTP ${apagar.status}`,
   )
 
+  const apagarAvaliacao = await rpc(tokenB, 'apagar_avaliacao', { p_avaliacao: avaliacao.id })
+  registrar(
+    'aluno NÃO apaga avaliação',
+    apagarAvaliacao.dados?.ok !== true,
+    apagarAvaliacao.dados?.motivo ?? `HTTP ${apagarAvaliacao.status}`,
+  )
+
   const resumo = await rpc(tokenB, 'resumo_turma', { p_turma: turmaId })
   registrar('aluno NÃO lê o resumo da turma', resumo.dados?.ok !== true, resumo.dados?.motivo ?? `HTTP ${resumo.status}`)
 
