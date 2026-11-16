@@ -133,6 +133,13 @@ export function Ajuda() {
               </dd>
             </div>
             <div>
+              <dt className="font-medium text-tinta">“Passei do prazo e o envio está fechado”</dt>
+              <dd className="text-tinta-suave">
+                O prazo bloqueia entrega nova. Se você tem motivo, fale com o professor: ele consegue
+                estender a data, e aí o envio reabre para quem ainda não entregou.
+              </dd>
+            </div>
+            <div>
               <dt className="font-medium text-tinta">“Enviei e a nota não aparece”</dt>
               <dd className="text-tinta-suave">
                 A nota aparece quando o professor revisa e libera. Antes disso, o status fica em “enviada”.

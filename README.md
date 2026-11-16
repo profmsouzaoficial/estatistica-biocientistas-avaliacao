@@ -233,6 +233,16 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Prazo de entrega
+
+O prazo é bloqueante: passada a data, o aluno não abre entrega nova (o botão fica em “Prazo
+encerrado”). O professor muda a data na própria avaliação, em **Prazo de entrega** — a mudança reabre
+o envio para quem faltou e não altera redação enviada nem nota lançada (`mudarPrazoAvaliacao` no
+contrato `Dados`). Redação enviada depois da data aparece marcada como **fora do prazo** na lista e na
+revisão; a marca é informativa. `pnpm test:formato` cobre as fronteiras dessa conta (minuto exato,
+datas ausentes e fusos diferentes); o passo 24 do `pnpm e2e` muda o prazo, confere a marca e remove o
+prazo.
+
 ### A lista de alunos
 
 `pnpm test:csv` roda 16 verificações sobre o leitor da lista (`src/lib/csv.ts`) — o texto que o

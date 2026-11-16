@@ -1,9 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Download, Eye, ImageOff, Loader2, Lock, Pencil, RefreshCw, Send, Sparkles, Trash2, Undo2, Unlock, UploadCloud } from 'lucide-react'
+import {
+  CalendarClock,
+  CheckCircle2,
+  Download,
+  Eye,
+  ImageOff,
+  Loader2,
+  Lock,
+  Pencil,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Trash2,
+  Undo2,
+  Unlock,
+  UploadCloud,
+} from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
-import { formatarData, formatarDataHora, formatarNota, formatarPontos, plural } from '../lib/formato'
+import { atrasoDeEntrega, formatarData, formatarDataHora, formatarNota, formatarPontos, plural } from '../lib/formato'
 import { notaParaSiga } from '../lib/types'
 import type { Avaliacao, CriterioNota, QuadroNotasSiga, SubmissaoDoProfessor, Turma } from '../lib/types'
 import { api } from '../lib/servidor'
@@ -64,6 +80,8 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [progresso, setProgresso] = useState<string | null>(null)
   const [resultado, setResultado] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState<string | null>(null)
+  const [prazoNovo, setPrazoNovo] = useState('')
+  const [prazoEmEdicao, setPrazoEmEdicao] = useState(false)
   const [confirmandoLancamento, setConfirmandoLancamento] = useState(false)
   const [turma, setTurma] = useState<Turma | null>(null)
   const [sigaTem, setSigaTem] = useState<boolean | null>(null)
@@ -138,6 +156,36 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       )
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível mudar o estado da avaliação.')
+    } finally {
+      setOcupado(null)
+    }
+  }
+
+  /** Valor do <input datetime-local>: data e hora locais, sem fuso. */
+  function paraInputLocal(iso: string | null): string {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+  }
+
+  async function salvarPrazo(novo: string) {
+    if (!d) return
+    setErro(null)
+    setResultado(null)
+    setOcupado('prazo')
+    try {
+      await d.mudarPrazoAvaliacao(id, novo ? new Date(novo).toISOString() : null)
+      await carregar()
+      setPrazoEmEdicao(false)
+      setResultado(
+        novo
+          ? 'Prazo atualizado. Quem já enviou continua enviado; quem não enviou passa a poder entregar até a nova data.'
+          : 'Prazo removido: a avaliação passa a aceitar entregas sem data limite.',
+      )
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível salvar o prazo.')
     } finally {
       setOcupado(null)
     }
@@ -371,6 +419,74 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           )}
         </Cartao>
 
+        <Cartao className="space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="size-4 text-tinta-suave" aria-hidden />
+              <h2 className="text-[14px] font-medium text-tinta">Prazo de entrega</h2>
+            </div>
+            <span className="text-[12.5px] text-tinta-suave">
+              {avaliacao.prazo_em ? `até ${formatarDataHora(avaliacao.prazo_em)}` : 'sem prazo definido'}
+            </span>
+          </div>
+          {prazoEmEdicao ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex-1">
+                <span className="mb-1 block text-[12.5px] text-tinta-suave">Nova data e hora</span>
+                <input
+                  type="datetime-local"
+                  className="campo"
+                  value={prazoNovo}
+                  onChange={(e) => setPrazoNovo(e.target.value)}
+                />
+              </label>
+              <Botao
+                type="button"
+                onClick={() => salvarPrazo(prazoNovo)}
+                carregando={ocupado === 'prazo'}
+                disabled={!prazoNovo || ocupado === 'prazo'}
+              >
+                Salvar prazo
+              </Botao>
+              <button
+                type="button"
+                onClick={() => setPrazoEmEdicao(false)}
+                className="pb-2 text-[12.5px] text-tinta-suave hover:text-tinta"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPrazoNovo(paraInputLocal(avaliacao.prazo_em))
+                  setPrazoEmEdicao(true)
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-borda px-2.5 py-1 text-[12.5px] font-medium text-tinta-suave"
+              >
+                <CalendarClock className="size-3.5" aria-hidden />
+                {avaliacao.prazo_em ? 'Estender ou mudar o prazo' : 'Definir um prazo'}
+              </button>
+              {avaliacao.prazo_em ? (
+                <button
+                  type="button"
+                  onClick={() => salvarPrazo('')}
+                  disabled={ocupado === 'prazo'}
+                  className="text-[12.5px] text-tinta-suave underline-offset-2 hover:text-tinta hover:underline disabled:opacity-50"
+                >
+                  Remover prazo
+                </button>
+              ) : null}
+            </div>
+          )}
+          <p className="text-[12.5px] leading-snug text-tinta-fraca">
+            Depois do prazo o aluno não abre entrega nova. Mudar a data reabre o envio para quem faltou —
+            não altera redação já enviada nem nota já lançada.
+          </p>
+        </Cartao>
+
         {progresso ? (
           <Cartao>
             <BarraIndeterminada>{progresso}</BarraIndeterminada>
@@ -583,6 +699,9 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                     <p className="truncate text-[14.5px] font-medium text-tinta">{item.aluno.nome_completo}</p>
                     <p className="text-[12.5px] text-tinta-suave">
                       {item.aluno.matricula} · enviada {item.submissao.enviado_em ? formatarDataHora(item.submissao.enviado_em) : '—'}
+                      {atrasoDeEntrega(item.submissao.enviado_em, avaliacao.prazo_em) ? (
+                        <span className="font-medium text-ambar"> · fora do prazo</span>
+                      ) : null}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
@@ -811,6 +930,13 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
         </button>
 
         {erro ? <Alerta tom="vermelho">{erro}</Alerta> : null}
+        {atrasoDeEntrega(item.submissao.enviado_em, avaliacao?.prazo_em) ? (
+          <Alerta tom="ambar" titulo="Entregue fora do prazo">
+            Enviada em {formatarDataHora(item.submissao.enviado_em)}
+            {avaliacao?.prazo_em ? `, depois do prazo de ${formatarDataHora(avaliacao.prazo_em)}` : ''}. A nota não
+            muda por isso — o aviso serve para você decidir.
+          </Alerta>
+        ) : null}
         {pronto && aprovada ? <Alerta tom="verde">Revisão salva. A devolutiva já aparece para o aluno.</Alerta> : null}
         {lancada ? (
           <Alerta tom="verde" titulo="Lançada no SIGA">

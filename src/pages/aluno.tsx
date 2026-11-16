@@ -3,7 +3,7 @@ import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Clock3, Star
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Carregando, Cartao, Selo, Vazio } from '../components/ui'
-import { formatarDataHora, formatarNota, tempoRelativo, plural, primeiroNome } from '../lib/formato'
+import { atrasoDeEntrega, formatarDataHora, formatarNota, tempoRelativo, plural, primeiroNome } from '../lib/formato'
 import type { Avaliacao, AvaliacaoDoAluno } from '../lib/types'
 
 export function rotuloEstado(a: AvaliacaoDoAluno): { texto: string; tom: 'neutro' | 'verde' | 'ambar' | 'vermelho' | 'azul' } {
@@ -182,10 +182,17 @@ export function AlunoAvaliacao({ id }: { id: string }) {
         </div>
 
         {a.prazo_em ? (
-          <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13.5px] ${prazoPassado ? 'bg-vermelho-claro text-vermelho' : 'bg-verde-claro text-verde-escuro'}`}>
-            <CalendarClock className="size-4 shrink-0" aria-hidden />
-            {prazoPassado ? 'Prazo encerrado em ' : 'Entrega até '}
-            <strong className="font-semibold">{formatarDataHora(a.prazo_em)}</strong>
+          <div className={`rounded-xl px-3 py-2.5 text-[13.5px] ${prazoPassado ? 'bg-vermelho-claro text-vermelho' : 'bg-verde-claro text-verde-escuro'}`}>
+            <div className="flex items-center gap-2">
+              <CalendarClock className="size-4 shrink-0" aria-hidden />
+              {prazoPassado ? 'Prazo encerrado em ' : 'Entrega até '}
+              <strong className="font-semibold">{formatarDataHora(a.prazo_em)}</strong>
+            </div>
+            {prazoPassado && podeEnviar ? (
+              <p className="mt-1.5 leading-snug">
+                O envio está fechado. Se precisar de mais tempo, peça ao professor para <strong>estender o prazo</strong>.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -224,6 +231,7 @@ export function AlunoAvaliacao({ id }: { id: string }) {
               <CheckCircle2 className="size-4" aria-hidden />
               <p className="text-[14px] font-medium">
                 Enviada {a.submissao.enviado_em ? tempoRelativo(a.submissao.enviado_em) : ''}
+                {atrasoDeEntrega(a.submissao.enviado_em, a.prazo_em) ? ' · fora do prazo' : ''}
               </p>
             </div>
             <p className="mt-1 text-[13px] leading-snug text-tinta-suave">

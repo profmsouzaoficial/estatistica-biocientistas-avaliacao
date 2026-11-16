@@ -33,6 +33,25 @@ export function formatarPontos(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ',')
 }
 
+/**
+ * A entrega aconteceu depois do prazo?
+ *
+ * Devolve `null` quando a pergunta não se aplica: sem prazo definido, ou sem
+ * envio. O app não bloqueia a entrega atrasada — só avisa o aluno antes do
+ * envio e marca a redação para o professor, porque quem decide sobre atraso é
+ * quem dá a nota, não o sistema.
+ */
+export function atrasoDeEntrega(
+  enviadoEm: string | null | undefined,
+  prazoEm: string | null | undefined,
+): boolean | null {
+  if (!prazoEm || !enviadoEm) return null
+  const envio = new Date(enviadoEm).getTime()
+  const prazo = new Date(prazoEm).getTime()
+  if (Number.isNaN(envio) || Number.isNaN(prazo)) return null
+  return envio > prazo
+}
+
 /** "há 3 minutos", "em 2 dias" — ajuda a leitura rápida do prazo. */
 export function tempoRelativo(iso: string | null | undefined): string {
   if (!iso) return ''

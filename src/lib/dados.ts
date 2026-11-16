@@ -131,6 +131,8 @@ export interface Dados {
   resumoAvaliacoes(): Promise<ResumoAvaliacao[]>
   criarAvaliacao(dados: NovaAvaliacao): Promise<Avaliacao>
   mudarStatusAvaliacao(id: string, status: StatusAvaliacao): Promise<void>
+  /** Muda (ou remove, com null) o prazo de entrega. Não mexe em nota já lançada. */
+  mudarPrazoAvaliacao(id: string, prazoEm: string | null): Promise<void>
   alunosDaTurma(turmaId: string): Promise<Esperado[]>
   importarAlunos(turmaId: string, linhas: LinhaImportacao[]): Promise<{ inseridos: number; atualizados: number }>
   /** Liga/desliga a exigência de e-mail já cadastrado na lista da turma. */

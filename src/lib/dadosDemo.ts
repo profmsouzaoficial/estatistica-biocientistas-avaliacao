@@ -655,6 +655,14 @@ export function criarDadosDemo(): Dados {
       }
     },
 
+    async mudarPrazoAvaliacao(id, prazoEm) {
+      const a = base.avaliacoes.find((x) => x.id === id)
+      if (a) {
+        a.prazo_em = prazoEm
+        gravar()
+      }
+    },
+
     async alunosDaTurma(turmaId) {
       return base.esperados.filter((e) => e.turma_id === turmaId).sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'))
     },

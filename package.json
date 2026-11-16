@@ -24,7 +24,8 @@
     "test:seguranca": "node e2e/seguranca.mjs",
     "test:rubrica": "node scripts/testar-rubrica.mjs",
     "comparar:modelos": "node scripts/comparar-modelos.mjs",
-    "test:csv": "node scripts/testar-csv.mjs"
+    "test:csv": "node scripts/testar-csv.mjs",
+    "test:formato": "node scripts/testar-formato.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

@@ -116,6 +116,17 @@ Na tela da avaliação:
 A nota final é sempre `soma dos critérios ÷ valor total × 10`, arredondada a uma casa. Não é o
 modelo que decide a nota no SIGA.
 
+### Estender o prazo
+
+Aluno que adoeceu, queda de internet na véspera: entre na avaliação e use **Prazo de entrega →
+Estender ou mudar o prazo**. A data nova reabre o envio para quem faltou, sem tocar no que já foi
+enviado nem nas notas. **Remover prazo** deixa a avaliação aceitando entregas sem data limite.
+
+Depois do prazo, o aluno vê o botão desabilitado (“Prazo encerrado”) com o aviso para pedir a
+extensão. Se uma redação for enviada depois da data — prazo encurtado depois do envio, por exemplo —
+ela aparece marcada em âmbar como **fora do prazo** na lista e na revisão. A marca é informativa: não
+muda a nota.
+
 ### Conferir se a nota chegou ao SIGA
 
 Depois de lançar, a página da avaliação tem o cartão **O que já está no SIGA**. Ele lê o quadro da
