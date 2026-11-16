@@ -301,7 +301,10 @@ export function ProfessorNovaAvaliacao() {
     { ...novoCriterio(4), nome: 'Clareza e norma padrão', descricao: 'Texto organizado, coeso e em português padrão.', valor: 4 },
   ])
   const [descricaoSiga, setDescricaoSiga] = useState('')
-  const [pesoSiga, setPesoSiga] = useState('10')
+  // O peso no SIGA é, quase sempre, igual ao valor total da rubrica. Começa
+  // acompanhando o total e para de acompanhar quando o professor edita o campo.
+  const [pesoSiga, setPesoSiga] = useState('20')
+  const [pesoEditado, setPesoEditado] = useState(false)
   const [dataSiga, setDataSiga] = useState('')
   const [prazo, setPrazo] = useState('')
   const [publicar, setPublicar] = useState(true)
@@ -320,6 +323,10 @@ export function ProfessorNovaAvaliacao() {
       })
       .catch(() => setErro('Não foi possível carregar as turmas.'))
   }, [d])
+
+  useEffect(() => {
+    if (!pesoEditado) setPesoSiga(valorTotal)
+  }, [valorTotal, pesoEditado])
 
   const total = Number(valorTotal) || 0
   const soma = rubrica.reduce((t, c) => t + (Number(c.valor) || 0), 0)
@@ -612,7 +619,18 @@ export function ProfessorNovaAvaliacao() {
               placeholder="TVC 1"
             />
             <div className="grid grid-cols-2 gap-3">
-              <Campo rotulo="Peso no SIGA" type="number" min="0.5" step="0.5" value={pesoSiga} onChange={(e) => setPesoSiga(e.target.value)} />
+              <Campo
+                rotulo="Peso no SIGA"
+                type="number"
+                min="0.5"
+                step="0.5"
+                value={pesoSiga}
+                onChange={(e) => {
+                  setPesoEditado(true)
+                  setPesoSiga(e.target.value)
+                }}
+                dica="O padrão acompanha o valor total. Se o SIGA usar outro peso, a nota é convertida proporcionalmente."
+              />
               <Campo rotulo="Data no SIGA" type="date" value={dataSiga} onChange={(e) => setDataSiga(e.target.value)} />
             </div>
           </Cartao>

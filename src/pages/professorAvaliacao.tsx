@@ -26,8 +26,20 @@ function usarEscalaSiga(d: ReturnType<typeof usarSessao>['d']): 'nota10' | 'pont
   return escala
 }
 
-function notaParaSigaNaEscala(escala: 'nota10' | 'pontos', bruta: number, total: number): number {
-  return escala === 'pontos' ? bruta : notaParaSiga(bruta, total)
+/**
+ * Número que vai ao SIGA. Em pontos, a nota é proporcional ao PESO da avaliação
+ * no SIGA — é a mesma conta que o servidor faz em api/siga/lancar.ts.
+ */
+function notaParaSigaNaEscala(
+  escala: 'nota10' | 'pontos',
+  bruta: number,
+  total: number,
+  peso: number,
+): number {
+  if (escala !== 'pontos') return notaParaSiga(bruta, total)
+  const denominador = total > 0 ? total : 0
+  const alvo = peso > 0 ? peso : total
+  return denominador > 0 ? Math.round((bruta / denominador) * alvo * 100) / 100 : 0
 }
 
 function estadoDaSubmissao(item: SubmissaoDoProfessor) {
@@ -325,7 +337,14 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                     </span>
                     <strong className="shrink-0 font-semibold tabular-nums">
                       {i.correcao
-                        ? formatarNota(notaParaSigaNaEscala(escalaSiga, i.correcao.nota_bruta, avaliacao.valor_total))
+                        ? formatarNota(
+                            notaParaSigaNaEscala(
+                              escalaSiga,
+                              i.correcao.nota_bruta,
+                              avaliacao.valor_total,
+                              avaliacao.peso_siga,
+                            ),
+                          )
                         : '—'}
                     </strong>
                   </li>
@@ -361,7 +380,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               SIGA: <strong className="font-medium text-tinta">{avaliacao.descricao_siga}</strong> · peso{' '}
               {avaliacao.peso_siga} ·{' '}
               {escalaSiga === 'pontos'
-                ? `nota enviada em pontos (0 a ${formatarPontos(avaliacao.valor_total)})`
+                ? `nota enviada em pontos (0 a ${formatarPontos(avaliacao.peso_siga)})`
                 : 'nota enviada de 0 a 10'}.
             </p>
             {sigaTem === false ? (
@@ -638,7 +657,9 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                   {formatarPontos(avaliacao.valor_total)} · SIGA{' '}
                   <strong className="font-semibold text-tinta">
                     {escalaSiga === 'pontos'
-                      ? formatarPontos(notaParaSigaNaEscala(escalaSiga, notaBruta, avaliacao.valor_total))
+                      ? formatarPontos(
+                          notaParaSigaNaEscala(escalaSiga, notaBruta, avaliacao.valor_total, avaliacao.peso_siga),
+                        )
                       : formatarNota(notaFinal)}
                   </strong>
                 </p>

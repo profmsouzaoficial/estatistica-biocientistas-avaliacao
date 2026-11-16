@@ -147,11 +147,21 @@ servidor com `pnpm corrigir:lote` — ele espera até 10 minutos por redação e
 
 ### Escala da nota no SIGA
 
-O SIGA não diz, na documentação da API, se a nota vai de 0 a 10 ou de 0 até o peso da avaliação.
-O app assume **0 a 10**; se a sua turma usa pontos (uma Prova 1 de peso 20 recebendo 16, por
-exemplo), peça para ligar `SIGA_ESCALA=pontos` no servidor. A tela da avaliação mostra, embaixo do
-nome da avaliação no SIGA, em que escala a nota será enviada — e a confirmação do lançamento lista
-aluno por aluno o número exato que será gravado.
+A documentação da API do SIGA não diz qual é a escala. Os dados da turma **CBV018GV-A (2026/3)**
+resolveram a dúvida:
+
+| Avaliação no SIGA | Peso | Notas já lançadas |
+|---|---|---|
+| Exercício Avaliativo | 10 | 10 · 9,5 · 10 · 10 · 9,5 · 10 · 10 |
+| **Prova 1** | **20** | **19 · 17 · 16 · 16 · 12 · 10 · 10** |
+
+Nota 19 num espaço de peso 20 só faz sentido se a escala for **0 até o peso**. Por isso o app está
+configurado com `SIGA_ESCALA=pontos`: uma redação que soma 14 de 20 vai ao SIGA como **14**.
+
+Se o peso no SIGA for diferente do valor total da rubrica, a nota é convertida proporcionalmente
+(rubrica de 10 pontos, peso 20 no SIGA → uma nota 7 vira 14). O campo "Peso no SIGA" já vem
+preenchido com o valor total, e a tela da avaliação mostra, embaixo do nome no SIGA, a escala usada
+e o teto da nota; a confirmação do lançamento lista aluno por aluno o número exato que será gravado.
 
 ### O que o aluno vê
 

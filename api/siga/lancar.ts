@@ -37,6 +37,8 @@ interface AvaliacaoServidor {
   turma_id: string
   descricao_siga: string | null
   titulo: string
+  valor_total: number
+  peso_siga: number
 }
 
 interface TurmaServidor {
@@ -90,7 +92,7 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
 
   const avaliacao = await selecionarUm<AvaliacaoServidor>(
     'avaliacoes',
-    `id=eq.${encodeURIComponent(submissao.avaliacao_id)}&select=id,turma_id,descricao_siga,titulo`,
+    `id=eq.${encodeURIComponent(submissao.avaliacao_id)}&select=id,turma_id,descricao_siga,titulo,valor_total,peso_siga`,
   )
   if (!avaliacao) throw new ErroHttp(404, 'AVALIACAO', 'Avaliação não encontrada.')
   if (!avaliacao.descricao_siga) {
@@ -105,8 +107,19 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
 
   // A devolutiva do aluno é sempre 0 a 10; o número que vai ao SIGA depende da escala
   // configurada em SIGA_ESCALA (ver escalaDaNota em _lib/siga.ts).
+  //
+  // No SIGA as notas são em PONTOS, até o peso de cada avaliação (dados reais de
+  // 2026/3: "Prova 1" tem peso 20 e há notas 16, 12, 17). Quando a rubrica vale
+  // um total diferente do peso, convertemos proporcionalmente — senão uma rubrica
+  // de 10 pontos lançada numa avaliação de peso 20 valeria metade.
   const escala = escalaDaNota()
-  const nota = escala === 'pontos' ? Number(correcao.nota_bruta) : Number(correcao.nota_final)
+  const bruta = Number(correcao.nota_bruta)
+  const total = Number(avaliacao.valor_total) || 0
+  const peso = Number(avaliacao.peso_siga) || total
+  const nota =
+    escala === 'pontos'
+      ? Math.round((total > 0 ? (bruta / total) * peso : 0) * 100) / 100
+      : Number(correcao.nota_final)
   const base = {
     correcao_id: correcao.id,
     submissao_id: submissao.id,
@@ -130,7 +143,13 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
       ...base,
       sucesso: true,
       http_status: resultado.status,
-      payload: { turma: turma.codigo_siga, descricao_avaliacao: avaliacao.descricao_siga, notas_json: { [aluno.matricula]: nota }, periodo: turma.periodo },
+      payload: {
+        turma: turma.codigo_siga,
+        descricao_avaliacao: avaliacao.descricao_siga,
+        notas_json: { [aluno.matricula]: nota },
+        periodo: turma.periodo,
+        calculo: { escala, nota_bruta: bruta, valor_total: total, peso_siga: peso },
+      },
       resposta: resultado.corpo,
       erro: null,
     })
@@ -143,7 +162,13 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
       ...base,
       sucesso: false,
       http_status: null,
-      payload: { turma: turma.codigo_siga, descricao_avaliacao: avaliacao.descricao_siga, notas_json: { [aluno.matricula]: nota }, periodo: turma.periodo },
+      payload: {
+        turma: turma.codigo_siga,
+        descricao_avaliacao: avaliacao.descricao_siga,
+        notas_json: { [aluno.matricula]: nota },
+        periodo: turma.periodo,
+        calculo: { escala, nota_bruta: bruta, valor_total: total, peso_siga: peso },
+      },
       resposta: erro instanceof ErroHttp ? (erro.detalhe ?? null) : null,
       erro: mensagem,
     }).catch(() => {
