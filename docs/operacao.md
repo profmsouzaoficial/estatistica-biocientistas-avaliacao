@@ -188,6 +188,8 @@ pnpm e2e:mobile         # layout e alvos de toque em 360×740
 pnpm test:contraste     # legibilidade dos textos
 pnpm test:documentacao  # este guia não ficou para trás
 pnpm test:prazos        # regras de prazo (data no passado, encurtar, remover)
+pnpm e2e:foto           # foto de 12 MP, HEIC do iPhone e arquivo corrompido
+pnpm test:imagem        # mensagem certa para cada tipo de falha na foto
 ```
 
-Os quatro últimos não precisam de credencial nenhuma: rodam contra a demonstração local.
+Os cinco últimos não precisam de credencial nenhuma: rodam contra a demonstração local.

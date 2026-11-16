@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Camera, Image as ImageIcon, RefreshCw, X } from 'lucide-react'
 import { Botao } from './ui'
+import { ErroDeImagem, ehHeic, mensagemDeFalha } from '../lib/imagem'
 
 export interface Foto {
   blob: Blob
@@ -18,17 +19,61 @@ export interface Foto {
 const LADO_MAXIMO = 1800
 const QUALIDADE = 0.85
 
+// Um HEIC de 5 MB num celular lento pode levar segundos para falhar; sem limite,
+// o botão fica "processando" e a aluna não sabe se espera ou tenta de novo.
+const TEMPO_MAXIMO_DECODE = 20_000
+
+function comLimite<T>(promessa: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const relogio = setTimeout(() => reject(new ErroDeImagem('tempo', mensagemDeFalha('tempo'))), ms)
+    promessa.then(
+      (valor) => {
+        clearTimeout(relogio)
+        resolve(valor)
+      },
+      (erro) => {
+        clearTimeout(relogio)
+        reject(erro)
+      },
+    )
+  })
+}
+
+/** Segunda tentativa de decodificação: a tag <img>, que aceita formatos que o
+ * `createImageBitmap` recusa. Revoga o object URL nos dois caminhos. */
+function decodificarComTag(arquivo: File): Promise<ImageBitmap> {
+  return new Promise<ImageBitmap>((resolve, reject) => {
+    const url = URL.createObjectURL(arquivo)
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      resolve(img as unknown as ImageBitmap)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('formato não suportado'))
+    }
+    img.src = url
+  })
+}
+
 async function comprimir(arquivo: File): Promise<Omit<Foto, 'url'>> {
+  if (!arquivo.size) throw new ErroDeImagem('vazio', mensagemDeFalha('vazio'))
+
   let bitmap: ImageBitmap
   try {
-    bitmap = await createImageBitmap(arquivo, { imageOrientation: 'from-image' })
-  } catch {
-    bitmap = await new Promise<ImageBitmap>((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => resolve(img as unknown as ImageBitmap)
-      img.onerror = () => reject(new Error('Não foi possível abrir a imagem.'))
-      img.src = URL.createObjectURL(arquivo)
-    })
+    bitmap = await comLimite(createImageBitmap(arquivo, { imageOrientation: 'from-image' }), TEMPO_MAXIMO_DECODE)
+  } catch (primeiro) {
+    if (primeiro instanceof ErroDeImagem) throw primeiro
+    try {
+      bitmap = await comLimite(decodificarComTag(arquivo), TEMPO_MAXIMO_DECODE)
+    } catch (segundo) {
+      if (segundo instanceof ErroDeImagem) throw segundo
+      // Nenhum dos dois abriu. HEIC é a causa provável, e a mensagem diz o que
+      // fazer em vez de só constatar o problema.
+      const codigo = ehHeic(arquivo.name, arquivo.type) ? 'heic' : 'formato'
+      throw new ErroDeImagem(codigo, mensagemDeFalha(codigo))
+    }
   }
 
   const larguraOriginal = 'width' in bitmap ? bitmap.width : 0
@@ -78,7 +123,11 @@ export function CapturaDeFoto({
       if (foto) URL.revokeObjectURL(foto.url)
       onFoto({ ...dados, url })
     } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Falha ao processar a imagem.')
+      setErro(
+        e instanceof ErroDeImagem
+          ? e.message
+          : 'Não foi possível abrir esta imagem. Formatos aceitos: JPG, PNG ou WEBP.',
+      )
     } finally {
       setProcessando(false)
       if (cameraRef.current) cameraRef.current.value = ''

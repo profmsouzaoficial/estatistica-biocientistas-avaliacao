@@ -421,6 +421,28 @@ coloca no seletor de arquivo como o aluno faria e confere o que a tela mostra: 1
 mantida, 881 KB (−88,6% em relação ao original), 194 ms de processamento e pré-visualização
 renderizada. Se o app parar de comprimir, o teste acusa antes de o primeiro aluno tentar enviar no 4G.
 
+#### Quando o navegador não abre o arquivo
+
+O caminho feliz é JPEG. O que ninguém testava era o arquivo que o navegador **não consegue decodificar**
+— e ele tem uma causa dominante: **HEIC**, o formato padrão do iPhone, que Chrome, Firefox e Android não
+abrem. Os dois casos caíam na mesma frase (“Não foi possível abrir a imagem.”), que não diz se o
+problema é a foto, o celular, a internet ou o app.
+
+Agora a falha tem código (`src/lib/imagem.ts`) e instrução:
+
+| Arquivo | Mensagem |
+|---|---|
+| HEIC/HEIF (tipo ou extensão) | “Esta foto está em HEIC… Toque em ‘Tirar foto’ — a câmera do navegador entrega JPEG… Ajustes → Câmera → Formatos → ‘Mais compatível’” |
+| Outro formato/corrompido | “Formatos aceitos: JPG, PNG ou WEBP. Se ela veio do iPhone, toque em ‘Tirar foto’” |
+| Demora > 20 s para decodificar | “A imagem demorou demais para abrir. Tente de novo ou escolha uma foto menor” |
+| Arquivo vazio | “O arquivo chegou vazio. Escolha a foto de novo” |
+
+A tentativa de decodificação tem duas portas (`createImageBitmap` e a tag `<img>`, que aceita formatos
+que a primeira recusa) dentro de um limite de tempo, e o `object URL` temporário é revogado nos dois
+caminhos. `pnpm test:imagem` cobre a decisão (13 casos) e o `pnpm e2e:foto` cobre o caminho real: joga
+um `.HEIC` no seletor, confere a mensagem, **que a foto anterior não é perdida** e que uma foto válida
+volta a ser aceita depois do erro.
+
 ### Guia do aluno
 
 `docs/guia-aluno.md` é a página que o professor manda para a turma antes da primeira entrega: como se

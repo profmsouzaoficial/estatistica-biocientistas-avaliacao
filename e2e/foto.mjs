@@ -166,6 +166,50 @@ try {
   })
   registrar('a pré-visualização renderiza a foto', renderizou)
 
+  // ---- o arquivo que o navegador não abre --------------------------------
+  // HEIC é o padrão do iPhone e Chrome/Firefox/Android não decodificam. O aluno
+  // precisa saber o que fazer, não que "deu erro".
+  const seletorGaleria = arquivos.last()
+  await seletorGaleria.setInputFiles({
+    name: 'IMG_0042.HEIC',
+    mimeType: 'image/heic',
+    buffer: Buffer.from('nao e uma imagem de verdade'),
+  })
+  const erroHeic = page.getByText(/HEIC, o formato padrão do iPhone/)
+  await erroHeic.waitFor({ timeout: 20000 })
+  const textoHeic = (await erroHeic.textContent()) ?? ''
+  registrar('HEIC sem suporte é reconhecido pelo nome', /HEIC/.test(textoHeic))
+  registrar('a mensagem manda tocar em "Tirar foto"', /Tirar foto/.test(textoHeic))
+  registrar('a mensagem explica o ajuste do iPhone', /Ajustes/.test(textoHeic) && /Mais compatível/.test(textoHeic))
+  await page.screenshot({ path: join(SAIDA, '32-foto-heic.png') })
+
+  // A foto boa que já estava escolhida não pode ser perdida por causa da tentativa.
+  const fotoAntes = await page.evaluate(() => {
+    const img = [...document.querySelectorAll('img')].find((i) => i.src.startsWith('blob:'))
+    return img ? img.getAttribute('src') : null
+  })
+  registrar('a foto anterior continua na tela depois da falha', Boolean(fotoAntes))
+
+  // Corrompida com extensão suportada: a mensagem é a genérica, não a do HEIC.
+  await seletorGaleria.setInputFiles({
+    name: 'quebrada.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from('lixo'),
+  })
+  const erroGenerico = page.getByText(/Formatos aceitos: JPG, PNG ou WEBP/)
+  await erroGenerico.waitFor({ timeout: 20000 })
+  registrar('arquivo corrompido não é tratado como HEIC', (await erroHeic.count()) === 0)
+
+  // E o seletor volta a funcionar: a próxima escolha válida substitui o erro.
+  await seletorGaleria.setInputFiles(fotoGrande)
+  await legenda.waitFor({ timeout: TEMPO_MAXIMO + 12000 })
+  registrar(
+    'depois do erro, uma foto válida volta a ser aceita',
+    /^\d+×\d+ · \d+ KB$/.test((await legenda.textContent()) ?? ''),
+    (await legenda.textContent()) ?? '',
+  )
+  registrar('a mensagem de erro sai quando a foto é aceita', (await erroGenerico.count()) === 0)
+
   await navegador.close()
 
   const falhas = checagens.filter((c) => !c.ok).length

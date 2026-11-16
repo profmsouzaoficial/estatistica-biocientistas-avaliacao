@@ -78,6 +78,18 @@ que o professor avalia.
 Não é preciso scanner nem PDF. A foto fica guardada em área privada e serve de comprovante da sua
 redação manuscrita.
 
+### Foto do iPhone (HEIC)
+
+O iPhone, por padrão, salva as fotos em **HEIC** — um formato que o Chrome, o Firefox e o Android não
+abrem. Se você escolher uma foto da galeria e o app disser que não conseguiu abrir, há dois caminhos:
+
+| Caminho | Como |
+|---|---|
+| Mais simples | toque em **Tirar foto**: a câmera do navegador entrega a imagem em JPG, que abre em qualquer celular |
+| Usar a galeria | no iPhone: **Ajustes → Câmera → Formatos → “Mais compatível”**; as fotos novas passam a ser JPG (as antigas continuam HEIC) |
+
+A mensagem do app diz qual dos dois usar — ela não aparece para JPG, PNG ou WEBP.
+
 ## 4. Prazo
 
 Cada avaliação tem uma data e hora limite, mostrada no cartão (“Até em 3 dias”). Depois do prazo, o
@@ -135,6 +147,7 @@ fim, e a foto fica em área privada.
 | “Senha atual incorreta” ao trocar a senha | digite a senha que você usa hoje; se esqueceu, saia e use **Esqueci minha senha** |
 | “Prazo encerrado” | o prazo passou; fale com o professor |
 | A foto não carrega | tente de novo com sinal melhor; se persistir, use **Galeria** com uma foto tirada antes |
+| “Esta foto está em HEIC…” | é foto de iPhone num navegador que não abre HEIC: use **Tirar foto** ou mude o formato no iPhone (veja “Foto do iPhone”) |
 | O texto lido está muito errado | **Trocar a foto** e refazer com mais luz; ou corrija o texto à mão antes de enviar |
 
 Em qualquer caso, o caminho mais rápido é falar com o professor — ele vê a sua entrega na tela dele.
