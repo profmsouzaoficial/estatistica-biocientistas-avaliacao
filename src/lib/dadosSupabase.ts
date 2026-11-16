@@ -51,8 +51,8 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
 
   const traduzirErroCadastro = (mensagem: string): string => {
     const m = mensagem.toLowerCase()
-    if (m.includes('matricula_nao_listada')) return 'Esta matrícula não está na lista da turma. Confira o número ou fale com o professor.'
-    if (m.includes('email_nao_confere')) return 'Este e-mail é diferente do que consta na lista da turma.'
+    if (m.includes('matricula_nao_listada')) return 'Esta matrícula não está na lista desta turma. Confira a turma escolhida e a matrícula; se estiverem certas, peça ao professor para incluir você na lista.'
+    if (m.includes('email_nao_confere')) return 'Este e-mail é diferente do que consta na lista da turma. Use o e-mail institucional que a coordenação tem — se não souber qual é, peça ao professor para conferir.'
     if (m.includes('cadastro_ja_existe')) return 'Esta matrícula já foi cadastrada. Use "Esqueci minha senha".'
     if (m.includes('cadastro_incompleto')) return 'Matrícula e turma são obrigatórias.'
     if (m.includes('already registered') || m.includes('already been registered')) return 'Este e-mail já tem conta. Tente entrar ou recuperar a senha.'

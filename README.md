@@ -233,6 +233,14 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Guia do aluno
+
+`docs/guia-aluno.md` é a página que o professor manda para a turma antes da primeira entrega: como se
+cadastrar (matrícula, e-mail da lista, senha), como fotografar a folha, por que conferir a transcrição,
+o que cada selo significa, o prazo, a devolutiva, o reenvio e o que fazer quando o cadastro é recusado.
+As imagens vêm de `pnpm e2e:mobile` (saída em `docs/img/`), então o guia não envelhece sozinho: se a
+tela mudar, o teste de layout gera a captura nova.
+
 ### Conferência em tela pequena
 
 A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O

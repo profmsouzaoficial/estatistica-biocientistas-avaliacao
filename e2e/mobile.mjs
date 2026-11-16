@@ -129,6 +129,15 @@ async function foto(page, nome) {
   await page.screenshot({ path: join(SAIDA, `${nome}.png`), fullPage: true })
 }
 
+/**
+ * Cópia só da área visível, para o guia do aluno: versão do repositório em
+ * `docs/img/`, gerada pelo mesmo teste que confere o layout.
+ */
+async function fotoDoGuia(page, nome) {
+  mkdirSync(join(raiz, 'docs', 'img'), { recursive: true })
+  await page.screenshot({ path: join(raiz, 'docs', 'img', `${nome}.png`) })
+}
+
 const errosDeConsole = []
 
 async function main() {
@@ -168,18 +177,22 @@ async function main() {
   await entrar(page, ALUNO)
   ok = (await medir(page, 'aluno · início')) && ok
   await foto(page, 'mobile-02-aluno-inicio')
+  await fotoDoGuia(page, 'aluno-inicio')
 
   await page.goto(`${WEB}/avaliacoes/av-demo-1`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'aluno · avaliação')) && ok
   await foto(page, 'mobile-03-aluno-avaliacao')
+  await fotoDoGuia(page, 'aluno-avaliacao')
 
   await page.goto(`${WEB}/avaliacoes/av-demo-2/enviar`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'aluno · envio')) && ok
   await foto(page, 'mobile-04-aluno-envio')
+  await fotoDoGuia(page, 'aluno-envio')
 
   await page.goto(`${WEB}/avaliacoes/av-demo-1/devolutiva`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'aluno · devolutiva')) && ok
   await foto(page, 'mobile-05-aluno-devolutiva')
+  await fotoDoGuia(page, 'aluno-devolutiva')
 
   await page.goto(`${WEB}/perfil`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'aluno · perfil')) && ok
