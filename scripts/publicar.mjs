@@ -22,7 +22,7 @@
  * não o commit, e a marca de versão passaria a mentir.
  */
 import { spawnSync } from 'node:child_process'
-import { commitLocal, mudancasNaoCommitadas, mudouApp, versaoPublicada } from './versao.mjs'
+import { commitLocal, mudancasNaoCommitadas, mudouApp, statusDoCommit, versaoPublicada } from './versao.mjs'
 
 const MANUAL = process.argv.includes('--manual')
 const ESPERA_AUTOMATICA = 5 * 60 * 1000
@@ -97,6 +97,21 @@ async function principal() {
       console.log('\n  ! este commit ainda não foi enviado ao GitHub (origin/master está em ' + enviado + ').')
       console.log('    O deploy automático só acontece depois do push.\n')
       process.exit(1)
+    }
+
+    // Antes de esperar cinco minutos, pergunta ao GitHub o que a Vercel
+    // respondeu: build quebrado e cota estourada pedem ações opostas.
+    const status = await statusDoCommit(commit)
+    if (status && status.estado !== 'success' && status.estado !== 'pending') {
+      console.log(`\n  ! a Vercel recusou este commit: “${status.descricao}”.`)
+      if (/rate limit/i.test(status.descricao ?? '')) {
+        console.log('    É a cota de deployments do plano Hobby (100 por 24 h) — não é erro do código.')
+        console.log('    O app que está no ar continua funcionando. Tente de novo depois da janela.')
+      } else if (status.detalhe) {
+        console.log(`    Detalhes: ${status.detalhe}`)
+      }
+      console.log()
+      process.exit(2)
     }
 
     console.log('\n  ▸ esperando o deploy automático do GitHub (até 5 min)…')

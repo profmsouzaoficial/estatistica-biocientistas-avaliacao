@@ -41,10 +41,12 @@ exatamente qual código gerou aquilo.
 Quatro armadilhas que já custaram caro:
 
 - **Cota de 100 deployments por dia (Hobby).** A janela é **móvel de 24 h**: cada deployment criado há
-  24 h libera uma vaga. Quando a cota aperta, a CLI responde `api-deployments-free-per-day` e o site
-  fica no código antigo, sem aviso na tela — em 16/11/2026 isso levou à conclusão errada de que "a
-  produção parou", quando o push das 21:25 já havia publicado. Por isso o caminho normal é push +
-  `pnpm versao`, não `vercel --prod`.
+  24 h libera uma vaga. Estourada a cota, a CLI responde `api-deployments-free-per-day` e o GitHub
+  recebe o status **"Deployment rate limited — retry in 24 hours."**; o site fica no código antigo sem
+  aviso na tela. Em 16/11/2026 isso levou à conclusão errada de que "a produção parou", quando o push
+  das 21:25 já havia publicado. Por isso o caminho normal é push + `pnpm versao`, não `vercel --prod`.
+  O `pnpm versao` lê esse status no GitHub e diz o motivo em uma linha, em vez de deixar você
+  esperando ou mexendo no que não precisa.
 - **Commit só de documentação também gastaria cota.** O `vercel.json` agora tem `ignoreCommand`: se a
   mudança é só em `.md`, `docs/`, `scripts/` ou `e2e/`, a Vercel pula o build. O `pnpm versao` sabe
   disso e responde "o app no ar é o mesmo do repositório" em vez de acusar atraso.

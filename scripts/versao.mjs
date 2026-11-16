@@ -88,6 +88,45 @@ export function commitLocal(cwd = process.cwd()) {
   }
 }
 
+/**
+ * O que a Vercel respondeu sobre este commit, no GitHub.
+ *
+ * Quando o deployment automático não aparece, há duas causas possíveis e elas
+ * pedem ações opostas: build quebrado (corrigir o build) ou cota estourada
+ * (esperar). A Vercel publica o motivo como status do commit — em 16/11/2026,
+ * "Deployment rate limited — retry in 24 hours". Ler isso é a diferença entre
+ * insistir e esperar.
+ */
+export async function statusDoCommit(sha, { cwd = process.cwd(), timeoutMs = 10000 } = {}) {
+  let slug = null
+  try {
+    const url = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd, encoding: 'utf8' }).trim()
+    const m = url.match(/(?:github\.com[:/])([^/]+\/[^/.]+)(?:\.git)?$/)
+    slug = m ? m[1] : null
+  } catch {
+    slug = null
+  }
+  if (!slug || !sha) return null
+
+  const controle = new AbortController()
+  const relogio = setTimeout(() => controle.abort(), timeoutMs)
+  try {
+    const r = await fetch(`https://api.github.com/repos/${slug}/commits/${sha}/statuses`, {
+      signal: controle.signal,
+      headers: { accept: 'application/vnd.github+json', 'user-agent': 'estatistica-avaliacoes' },
+    })
+    if (!r.ok) return null
+    const lista = await r.json()
+    const vercel = Array.isArray(lista) ? lista.find((x) => /vercel/i.test(x?.context ?? '')) : null
+    if (!vercel) return null
+    return { estado: vercel.state, descricao: vercel.description, detalhe: vercel.target_url, quando: vercel.created_at }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(relogio)
+  }
+}
+
 /** Busca o HTML publicado e devolve a versão (null se não der para ler). */
 export async function versaoPublicada(site = SITE, { timeoutMs = 15000 } = {}) {
   const controle = new AbortController()
@@ -137,13 +176,22 @@ async function principal() {
   console.log(`  repositório   ${local ?? '(sem git)'}`)
   console.log(`  publicado     ${publicada ?? `(não consegui ler${motivo ? `: ${motivo}` : ''})`}`)
   if (sujas) console.log(`  árvore        ${sujas} arquivo(s) não commitado(s)`)
+  // Por que o commit não subiu? Build quebrado e cota estourada pedem ações opostas.
+  const status = estado === 'igual' ? null : await statusDoCommit(local)
+  if (status) console.log(`  github        ${status.estado}: ${status.descricao ?? '(sem descrição)'}`)
   console.log()
   if (estado === 'igual') console.log('  ✓ produção roda o mesmo código do repositório.\n')
   else if (estado === 'mesmo-app')
     console.log(
       '  ✓ o app no ar é o mesmo do repositório (desde o deploy mudaram só documentos, scripts ou testes).\n',
     )
-  else if (estado === 'atrasada') console.log('  ! produção está atrás. Rode `pnpm publicar`.\n')
+  else if (estado === 'atrasada' && status && status.estado !== 'success' && status.estado !== 'pending') {
+    console.log(`  ! a Vercel recusou o deploy deste commit; o app no ar é o de ${publicada}.`)
+    if (/rate limit/i.test(status.descricao ?? '')) {
+      console.log('    Cota de deployments do plano Hobby: espere a janela de 24 h. O site continua funcionando.')
+    }
+    console.log()
+  } else if (estado === 'atrasada') console.log('  ! produção está atrás. Rode `pnpm publicar`.\n')
   else console.log('  ! não consegui conferir a versão publicada.\n')
 
   process.exit(!publicada ? 2 : estado === 'atrasada' ? 1 : 0)
