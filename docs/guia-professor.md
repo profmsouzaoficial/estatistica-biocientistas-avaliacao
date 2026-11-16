@@ -99,6 +99,11 @@ Na tela da avaliação:
 A nota final é sempre `soma dos critérios ÷ valor total × 10`, arredondada a uma casa. Não é o
 modelo que decide a nota no SIGA.
 
+**Tempo:** com o modelo em CPU, cada correção leva de 45 a 90 segundos. A hospedagem atual corta
+pedidos em 60 s, então, para a turma inteira, o caminho é o lote no servidor do modelo
+(`pnpm corrigir:lote`) — ele corrige sem limite de tempo e a tela passa a mostrar as correções
+prontas. Redação que falhar continua pendente: dá para tentar de novo ou corrigir à mão.
+
 ## 6. Lançar no SIGA
 
 1. Confira a descrição do SIGA na tela da avaliação.

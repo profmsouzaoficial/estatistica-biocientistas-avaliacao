@@ -302,6 +302,15 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           </Alerta>
         ) : null}
 
+        {pendentes.length > 0 ? (
+          <p className="px-1 text-[12.5px] leading-snug text-tinta-fraca">
+            Cada correção com o modelo em CPU leva de 45 a 90 s. Se a conexão cair no meio, a redação
+            continua pendente: dá para tentar de novo, corrigir à mão ou rodar o lote no servidor do
+            modelo (<code className="rounded bg-papel-fundo px-1">pnpm corrigir:lote</code>), que não depende
+            do limite de tempo da hospedagem.
+          </p>
+        ) : null}
+
         {avaliacao.descricao_siga ? (
           <div className="space-y-2">
             <p className="px-1 text-[12.5px] text-tinta-suave">

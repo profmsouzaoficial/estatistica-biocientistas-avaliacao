@@ -17,6 +17,15 @@ export class ErroApi extends Error {
   }
 }
 
+/** Mensagens para falhas que não vêm do nosso código, e sim da hospedagem. */
+const MENSAGENS_DA_PLATAFORMA: Record<number, string> = {
+  504:
+    'A hospedagem cortou a conexão por tempo (a correção com o modelo em CPU pode passar do limite). ' +
+    'Tente de novo com uma redação por vez — ou use a correção manual.',
+  502: 'O serviço respondeu com erro interno (502). Se foi uma correção, confira a IA no diagnóstico do painel.',
+  503: 'O serviço está temporariamente indisponível (503). Tente de novo em instantes.',
+}
+
 let obterToken: (() => Promise<string | null>) | null = null
 
 export function configurarToken(fn: () => Promise<string | null>) {
@@ -45,7 +54,10 @@ export async function api<T>(caminho: string, corpo?: unknown, init?: RequestIni
 
   if (!resposta.ok) {
     const obj = (json ?? {}) as RespostaErro
-    throw new ErroApi(obj.erro || `Falha na comunicação (${resposta.status})`, resposta.status, obj.detalhe)
+    // erro nosso vem sempre em JSON com `erro`; quando a plataforma corta a
+    // requisição, o corpo é HTML e o status é 504/502 — vale explicar melhor
+    const mensagem = obj.erro || MENSAGENS_DA_PLATAFORMA[resposta.status] || `Falha na comunicação (${resposta.status})`
+    throw new ErroApi(mensagem, resposta.status, obj.detalhe)
   }
   return json as T
 }

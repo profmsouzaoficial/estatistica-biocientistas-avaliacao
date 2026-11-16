@@ -198,6 +198,18 @@ matrícula e nome preenchidos e a coluna de e-mail vazia. O SIGA não expõe e-m
    o e-mail digitado fica gravado em `alunos_esperados` e as próximas consultas já o mostram.
 A pasta `importacao/` está no `.gitignore` (contém nomes de alunos).
 
+### Limite de tempo da hospedagem (importante com IA em CPU)
+
+A Vercel no plano Hobby corta a função em **60 s** (o `maxDuration: 300` do `vercel.json` só vale
+em planos pagos). Uma correção com Llama 7B em CPU gasta 45–90 s, então parte dos pedidos morre
+com 504 — a tela agora explica isso e sugere as saídas:
+
+| Situação | Caminho |
+|---|---|
+| Poucas redações, modelo rápido (GPU ou API) | **Corrigir pendentes** na tela da avaliação |
+| Turma inteira com modelo em CPU | `pnpm corrigir:lote` no servidor do modelo (sem limite de tempo) |
+| IA indisponível | correção manual na revisão |
+
 ### Correção sem IA
 
 `POST /api/corrigir-manual` cria uma correção com todos os critérios em 0 e justificativa
