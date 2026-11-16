@@ -8,6 +8,7 @@ import type {
   Perfil,
   ResumoAvaliacao,
   StatusAvaliacao,
+  QuadroSiga,
   Submissao,
   SubmissaoDoProfessor,
   Turma,
@@ -93,8 +94,12 @@ export interface Dados {
   importarAlunos(turmaId: string, linhas: LinhaImportacao[]): Promise<{ inseridos: number; atualizados: number }>
   submissoesDaAvaliacao(avaliacaoId: string): Promise<SubmissaoDoProfessor[]>
   corrigir(submissaoId: string): Promise<Correcao>
+  /** Cria correção zerada para o professor preencher sem depender do Llama. */
+  corrigirManual(submissaoId: string): Promise<Correcao>
   salvarRevisao(correcaoId: string, revisao: Revisao): Promise<void>
   lancarNoSiga(correcaoId: string): Promise<LancamentoSiga>
+  /** Avaliações que já existem no SIGA para a turma/período. */
+  avaliacoesDoSiga(turma: string, periodo: string): Promise<QuadroSiga>
 }
 
 let instancia: Dados | null = null

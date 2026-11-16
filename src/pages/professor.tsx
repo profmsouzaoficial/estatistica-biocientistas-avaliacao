@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight, ClipboardCheck, Plus, Users } from 'lucide-react'
+import { ChevronRight, ClipboardCheck, Plus, RefreshCw, Users } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
 import { CAPITULOS } from '../lib/livro'
-import type { Criterio, ResumoAvaliacao, Turma } from '../lib/types'
+import type { AvaliacaoSiga, Criterio, ResumoAvaliacao, Turma } from '../lib/types'
 import { formatarNota } from '../lib/formato'
 
 // ---------------------------------------------------------------------------
@@ -155,6 +155,9 @@ export function ProfessorNovaAvaliacao() {
   const [publicar, setPublicar] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [opcoesSiga, setOpcoesSiga] = useState<AvaliacaoSiga[]>([])
+  const [buscandoSiga, setBuscandoSiga] = useState(false)
+  const [erroSiga, setErroSiga] = useState<string | null>(null)
 
   useEffect(() => {
     if (!d) return
@@ -183,6 +186,34 @@ export function ProfessorNovaAvaliacao() {
         return { ...c, valor: Math.round((total - acumulado) * 10) / 10 }
       }),
     )
+  }
+
+  const turmaSelecionada = turmas.find((t) => t.id === turmaId) ?? null
+
+  async function buscarSiga() {
+    if (!d || !turmaSelecionada) return
+    setErroSiga(null)
+    setBuscandoSiga(true)
+    try {
+      const quadro = await d.avaliacoesDoSiga(turmaSelecionada.codigo_siga, turmaSelecionada.periodo)
+      setOpcoesSiga(quadro.avaliacoes)
+      if (quadro.avaliacoes.length === 0) {
+        setErroSiga('Nenhuma avaliação encontrada nesta turma. Crie a TVC no SIGA primeiro.')
+      }
+    } catch (e) {
+      setOpcoesSiga([])
+      setErroSiga(e instanceof Error ? e.message : 'Não foi possível consultar o SIGA.')
+    } finally {
+      setBuscandoSiga(false)
+    }
+  }
+
+  /** DD/MM/AAAA (SIGA) → AAAA-MM-DD (input type=date). */
+  function escolherSiga(a: AvaliacaoSiga) {
+    setDescricaoSiga(a.descricao)
+    if (a.peso > 0) setPesoSiga(String(a.peso))
+    const br = a.data?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+    if (br) setDataSiga(`${br[3]}-${br[2]}-${br[1]}`)
   }
 
   async function salvar(e: React.FormEvent) {
@@ -378,6 +409,49 @@ export function ProfessorNovaAvaliacao() {
                 A descrição precisa ser idêntica à da avaliação (TVC) no SIGA. Se ela ainda não existir, crie no SIGA ou
                 use o botão de criação na tela da avaliação.
               </p>
+            </div>
+            <div className="rounded-xl border border-borda bg-papel/70 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[12.5px] leading-snug text-tinta-suave">
+                  {turmaSelecionada
+                    ? `Turma ${turmaSelecionada.codigo_siga} · ${turmaSelecionada.periodo}`
+                    : 'Escolha a turma para consultar o SIGA.'}
+                </p>
+                <Botao
+                  type="button"
+                  variante="fantasma"
+                  onClick={buscarSiga}
+                  disabled={!turmaSelecionada}
+                  carregando={buscandoSiga}
+                  icone={<RefreshCw className="size-4" />}
+                >
+                  Buscar
+                </Botao>
+              </div>
+              {erroSiga ? <p className="mt-1.5 text-[12.5px] leading-snug text-vermelho">{erroSiga}</p> : null}
+              {opcoesSiga.length > 0 ? (
+                <ul className="mt-2 space-y-1.5">
+                  {opcoesSiga.map((a) => {
+                    const ativa = descricaoSiga.trim().toLowerCase() === a.descricao.trim().toLowerCase()
+                    return (
+                      <li key={a.id ?? a.descricao}>
+                        <button
+                          type="button"
+                          onClick={() => escolherSiga(a)}
+                          className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
+                            ativa ? 'border-verde bg-verde/5' : 'border-borda bg-white hover:border-verde/40'
+                          }`}
+                        >
+                          <span className="block text-[13.5px] font-medium text-tinta">{a.descricao}</span>
+                          <span className="block text-[12px] text-tinta-fraca">
+                            {a.data ?? 'sem data'} · peso {a.peso}
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : null}
             </div>
             <Campo
               rotulo="Descrição da avaliação no SIGA"

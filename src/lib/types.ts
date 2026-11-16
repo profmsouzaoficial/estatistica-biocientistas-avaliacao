@@ -106,6 +106,27 @@ export interface LancamentoSiga {
   criado_em: string
 }
 
+// ---- SIGA ------------------------------------------------------------------
+
+export interface AvaliacaoSiga {
+  id: string | null
+  descricao: string
+  peso: number
+  /** DD/MM/AAAA, como o SIGA devolve */
+  data: string | null
+}
+
+export interface QuadroSiga {
+  consulta: {
+    turma: string
+    periodo: string
+    id_turma: string | null
+    id_periodo: string | null
+    gerado_em: string | null
+  }
+  avaliacoes: AvaliacaoSiga[]
+}
+
 // ---- modelos de tela -------------------------------------------------------
 
 export interface AvaliacaoDoAluno extends Avaliacao {

@@ -12,7 +12,10 @@
     "test:e2e": "node e2e/smoke.mjs",
     "db:aplicar": "node scripts/aplicar-migrations.mjs",
     "professor:criar": "node scripts/criar-professor.mjs",
-    "corrigir:lote": "node scripts/corrigir-pendentes.mjs"
+    "corrigir:lote": "node scripts/corrigir-pendentes.mjs",
+    "diagnostico": "node scripts/diagnostico.mjs",
+    "turma:planilha": "node scripts/importar-siga.mjs",
+    "test:parser": "node scripts/testar-parser.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

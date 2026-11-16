@@ -17,3 +17,6 @@ test-results/
 .DS_Store
 .vercel
 .env*
+
+# planilhas com nomes/matrículas de alunos (PII)
+importacao/

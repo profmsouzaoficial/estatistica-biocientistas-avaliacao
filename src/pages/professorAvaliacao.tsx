@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Download, ImageOff, Loader2, Send, Sparkles, Undo2, UploadCloud } from 'lucide-react'
+import { CheckCircle2, Download, ImageOff, Loader2, Pencil, Send, Sparkles, Undo2, UploadCloud } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Carregando, Cartao, Selo } from '../components/ui'
@@ -285,6 +285,20 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
     criterios.some((c, i) => Math.abs(c.valor - (original[i]?.valor ?? 0)) > 0.001) ||
     comentario.trim() !== (item?.correcao?.comentario_professor ?? '').trim()
 
+  async function corrigirAMao() {
+    if (!d || !item) return
+    setErro(null)
+    setOcupado('manual')
+    try {
+      await d.corrigirManual(submissaoId)
+      await carregar()
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível abrir a correção manual.')
+    } finally {
+      setOcupado(null)
+    }
+  }
+
   async function aprovar() {
     if (!d || !item?.correcao) return
     setErro(null)
@@ -387,9 +401,21 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
         </Cartao>
 
         {!item.correcao ? (
-          <Alerta tom="ambar" titulo="Ainda sem correção da IA">
-            Gere a correção pela lista da avaliação para ver a sugestão de nota por critério.
-          </Alerta>
+          <>
+            <Alerta tom="ambar" titulo="Ainda sem correção da IA">
+              Gere a correção pela lista da avaliação — ou atribua as notas você mesmo, critério por
+              critério, e aprove.
+            </Alerta>
+            <Botao
+              largo
+              variante="secundario"
+              onClick={corrigirAMao}
+              carregando={ocupado === 'manual'}
+              icone={<Pencil className="size-4" />}
+            >
+              Corrigir manualmente
+            </Botao>
+          </>
         ) : (
           <>
             <Cartao>

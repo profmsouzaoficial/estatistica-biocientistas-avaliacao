@@ -123,7 +123,18 @@ const servidor = createServer(async (req, res) => {
       return responderJson(res, 200, { ok: true, criada: corpo, origem: 'mock' })
     }
     if (url.pathname === '/api/notas') {
-      return responderJson(res, 200, { alunos: [], resumo: {}, origem: 'mock' })
+      const turma = url.searchParams.get('turma') ?? ''
+      const periodo = url.searchParams.get('periodo') ?? ''
+      return responderJson(res, 200, {
+        consulta: { turma, periodo, id_turma: 'mock-turma', id_periodo: 'mock-periodo' },
+        avaliacoes: [
+          { id: 'mock-1', descricao: 'TVC 1', peso: 10, data: '20/11/2026' },
+          { id: 'mock-2', descricao: 'TVC 2', peso: 20, data: '11/12/2026' },
+        ],
+        alunos: [],
+        resumo: {},
+        origem: 'mock',
+      })
     }
     return responderJson(res, 404, { detail: 'Rota de mock desconhecida.' })
   }

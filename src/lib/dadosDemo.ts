@@ -725,6 +725,52 @@ export function criarDadosDemo(): Dados {
       return correcao
     },
 
+    async corrigirManual(submissaoId: string) {
+      const s = base.submissoes.find((x) => x.id === submissaoId)
+      if (!s) throw new Error('Submissão não encontrada.')
+      const av = base.avaliacoes.find((a) => a.id === s.avaliacao_id)
+      if (!av) throw new Error('Avaliação não encontrada.')
+      if (base.correcoes.some((c) => c.submissao_id === submissaoId)) {
+        throw new Error('Esta redação já tem correção.')
+      }
+      const correcao: Correcao = {
+        id: uid(),
+        submissao_id: submissaoId,
+        criterios: av.rubrica.map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          valor: 0,
+          justificativa: 'Nota atribuída manualmente pelo professor.',
+        })),
+        nota_bruta: 0,
+        nota_final: 0,
+        pontos_fortes: [],
+        pontos_desenvolver: [],
+        comentario_ia: null,
+        comentario_professor: null,
+        modelo: 'manual',
+        confianca: null,
+        decisao: 'pendente',
+        revisado_em: null,
+        criado_em: agora(),
+      }
+      base.correcoes.push(correcao)
+      s.status = 'corrigida'
+      gravar()
+      return correcao
+    },
+
+    async avaliacoesDoSiga(turma: string, periodo: string) {
+      // No modo demonstração não há SIGA: devolve o formato esperado pela tela.
+      return {
+        consulta: { turma, periodo, id_turma: null, id_periodo: null, gerado_em: null },
+        avaliacoes: [
+          { id: 'demo-1', descricao: 'TVC 1', peso: 10, data: '25/09/2026' },
+          { id: 'demo-2', descricao: 'TVC 2', peso: 20, data: '27/11/2026' },
+        ],
+      }
+    },
+
     async salvarRevisao(correcaoId: string, revisao: Revisao) {
       const c = base.correcoes.find((x) => x.id === correcaoId)
       if (!c) throw new Error('Correção não encontrada.')

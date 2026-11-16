@@ -53,11 +53,11 @@ Sua tarefa é avaliar a redação segundo a rubrica fornecida e devolver SOMENTE
 Formato exato:
 {
   "criterios": [
-    { "id": "<id da rubrica>", "valor": <número>, "justificativa": "<1 a 2 frases>" }
+    { "id": "<id da rubrica>", "valor": <número>, "justificativa": "<até 25 palavras>" }
   ],
-  "pontos_fortes": ["<frase curta>", "..."],
-  "pontos_desenvolver": ["<frase curta e acionável>", "..."],
-  "comentario": "<2 a 3 frases de devolutiva geral>",
+  "pontos_fortes": ["<até 15 palavras>", "..."],
+  "pontos_desenvolver": ["<até 15 palavras, acionável>", "..."],
+  "comentario": "<2 frases de devolutiva geral>",
   "confianca": <número entre 0 e 1>
 }
 
@@ -67,7 +67,8 @@ Regras obrigatórias:
 - Avalie apenas o texto transcrito. Se o texto estiver incompleto, avalie o que existe e registre isso em "pontos_desenvolver".
 - Não invente dados que não estão na redação.
 - Escreva em português do Brasil, tratando o estudante por "você".
-- "pontos_fortes" e "pontos_desenvolver": de 2 a 4 itens cada, específicos para esta redação.
+- "pontos_fortes" e "pontos_desenvolver": 2 a 3 itens cada, específicos para esta redação.
+- Seja breve: cada frase com no máximo 25 palavras. Respostas curtas são melhores que longas.
 - Seja criterioso e justo: a nota deve refletir o que o estudante demonstrou, não o esforço.`
 
 function montarUsuario(entrada: EntradaCorrecao, texto: string): string {
@@ -96,20 +97,139 @@ function normalizarBase(base: string): string {
   return base.replace(/\/+$/, '')
 }
 
-function decodificarJson(bruto: string): unknown {
-  const limpo = bruto
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim()
+/** Índice onde começa a última string aberta (ou -1 se todas fecharam). */
+function stringAberta(texto: string): number {
+  let emString = false
+  let escape = false
+  let inicio = -1
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i]
+    if (emString) {
+      if (escape) escape = false
+      else if (c === '\\') escape = true
+      else if (c === '"') emString = false
+      continue
+    }
+    if (c === '"') {
+      emString = true
+      inicio = i
+    }
+  }
+  return emString ? inicio : -1
+}
+
+/** Fecha { e [ pendentes respeitando strings; descarta fechamentos órfãos. */
+function fecharEstruturas(texto: string): string {
+  const pilha: string[] = []
+  let saida = ''
+  let emString = false
+  let escape = false
+
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i]
+    if (emString) {
+      saida += c
+      if (escape) escape = false
+      else if (c === '\\') escape = true
+      else if (c === '"') emString = false
+      continue
+    }
+    if (c === '"') {
+      emString = true
+      saida += c
+      continue
+    }
+    if (c === '{' || c === '[') {
+      pilha.push(c)
+      saida += c
+      continue
+    }
+    if (c === '}' || c === ']') {
+      if (pilha.length === 0) continue
+      while (pilha.length > 0 && (pilha[pilha.length - 1] === '{') !== (c === '}')) {
+        saida += pilha.pop() === '{' ? '}' : ']'
+      }
+      if (pilha.length > 0) pilha.pop()
+      saida += c
+      continue
+    }
+    saida += c
+  }
+
+  while (pilha.length > 0) saida += pilha.pop() === '{' ? '}' : ']'
+  return saida
+}
+
+/** Remove restos de chave/valor sem conteúdo deixados por um corte. */
+function limparCauda(texto: string): string {
+  return texto
+    .replace(/,\s*$/, '')
+    .replace(/,\s*"[^"]*"\s*:\s*$/, '')
+    .replace(/,\s*"[^"]*"\s*$/, '')
+    .replace(/"[^"]*"\s*:\s*$/, '')
+    .replace(/"[^"]*"\s*$/, '')
+    .replace(/[,\s]+$/, '')
+}
+
+/**
+ * Modelos pequenos erram a mão no JSON: esquecem uma chave de fechamento, deixam
+ * uma vírgula pendente ou cortam a resposta no meio. Em vez de perder a correção,
+ * reconstruímos o texto respeitando strings e a pilha de { [ — e testamos o parse
+ * a cada tentativa, devolvendo o primeiro candidato válido.
+ */
+export function repararJson(texto: string): string {
+  const inicio = stringAberta(texto)
+  let atual = inicio >= 0 ? texto.slice(0, inicio) : texto
+  atual = fecharEstruturas(limparCauda(atual))
+
+  for (let tentativa = 0; tentativa < 6; tentativa++) {
+    try {
+      JSON.parse(atual)
+      return atual
+    } catch {
+      const proximo = fecharEstruturas(limparCauda(atual))
+      if (proximo === atual) break
+      atual = proximo
+    }
+  }
+  return atual
+}
+
+export function decodificarJson(bruto: string): { json: unknown; reparado: boolean } {
+  const limpo = bruto.replace(/```(?:json)?/gi, '').trim()
   const inicio = limpo.indexOf('{')
-  const fim = limpo.lastIndexOf('}')
-  if (inicio === -1 || fim === -1 || fim <= inicio) {
+  if (inicio === -1) {
     throw new ErroHttp(502, 'RESPOSTA_INVALIDA', 'O modelo não devolveu um JSON reconhecível.', bruto.slice(0, 600))
   }
+  const texto = limpo.slice(inicio)
+
+  const validar = (valor: unknown): Record<string, unknown> => {
+    if (!valor || typeof valor !== 'object' || !Array.isArray((valor as { criterios?: unknown }).criterios)) {
+      throw new Error('sem criterios')
+    }
+    return valor as Record<string, unknown>
+  }
+
+  const fim = texto.lastIndexOf('}')
+  if (fim > 0) {
+    try {
+      return { json: validar(JSON.parse(texto.slice(0, fim + 1))), reparado: false }
+    } catch {
+      /* tenta reparar abaixo */
+    }
+  }
+
   try {
-    return JSON.parse(limpo.slice(inicio, fim + 1))
+    const json = validar(JSON.parse(repararJson(texto)))
+    console.warn('[correcao] JSON do modelo estava malformado e foi reparado.')
+    return { json, reparado: true }
   } catch {
-    throw new ErroHttp(502, 'RESPOSTA_INVALIDA', 'O JSON devolvido pelo modelo está malformado.', bruto.slice(0, 600))
+    throw new ErroHttp(
+      502,
+      'RESPOSTA_INVALIDA',
+      'O modelo devolveu um JSON que não consegui interpretar. Tente corrigir de novo ou use a correção manual.',
+      bruto.slice(0, 600),
+    )
   }
 }
 
@@ -134,7 +254,7 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
   const corpo: Record<string, unknown> = {
     model: modelo,
     temperature: 0.1,
-    max_tokens: 1400,
+    max_tokens: Number(envOpcional('LLM_MAX_TOKENS') ?? 1400),
     messages: [
       { role: 'system', content: SISTEMA },
       { role: 'user', content: montarUsuario(entrada, texto) },
@@ -163,17 +283,44 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
     )
   }
 
-  const dados = JSON.parse(bruto) as { choices?: { message?: { content?: string } }[] }
-  const conteudo = dados.choices?.[0]?.message?.content ?? ''
-  const json = decodificarJson(conteudo) as {
+  const dados = JSON.parse(bruto) as {
+    choices?: { message?: { content?: string }; finish_reason?: string }[]
+  }
+  const escolha = dados.choices?.[0]
+  const conteudo = escolha?.message?.content ?? ''
+  if (escolha?.finish_reason === 'length') {
+    throw new ErroHttp(
+      502,
+      'RESPOSTA_TRUNCADA',
+      'O modelo atingiu o limite de tokens e cortou a correção. Aumente LLM_MAX_TOKENS (ou peça justificativas mais curtas) e corrija de novo.',
+      conteudo.slice(-400),
+    )
+  }
+  const { json } = decodificarJson(conteudo) as {
+    json: {
     criterios?: { id?: string; valor?: unknown; justificativa?: unknown }[]
     pontos_fortes?: unknown
     pontos_desenvolver?: unknown
-    comentario?: unknown
-    confianca?: unknown
+      comentario?: unknown
+      confianca?: unknown
+    }
   }
 
   const recebidos = Array.isArray(json.criterios) ? json.criterios : []
+
+  // Correção parcial é pior que correção nenhuma: o aluno receberia 0 em critérios
+  // que o modelo simplesmente não chegou a avaliar. Exige todos os critérios.
+  const faltando = entrada.rubrica.filter(
+    (c, indice) => !recebidos.some((r) => r?.id === c.id) && !recebidos[indice],
+  )
+  if (faltando.length > 0) {
+    throw new ErroHttp(
+      502,
+      'RESPOSTA_INCOMPLETA',
+      `O modelo avaliou ${entrada.rubrica.length - faltando.length} de ${entrada.rubrica.length} critérios. Aumente LLM_MAX_TOKENS e corrija de novo, ou use a correção manual.`,
+      conteudo.slice(-400),
+    )
+  }
   const criterios: CriterioAvaliado[] = entrada.rubrica.map((c) => {
     const achado = recebidos.find((r) => r.id === c.id) ?? recebidos[entrada.rubrica.findIndex((x) => x.id === c.id)]
     const valorNumerico = typeof achado?.valor === 'number' ? achado.valor : Number(String(achado?.valor ?? '').replace(',', '.'))

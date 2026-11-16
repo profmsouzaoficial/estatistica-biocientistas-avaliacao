@@ -129,11 +129,20 @@ O modelo **só** devolve JSON:
 ```
 
 O servidor valida cada `id`, corta valores fora de `[0, máximo]`, soma e calcula
-`nota_final = round(nota_bruta / valor_total × 10, 1)`. Se o JSON vier inválido, a correção falha
-com erro claro — não há nota "inventada".
+`nota_final = round(nota_bruta / valor_total × 10, 1)`.
+
+Antes de pontuar, a resposta do modelo passa por um **leitor tolerante** (`api/_lib/rubrica.ts`):
+modelos pequenos esquecem chaves de fechamento, deixam vírgula pendente ou cortam o texto. O leitor
+reconstrói o JSON respeitando strings e a pilha de `{` `[`, e só aceita a correção quando **todos**
+os critérios da rubrica vieram. Se a resposta foi cortada por limite de tokens (`finish_reason: length`),
+a correção falha com `RESPOSTA_TRUNCADA` em vez de dar zero nos critérios que faltaram — correção
+parcial silenciosa seria pior que correção nenhuma.
+
+Testes desse leitor: `pnpm test:parser` (casos reais observados em execução com llama3:8b).
 
 Variáveis: `LLM_BASE_URL` (ex.: `https://llama.sua-instancia.coolify.app/v1`), `LLM_MODEL`,
-`LLM_API_KEY`, `LLM_JSON_MODE` (`1` se o servidor suportar `response_format`), `LLM_MAX_PALAVRAS`.
+`LLM_API_KEY`, `LLM_JSON_MODE` (`1` se o servidor suportar `response_format`), `LLM_MAX_PALAVRAS`,
+`LLM_MAX_TOKENS`.
 
 ---
 
@@ -143,14 +152,50 @@ Variáveis: `LLM_BASE_URL` (ex.: `https://llama.sua-instancia.coolify.app/v1`), 
 |---|---|---|
 | lançar notas | `POST /api/siga/lancar` | `POST /api/lancar-notas` |
 | criar avaliação (TVC) | `POST /api/siga/avaliacao` | `POST /api/criar-avaliacao` |
+| listar avaliações da turma | `GET /api/siga/avaliacoes` | `GET /api/notas` |
 | conferir notas | `GET/POST /api/siga/notas` | `GET/POST /api/notas` |
 
 A descrição em `avaliacoes.descricao_siga` precisa ser **idêntica** à do SIGA (`TVC 1`). O número
 do TVC é extraído da descrição; peso e data vêm da avaliação. Toda resposta é gravada em
 `lancamentos_siga` (inclusive falhas), então dá para reprocessar sem perder histórico.
 
-> A chave atual em `~/.dsh/secrets/avaliacoes.env` é curta demais para ser uma chave real
-> (10 caracteres). Enquanto não for trocada, o SIGA deve responder `403`.
+Para não errar a descrição, o formulário de nova avaliação tem o botão **Buscar** em *Lançamento
+no SIGA*: ele consulta `GET /api/notas` da turma/período, lista as avaliações existentes
+(`TVC 1`, `Prova 2`, …) e preenche descrição, peso e data com um clique. O endpoint devolve só
+o quadro de avaliações — nomes e notas dos alunos não saem dele.
+
+> A chave em `~/.dsh/secrets/avaliacoes.env` foi validada em 16/11/2026 contra
+> `GET /api/notas?turma=CBV018GV-A&periodo=2026/3`: respondeu `200` com o quadro real (7 alunos,
+> 4 avaliações). A turma `CBV018GV-A` / `2026/3` existe e está acessível.
+
+### Conferir a configuração
+
+```bash
+pnpm diagnostico
+```
+
+Testa Supabase, Llama (envia um prompt mínimo e mede tokens/s), credencial do OCR e SIGA
+(`/health` + quadro da turma), e estima o tempo de corrigir 40 redações na sua CPU.
+Serviço não configurado aparece como `○` (o app continua útil); serviço configurado e
+quebrado aparece em vermelho e o comando sai com código 1.
+
+### Importar a turma do SIGA
+
+```bash
+pnpm turma:planilha -- --turma CBV018GV-A --periodo 2026/3
+```
+
+Lê o quadro do SIGA (somente leitura) e grava `importacao/turma-CBV018GV-A-2026-3.csv` com
+matrícula e nome preenchidos e a coluna de e-mail vazia. O SIGA não expõe e-mail, então esse
+campo é o único que precisa ser colado à mão antes de enviar o CSV em *Turmas e alunos*.
+A pasta `importacao/` está no `.gitignore` (contém nomes de alunos).
+
+### Correção sem IA
+
+`POST /api/corrigir-manual` cria uma correção com todos os critérios em 0 e justificativa
+"atribuída manualmente". Serve quando o Llama não está configurado ou quando o professor quer
+dar a nota sem sugestão automática: a tela de revisão abre editável e o fluxo segue igual
+(aprovar → lançar no SIGA). O modelo fica registrado como `manual` e a ação vai para `auditoria`.
 
 ---
 
@@ -171,6 +216,22 @@ Chromium em viewport de celular e valida o banco ao final:
 5. o teste confere `lancamentos_siga` (1 registro, nota entre 0 e 10).
 
 Capturas em `e2e/resultados/`. Nada é enviado ao SIGA de verdade: `SIGA_API_BASE` aponta para o mock.
+
+### Correção com modelo real (não só mock)
+
+Em 16/11/2026 rodei a correção de verdade, com um `llama3:8b` servido pelo Ollama local, sobre uma
+redação de ~300 palavras e rubrica de 4 critérios (20 pontos):
+
+| Cenário | Medida | Leitura |
+|---|---|---|
+| GPU (RTX 3050 8 GB) | 7,8 s por redação | confortável para uso interativo |
+| CPU (12 vCPU, `num_gpu=0`) | 9,2 tokens/s ≈ 55 s por devolutiva | viável em lote: 40 alunos ≈ 40 min |
+| Nota calculada | 19/20 → **9,5** | soma dos critérios confere, nenhum acima do máximo |
+
+O JSON veio com **uma chave de fechamento faltando** — o leitor tolerante reparou e a correção foi
+aceita. Com `LLM_MAX_TOKENS=90` (forçando corte), a resposta foi recusada com `RESPOSTA_TRUNCADA`
+em vez de dar zero aos critérios ausentes. Esses dois comportamentos estão cobertos por
+`pnpm test:parser`.
 
 ---
 

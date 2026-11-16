@@ -8,6 +8,7 @@ import type {
   Correcao,
   Esperado,
   LancamentoSiga,
+  QuadroSiga,
   Perfil,
   ResumoAvaliacao,
   StatusAvaliacao,
@@ -410,9 +411,19 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       if (e2) throw new Error(e2.message)
     },
 
+    async corrigirManual(submissaoId) {
+      const r = await api<{ correcao: Correcao }>('/corrigir-manual', { submissao_id: submissaoId })
+      return r.correcao
+    },
+
     async lancarNoSiga(correcaoId) {
       const r = await api<{ lancamento: LancamentoSiga }>('/siga/lancar', { correcao_id: correcaoId })
       return r.lancamento
+    },
+
+    async avaliacoesDoSiga(turma, periodo) {
+      const q = new URLSearchParams({ turma, periodo })
+      return api<QuadroSiga>(`/siga/avaliacoes?${q.toString()}`)
     },
   }
 

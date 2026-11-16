@@ -35,12 +35,16 @@ Contas de professor não são criadas pela tela de cadastro: use `pnpm professor
 | Capítulo do livro | liga a redação ao capítulo 1–10 |
 | Valor total | a nota máxima em pontos (ex.: 20) |
 | Rubrica | 3–5 critérios; **a soma tem de fechar com o valor total** |
-| Descrição no SIGA | idêntica à do SIGA (`TVC 1`) — obrigatória para lançar |
+| Descrição no SIGA | idêntica à do SIGA — use **Buscar** para escolher da lista real |
 | Peso / Data | usados ao criar a avaliação no SIGA |
 
 A rubrica é o coração da correção: cada critério tem nome, descrição (o que se espera) e valor
 máximo. O modelo só pode pontuar dentro desse máximo. O botão **Distribuir 20 pts** preenche
 30%/30%/20%/20% como ponto de partida.
+
+Em **Lançamento no SIGA**, toque em **Buscar**: o app pergunta ao SIGA quais avaliações já
+existem naquela turma/período e mostra cada uma com data e peso. Um toque preenche descrição,
+peso e data — assim a nota não cai na avaliação errada por causa de uma letra.
 
 Deixe **Publicar agora** marcado para o aluno ver; desmarque para rascunho.
 
@@ -50,6 +54,9 @@ Na tela da avaliação:
 
 1. **Corrigir N pendente(s)** — envia cada texto ao Llama e grava a sugestão. Pode rodar de novo;
    só corrige quem ainda não tem correção.
+   - **Sem IA configurada** (ou se preferir dar a nota você mesmo), abra o aluno e toque em
+     **Corrigir manualmente**: a revisão abre com todos os critérios em 0, você digita os valores
+     e aprova. O caminho seguinte é idêntico.
 2. Toque no nome do aluno para abrir a **revisão**:
    - aba **Transcrição** (texto que será corrigido) e **Foto original** (comprovante);
    - nota por critério com justificativa do modelo — ajuste qualquer valor se discordar;
@@ -68,8 +75,10 @@ modelo que decide a nota no SIGA.
 3. Verde = aceito. Vermelho = recusado; a mensagem do SIGA aparece na tela e fica registrada em
    `lancamentos_siga` (com o corpo da resposta), então nada se perde.
 
-Se a avaliação ainda não existir no SIGA, use **criar avaliação no SIGA** na tela da avaliação —
-o app envia turma, número do TVC, peso e data.
+Se a avaliação ainda não existir no SIGA, crie lá primeiro (SIGA → Turma → Avaliações) e depois
+use **Buscar** na criação da avaliação para escolher a descrição exata. A criação automática existe
+só para TVCs (`POST /api/siga/avaliacao`, exige descrição no formato "TVC 3") e não tem botão na
+interface — é uma chamada de API, para não criar avaliação errada por engano.
 
 ## 6. Acompanhar
 
