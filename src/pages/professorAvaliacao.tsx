@@ -291,6 +291,24 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               {turma ? ` · turma ${turma.codigo_siga}` : ''}. Depois do envio, a nota aparece no SIGA
               e não há como desfazer por aqui — confira a lista antes.
             </p>
+            {aLancar.length ? (
+              <ul className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-lg bg-white/70 px-2.5 py-2 text-[12.5px] text-tinta">
+                {aLancar.slice(0, 10).map((i) => (
+                  <li key={i.submissao.id} className="flex items-baseline justify-between gap-3">
+                    <span className="truncate">
+                      {i.aluno.nome_completo}
+                      <span className="text-tinta-fraca"> · {i.aluno.matricula}</span>
+                    </span>
+                    <strong className="shrink-0 font-semibold tabular-nums">
+                      {i.correcao ? formatarNota(notaParaSiga(i.correcao.nota_bruta, avaliacao.valor_total)) : '—'}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {aLancar.length > 10 ? (
+              <p className="mt-1 text-[12px] text-tinta-suave">… e mais {aLancar.length - 10}.</p>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-2">
               <Botao onClick={lancarAprovadas} carregando={!!progresso}>
                 Confirmar lançamento
