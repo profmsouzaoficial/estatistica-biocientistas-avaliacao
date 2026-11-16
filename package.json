@@ -46,7 +46,8 @@
     "test:versao": "node scripts/testar-versao.mjs",
     "test:prazos": "node scripts/testar-prazos.mjs",
     "test:imagem": "node scripts/testar-imagem.mjs",
-    "test:llm:mock": "node scripts/testar-llm-mock.mjs"
+    "test:llm:mock": "node scripts/testar-llm-mock.mjs",
+    "test:a11y": "node e2e/acessibilidade.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
@@ -60,6 +61,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "axe-core": "^4.14.1",
     "esbuild": "^0.28.2",
     "playwright": "^1.65.0",
     "tailwindcss": "^4.3.5",

@@ -191,6 +191,7 @@ pnpm test:prazos        # regras de prazo (data no passado, encurtar, remover)
 pnpm e2e:foto           # foto de 12 MP, HEIC do iPhone e arquivo corrompido
 pnpm test:imagem        # mensagem certa para cada tipo de falha na foto
 pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem modelo)
+pnpm test:a11y          # 16 telas no axe-core (leitor de tela, teclado, rótulos)
 ```
 
-Os seis últimos não precisam de credencial nenhuma: rodam contra a demonstração local.
+Os sete últimos não precisam de credencial nenhuma: rodam contra a demonstração local.

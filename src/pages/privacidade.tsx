@@ -115,7 +115,7 @@ export function Privacidade() {
           </ul>
           <p className="texto-corrido">
             Contato do responsável: professor <strong>Márcio Luís Moreira de Souza</strong> —{' '}
-            <a className="text-verde underline-offset-2 hover:underline" href="mailto:marcio.souza@ufjf.br">
+            <a className="text-verde underline underline-offset-2 hover:text-tinta" href="mailto:marcio.souza@ufjf.br">
               marcio.souza@ufjf.br
             </a>
             .

@@ -451,6 +451,25 @@ o que cada selo significa, o prazo, a devolutiva, o reenvio e o que fazer quando
 As imagens vêm de `pnpm e2e:mobile` (saída em `docs/img/`), então o guia não envelhece sozinho: se a
 tela mudar, o teste de layout gera a captura nova.
 
+### Acessibilidade (leitor de tela e teclado)
+
+`pnpm test:a11y` roda o [axe-core](https://github.com/dequelabs/axe-core) em 16 telas, na largura de
+360 px, logado como aluno e como professor: rótulo de campo, nome acessível de botão de ícone,
+`role` de aba, região com rolagem alcançável pelo teclado, link dentro de texto distinguível sem
+depender de cor. Contraste fica de fora — `pnpm test:contraste` mede com o fundo real de cada texto,
+que o axe não consegue descobrir atrás de gradiente.
+
+Reprovam **grave** e **crítica**; moderada e leve são impressas como lista de trabalho. A auditoria
+achou cinco defeitos reais, todos corrigidos:
+
+| Onde | Defeito | Correção |
+|---|---|---|
+| `/prof/avaliacoes/nova` | os quatro campos de valor da rubrica não tinham nome acessível | `aria-label` com o nome do critério |
+| `/prof/avaliacoes/nova` | o `select` de turma não tinha nome acessível | `aria-label="Turma"` |
+| revisão | a nota por critério não tinha nome acessível | `aria-label` com nome e máximo |
+| revisão | a transcrição com rolagem não era alcançável pelo teclado | `tabIndex={0}` + `role="region"` |
+| `/privacidade` | link só se distinguia pela cor | sublinhado |
+
 ### Conferência em tela pequena
 
 A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O

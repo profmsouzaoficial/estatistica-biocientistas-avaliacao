@@ -447,7 +447,13 @@ export function ProfessorNovaAvaliacao() {
             obrigatoriedade, mas quem barra (e explica) é o `salvar`. */}
         <form onSubmit={salvar} className="space-y-4" noValidate>
           <Cartao className="space-y-3.5">
-            <select className="campo" value={turmaId} onChange={(e) => setTurmaId(e.target.value)} required>
+            <select
+              className="campo"
+              aria-label="Turma"
+              value={turmaId}
+              onChange={(e) => setTurmaId(e.target.value)}
+              required
+            >
               <option value="">Turma…</option>
               {turmas.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -527,6 +533,7 @@ export function ProfessorNovaAvaliacao() {
                   <div className="flex gap-2">
                     <input
                       className="campo flex-1"
+                      aria-label={`Nome do critério ${i + 1}`}
                       value={c.nome}
                       placeholder={`Critério ${i + 1}`}
                       onChange={(e) =>
@@ -536,6 +543,7 @@ export function ProfessorNovaAvaliacao() {
                     <input
                       className="campo w-20 text-center"
                       type="number"
+                      aria-label={`Valor de ${c.nome || `critério ${i + 1}`}`}
                       min="0"
                       step="0.5"
                       value={c.valor}

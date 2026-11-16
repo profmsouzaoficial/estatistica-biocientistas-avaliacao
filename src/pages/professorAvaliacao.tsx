@@ -1194,9 +1194,14 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
 
         <Cartao>
           {aba === 'texto' ? (
-            <p className="texto-corrido max-h-[45vh] overflow-y-auto whitespace-pre-wrap text-[14px]">
+            <div
+              className="texto-corrido max-h-[45vh] overflow-y-auto whitespace-pre-wrap text-[14px]"
+              tabIndex={0}
+              role="region"
+              aria-label="Transcrição da redação"
+            >
               {item.submissao.transcrito}
-            </p>
+            </div>
           ) : fotoEstado === 'ok' && fotoUrl ? (
             <>
               <img
@@ -1293,6 +1298,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                             min="0"
                             max={max}
                             step="0.1"
+                            aria-label={`Nota de ${c.nome} (de ${formatarPontos(max)})`}
                             value={c.valor}
                             onChange={(e) => {
                               const v = Math.max(0, Math.min(max, Number(e.target.value)))
