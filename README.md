@@ -210,6 +210,20 @@ com 504 — a tela agora explica isso e sugere as saídas:
 | Turma inteira com modelo em CPU | `pnpm corrigir:lote` no servidor do modelo (sem limite de tempo) |
 | IA indisponível | correção manual na revisão |
 
+### Conferir o prompt com um modelo de verdade
+
+O teste de ponta a ponta roda com um LLM simulado. Para trocar pelo Ollama da máquina (ou por
+qualquer servidor compatível com OpenAI) e ver o JSON real, as notas dentro do máximo e a devolutiva:
+
+```bash
+LLM_REAL=1 LLM_MODEL=llama3:latest SENHA_PROFESSOR='...' node e2e/smoke.mjs --manter
+```
+
+`--manter` deixa os dados no banco para inspecionar `correcoes`; sem a flag, o teste limpa tudo.
+O prompt está em `api/_lib/rubrica.ts` (versão `rubrica-v2`): itens de devolutiva precisam citar um
+trecho concreto da redação, frases genéricas são proibidas e "pontos a desenvolver" começam com
+verbo de ação.
+
 ### Correção sem IA
 
 `POST /api/corrigir-manual` cria uma correção com todos os critérios em 0 e justificativa

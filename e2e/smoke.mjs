@@ -175,10 +175,14 @@ async function main() {
   console.log('\n  ▸ subindo serviços simulados…')
   iniciar('mock', process.execPath, ['e2e/mock-servicos.mjs'])
   await esperarHttp('http://127.0.0.1:3199/health', 'mock', 40)
+  // LLM_REAL=1 troca o modelo simulado pelo Ollama da máquina: serve para
+  // conferir o prompt de verdade (JSON, notas dentro do máximo, devolutiva).
+  const llmReal = process.env.LLM_REAL === '1'
   iniciar('dev', process.execPath, ['scripts/dev.mjs'], {
-    LLM_BASE_URL: 'http://127.0.0.1:3199/v1',
-    LLM_MODEL: 'mock-llama',
-    LLM_JSON_MODE: '0',
+    LLM_BASE_URL: llmReal ? process.env.LLM_BASE_URL ?? 'http://127.0.0.1:11434/v1' : 'http://127.0.0.1:3199/v1',
+    LLM_MODEL: llmReal ? process.env.LLM_MODEL ?? 'llama3:latest' : 'mock-llama',
+    LLM_API_KEY: llmReal ? process.env.LLM_API_KEY ?? 'ollama' : undefined,
+    LLM_JSON_MODE: llmReal ? process.env.LLM_JSON_MODE ?? '1' : '0',
     VISION_PROVIDER: 'openai',
     VISION_BASE_URL: 'http://127.0.0.1:3199/v1',
     VISION_API_KEY: 'mock-vision',
