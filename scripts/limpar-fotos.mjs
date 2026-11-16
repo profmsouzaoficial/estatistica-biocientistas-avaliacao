@@ -3,17 +3,16 @@
  * Limpeza das fotos do bucket privado `redacoes`.
  *
  * O Storage não participa do `on delete cascade` do banco: quando uma submissão
- * (ou a turma inteira) é apagada, o arquivo continua lá. Este script compara o
- * que está no bucket com o que as submissões realmente apontam em `foto_path`.
+ * (ou a turma inteira) é apagada, o arquivo continua lá. Este script lista o
+ * bucket e mantém exatamente os caminhos que alguma submissão aponta em
+ * `foto_path`; todo o resto é sobra.
+ *
+ * Atenção ao formato do caminho: o app grava `<aluno_id>/<submissao_id>.jpg`.
+ * A pasta é do ALUNO, não da submissão — por isso a comparação é feita com o
+ * caminho completo de `foto_path`, e não com o nome da pasta.
  *
  * Por padrão só MOSTRA o que seria apagado. Para apagar de verdade:
  *   pnpm fotos:limpar --apagar
- *
- * Regras:
- *   - pasta sem submissão correspondente  → apaga (redação que não existe mais);
- *   - arquivo dentro de uma submissão que não é o `foto_path` → apaga
- *     (reenvio antigo; o app guarda o caminho da foto válida);
- *   - o `foto_path` atual nunca é apagado.
  */
 import { carregarEnv, chaveServico, supabaseRest, urlSupabase } from './_env.mjs'
 
@@ -40,34 +39,22 @@ async function listar(prefixo) {
 }
 
 const submissoes = await supabaseRest('submissoes?select=id,foto_path')
-const porId = new Map(submissoes.map((s) => [s.id, s.foto_path]))
+const emUso = new Set(submissoes.map((s) => s.foto_path).filter(Boolean))
 
 const pastas = (await listar('')).filter((o) => o.id === null)
-const semDono = []
-const antigas = []
-let mantidas = 0
-
+const objetos = []
 for (const pasta of pastas) {
   const arquivos = (await listar(pasta.name)).filter((o) => o.id !== null)
-  const atual = porId.get(pasta.name)
-  for (const arquivo of arquivos) {
-    const caminho = `${pasta.name}/${arquivo.name}`
-    if (!porId.has(pasta.name)) {
-      semDono.push(caminho)
-    } else if (atual && caminho !== atual) {
-      antigas.push(caminho)
-    } else {
-      mantidas++
-    }
-  }
+  for (const arquivo of arquivos) objetos.push(`${pasta.name}/${arquivo.name}`)
 }
 
-const alvos = [...semDono, ...antigas]
+const mantidas = objetos.filter((caminho) => emUso.has(caminho))
+const alvos = objetos.filter((caminho) => !emUso.has(caminho))
+
 console.log(`  submissões no banco: ${submissoes.length}`)
-console.log(`  fotos no bucket:     ${mantidas + alvos.length}`)
-console.log(`  fotos em uso:        ${mantidas}`)
-console.log(`  sem submissão:       ${semDono.length}`)
-console.log(`  reenvios antigos:    ${antigas.length}`)
+console.log(`  fotos no bucket:     ${objetos.length}`)
+console.log(`  fotos em uso:        ${mantidas.length}`)
+console.log(`  sobras:              ${alvos.length}`)
 
 if (alvos.length === 0) {
   console.log('\n  ✓ nada para limpar\n')
