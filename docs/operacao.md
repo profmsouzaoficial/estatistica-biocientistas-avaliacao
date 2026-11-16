@@ -194,6 +194,7 @@ pnpm test:imagem        # mensagem certa para cada tipo de falha na foto
 pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem modelo)
 pnpm test:a11y          # 16 telas no axe-core (leitor de tela, teclado, rótulos)
 pnpm test:rede          # prazo e mensagem quando banco, SIGA, OCR ou Storage não respondem
+pnpm test:envio         # envio da foto no celular: prazo, mensagem e chamadas /api
 ```
 
-Os oito últimos não precisam de credencial nenhuma: rodam contra a demonstração local.
+Os nove últimos não precisam de credencial nenhuma: rodam contra a demonstração local.

@@ -702,6 +702,33 @@ O prazo cobre **cabeçalho e corpo**: o corpo é lido dentro do prazo, porque um
 o defeito mais enganoso desta rodada — OCR lento devolvia `SEM_TEXTO`, ou seja, o aluno lia “não
 encontrei texto manuscrito legível na foto” quando o problema era fila no serviço, não a letra dele.
 
+### O envio da foto no celular
+
+O upload sai do navegador direto para o Storage do Supabase, e o SDK **não aceita `AbortSignal`**.
+Sem prazo, a tela ficava em “Enviando a foto…” até o navegador desistir sozinho — e o erro que chegava
+era de infraestrutura, como `Failed to fetch`, sem instrução para quem está no 4G do corredor.
+
+`pnpm test:envio` (38 verificações) cobre as duas metades:
+
+| Situação | O que o aluno lê |
+|---|---|
+| passou de 60 s | “O envio da foto passou de 60 s… a foto continua no aparelho: confira o sinal e toque em ‘Enviar’ de novo.” |
+| sem rede | “Não consegui falar com o servidor. Confira a conexão…” |
+| foto grande demais | “A foto ficou grande demais para o envio. Tire outra um pouco mais longe da folha — ou digite o texto.” |
+| sessão vencida | “Sua sessão expirou. Entre de novo — a foto continua no aparelho…” |
+
+O prazo é dado por fora (`comPrazo` em `src/lib/envio.ts`): o upload pode até terminar em segundo
+plano, mas como o caminho é fixo e o envio usa `upsert`, tocar em “Enviar” de novo é seguro.
+
+A chamada `/api/*` também ganhou prazo, com orçamento por rota — 30 s no padrão, 40 s para OCR, 65 s
+para a correção (o servidor já desiste em 55 s) e 25 s para o SIGA. Quando o navegador perde a
+conexão no meio, o botão para de girar e explica.
+
+**Detalhe de teste que vale registrar:** `AbortSignal.timeout` usa timer *unref* no Node — sozinho,
+ele não segura o processo acordado, e o script de teste “travava” sem nunca estourar o prazo. Um
+`setInterval` vazio mantém o processo vivo durante o caso. Em produção não muda nada: quem espera a
+resposta é o servidor HTTP, que segura o processo.
+
 ### OCR da foto
 
 A leitura da letra é uma etapa à parte (o Llama é de texto). O caminho recomendado é o **Google

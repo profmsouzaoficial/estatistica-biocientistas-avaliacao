@@ -9,7 +9,8 @@ import type {
   RespostaApagarAvaliacao,
   RespostaApagarTurma,
 } from './dados'
-import { api, configurarToken } from './servidor'
+import { comPrazo, erroDeEnvio, PRAZO_ENVIO_MS } from './envio'
+import { api, configurarToken, PRAZO_CORRECAO_MS, PRAZO_OCR_MS, PRAZO_SIGA_MS } from './servidor'
 import { notaParaSiga } from './types'
 import type {
   Avaliacao,
@@ -232,11 +233,18 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     async enviarFoto(submissaoId, arquivo) {
       const perfil = exigirPerfil()
       const caminho = `${perfil.id}/${submissaoId}.jpg`
-      const { error } = await sb.storage.from('redacoes').upload(caminho, arquivo, {
+      // O SDK do Storage não aceita AbortSignal: o prazo é dado aqui, por fora.
+      // Se estourar, o envio pode até terminar em segundo plano — o caminho é
+      // fixo e `upsert: true`, então tentar de novo é seguro.
+      const envio = sb.storage.from('redacoes').upload(caminho, arquivo, {
         contentType: 'image/jpeg',
         upsert: true,
       })
-      if (error) throw new Error(`Falha ao enviar a foto: ${error.message}`)
+      const { error } = await comPrazo(envio, PRAZO_ENVIO_MS)
+      if (error) {
+        console.warn('[foto] falha no upload:', error.message)
+        throw erroDeEnvio(error.message)
+      }
       const { error: erro2 } = await sb.from('submissoes').update({ foto_path: caminho }).eq('id', submissaoId)
       if (erro2) throw new Error(erro2.message)
       return caminho
@@ -249,7 +257,7 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     },
 
     async transcrever(submissaoId) {
-      const r = await api<{ submissao: Submissao }>('/transcrever', { submissao_id: submissaoId })
+      const r = await api<{ submissao: Submissao }>('/transcrever', { submissao_id: submissaoId }, undefined, PRAZO_OCR_MS)
       return r.submissao
     },
 
@@ -441,7 +449,7 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     },
 
     async corrigir(submissaoId) {
-      const r = await api<{ correcao: Correcao }>('/corrigir', { submissao_id: submissaoId })
+      const r = await api<{ correcao: Correcao }>('/corrigir', { submissao_id: submissaoId }, undefined, PRAZO_CORRECAO_MS)
       return r.correcao
     },
 
@@ -479,14 +487,17 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     },
 
     async corrigirManual(submissaoId) {
-      const r = await api<{ correcao: Correcao }>('/corrigir-manual', { submissao_id: submissaoId })
+      const r = await api<{ correcao: Correcao }>('/corrigir-manual', { submissao_id: submissaoId }, undefined, PRAZO_CORRECAO_MS)
       return r.correcao
     },
 
     async lancarNoSiga(correcaoId) {
-      const r = await api<{ lancamento: LancamentoSiga; repetido?: boolean }>('/siga/lancar', {
-        correcao_id: correcaoId,
-      })
+      const r = await api<{ lancamento: LancamentoSiga; repetido?: boolean }>(
+        '/siga/lancar',
+        { correcao_id: correcaoId },
+        undefined,
+        PRAZO_SIGA_MS,
+      )
       return { lancamento: r.lancamento, repetido: Boolean(r.repetido) }
     },
 

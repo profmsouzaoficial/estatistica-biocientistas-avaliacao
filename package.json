@@ -48,7 +48,8 @@
     "test:imagem": "node scripts/testar-imagem.mjs",
     "test:llm:mock": "node scripts/testar-llm-mock.mjs",
     "test:a11y": "node e2e/acessibilidade.mjs",
-    "test:rede": "node scripts/testar-rede.mjs"
+    "test:rede": "node scripts/testar-rede.mjs",
+    "test:envio": "node scripts/testar-envio.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
