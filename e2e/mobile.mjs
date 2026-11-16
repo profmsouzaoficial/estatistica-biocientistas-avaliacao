@@ -17,7 +17,7 @@
  * que a turma inteira abre o link no intervalo da aula.
  */
 import { spawn } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
@@ -262,6 +262,21 @@ async function main() {
   await page.getByText(/fechada para lançamento/).first().waitFor({ timeout: 15000 })
   ok = (await medir(page, 'professor · histórico de lançamentos')) && ok
   await foto(page, 'mobile-16-historico-lancamentos')
+
+  // o CSV é o que fica no processo do semestre: precisa abrir no Excel com os
+  // acentos certos (BOM), separador `;` e uma linha por tentativa
+  const [baixado] = await Promise.all([
+    page.waitForEvent('download', { timeout: 15000 }),
+    page.getByRole('button', { name: 'Baixar CSV' }).click(),
+  ])
+  const csv = readFileSync(await baixado.path(), 'utf8')
+  if (!csv.startsWith('\ufeffcriado_em;matricula;nome')) {
+    throw new Error(`CSV do histórico sem cabeçalho esperado: ${JSON.stringify(csv.slice(0, 60))}`)
+  }
+  if (csv.split('\n').length !== 3) throw new Error(`esperava 2 linhas de dados, veio:\n${csv}`)
+  if (!csv.includes('2026301002') || !csv.includes('2026301001')) {
+    throw new Error(`CSV sem as matrículas lançadas:\n${csv}`)
+  }
 
   await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
   ok = (await medir(page, 'professor · nova avaliação')) && ok
