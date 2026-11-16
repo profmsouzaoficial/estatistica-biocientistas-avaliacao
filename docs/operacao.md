@@ -187,6 +187,7 @@ pnpm test:producao      # o app publicado, ponta a ponta (não lança nota no SI
 pnpm e2e:mobile         # layout e alvos de toque em 360×740
 pnpm test:contraste     # legibilidade dos textos
 pnpm test:documentacao  # este guia não ficou para trás
+pnpm test:prazos        # regras de prazo (data no passado, encurtar, remover)
 ```
 
-Os três últimos não precisam de credencial nenhuma: rodam contra a demonstração local.
+Os quatro últimos não precisam de credencial nenhuma: rodam contra a demonstração local.
