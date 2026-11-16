@@ -6,6 +6,20 @@ import { Alerta, AppBar, Carregando, Cartao, Selo } from '../components/ui'
 import { formatarDataHora, formatarNota, formatarPontos } from '../lib/formato'
 import type { AvaliacaoDoAluno } from '../lib/types'
 
+/**
+ * Transparência sobre a correção: o aluno precisa saber quando a sugestão veio
+ * de um modelo e que a nota final é do professor (LGPD art. 20 e bom senso).
+ */
+function origemDaCorrecao(modelo: string | null, decisao: string): string {
+  if (!modelo || modelo === 'manual') {
+    return 'Correção feita pelo professor, critério por critério.'
+  }
+  // O nome técnico do modelo fica na tela do professor; ao aluno basta saber que
+  // houve sugestão automática e que a decisão final é humana.
+  const revisada = decisao === 'ajustada' ? 'ajustada' : 'conferida e aprovada'
+  return `Nota sugerida por um modelo de linguagem e ${revisada} pelo professor — a nota final é dele.`
+}
+
 export function Devolutiva({ id }: { id: string }) {
   const { d } = usarSessao()
   const [a, setA] = useState<AvaliacaoDoAluno | null>(null)
@@ -70,6 +84,9 @@ export function Devolutiva({ id }: { id: string }) {
             <Selo tom="verde">{c.decisao === 'ajustada' ? 'Revisada pelo professor' : 'Aprovada pelo professor'}</Selo>
             {c.revisado_em ? <Selo>Liberada em {formatarDataHora(c.revisado_em)}</Selo> : null}
           </div>
+          <p className="mt-3 border-t border-borda pt-2.5 text-[12px] leading-snug text-tinta-fraca">
+            {origemDaCorrecao(c.modelo, c.decisao)}
+          </p>
         </Cartao>
 
         <Cartao>

@@ -354,6 +354,8 @@ async function main() {
     await page.getByText('Redação 1 — Testes diagnósticos').first().click()
     await page.waitForURL(/\/devolutiva$/)
     await page.getByText('Pontos fortes').waitFor()
+    // o aluno tem de saber que a sugestão veio de um modelo e que a nota é do professor
+    await page.getByText(/modelo de linguagem .*aprovada pelo professor/i).waitFor()
     await foto(page, '11-devolutiva')
     const nota = await page.locator('body').innerText()
 

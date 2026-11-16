@@ -122,6 +122,13 @@ tudo de novo no site do SIGA. Depois da criação, a conferência já reconhece 
 > relatório), cadastre no SIGA e use **Buscar** na criação da avaliação para copiar a descrição
 > exata — assim o lançamento encontra a coluna certa.
 
+### O que o aluno vê
+
+A devolutiva traz a nota, os pontos por critério com a justificativa, os pontos fortes, os pontos a
+desenvolver e uma linha de transparência: se a sugestão veio de um modelo, o aluno lê que a nota foi
+sugerida por IA e aprovada (ou ajustada) pelo professor, que é quem responde pela nota. Quando a
+correção é manual, a linha diz isso. O nome técnico do modelo aparece só na sua tela.
+
 ## 7. Acompanhar
 
 - **Painel**: quantas redações aguardam correção, revisão e lançamento.
