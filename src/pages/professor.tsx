@@ -370,7 +370,11 @@ export function ProfessorNovaAvaliacao() {
   /** DD/MM/AAAA (SIGA) → AAAA-MM-DD (input type=date). */
   function escolherSiga(a: AvaliacaoSiga) {
     setDescricaoSiga(a.descricao)
-    if (a.peso > 0) setPesoSiga(String(a.peso))
+    // o peso vem do SIGA: não deve mais acompanhar o valor total da rubrica
+    if (a.peso > 0) {
+      setPesoEditado(true)
+      setPesoSiga(String(a.peso))
+    }
     const br = a.data?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
     if (br) setDataSiga(`${br[3]}-${br[2]}-${br[1]}`)
   }

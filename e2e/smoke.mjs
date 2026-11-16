@@ -394,8 +394,9 @@ async function main() {
     )
     const ok = (lancamentos ?? []).filter((l) => l.sucesso)
     if (ok.length !== 1) throw new Error(`Esperava 1 lançamento no SIGA, encontrei ${ok.length}.`)
-    if (!(ok[0].nota > 0)) throw new Error(`Nota deveria ser maior que zero, veio ${ok[0].nota}.`)
-    if (ok[0].nota > 10) throw new Error(`Nota fora da escala 0–10: ${ok[0].nota}`)
+    // A rubrica soma 15 de 20 e a avaliação escolhida no mock ("TVC 1") tem peso 10.
+    // O número exato confere a conta da escala: 15/20 × 10 = 7,5.
+    if (Math.abs(ok[0].nota - 7.5) > 0.05) throw new Error(`Nota enviada ao SIGA deveria ser 7,5; veio ${ok[0].nota}.`)
     if (!/Pontos fortes/i.test(nota)) throw new Error('A devolutiva não exibiu os pontos fortes.')
 
 // ---- 10. segunda avaliação (para o caminho sem IA) --------------------
