@@ -74,8 +74,9 @@ export function Privacidade() {
             </li>
             <li>
               <strong className="font-medium text-tinta">Leitura da foto (OCR):</strong> quando a correção automática
-              está ligada, a imagem é processada por um serviço de OCR contratado para essa função. Sem esse
-              serviço, o próprio aluno digita o texto e a foto fica só como comprovante.
+              está ligada, a imagem é processada pelo <strong>Google Cloud Vision</strong>, contratado para essa função
+              (o processamento acontece nos servidores do Google, fora do Brasil). A imagem vai sem nome, matrícula
+              ou e-mail. Sem esse serviço, o próprio aluno digita o texto e a foto fica só como comprovante.
             </li>
             <li>
               <strong className="font-medium text-tinta">Modelo de correção:</strong> é um Llama hospedado em
