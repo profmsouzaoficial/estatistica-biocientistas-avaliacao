@@ -158,7 +158,7 @@ que confundia "o SIGA recusou" com "não houve resposta".
 | "Minha matrícula não está na lista" | procurar a matrícula na lista da turma | importar de novo ou corrigir a linha |
 | A foto não abre na revisão | **"Tentar de novo"** (o link é temporário) | corrigir pela transcrição; pedir nova foto se necessário |
 | Transcrição ruim | comparar com a foto; ajustar o texto | pedir foto com mais luz / usar digitação |
-| Correção automática falha | `pnpm diagnostico` e `/api/saude` | corrigir à mão; a fila não trava |
+| Correção automática falha | a própria mensagem diz o código: `LLM_INALCANCAVEL` (serviço fora do ar), `LLM_FALHOU` (status 401/500), `LLM_DEMOROU` (passou do prazo), `RESPOSTA_TRUNCADA` (aumente `LLM_MAX_TOKENS`), `RESPOSTA_INVALIDA` (modelo devolveu lixo) | `pnpm diagnostico` e `/api/saude`; se persistir, corrija à mão — a fila não trava |
 | Nota estranha no SIGA | conferir o **peso** da avaliação no app e no SIGA | "Peso no SIGA" na tela da avaliação alinha |
 | Conferir se a nota foi lançada | tela da avaliação → **Histórico de lançamentos** | mostra também as recusas, com a resposta do SIGA |
 | Aluno perdeu a senha | ele mesmo usa **Esqueci minha senha** (link vale 1 h) | se o e-mail da lista estiver errado, corrija o cadastro e mande pedir de novo |
@@ -190,6 +190,7 @@ pnpm test:documentacao  # este guia não ficou para trás
 pnpm test:prazos        # regras de prazo (data no passado, encurtar, remover)
 pnpm e2e:foto           # foto de 12 MP, HEIC do iPhone e arquivo corrompido
 pnpm test:imagem        # mensagem certa para cada tipo de falha na foto
+pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem modelo)
 ```
 
-Os cinco últimos não precisam de credencial nenhuma: rodam contra a demonstração local.
+Os seis últimos não precisam de credencial nenhuma: rodam contra a demonstração local.

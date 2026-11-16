@@ -632,6 +632,35 @@ LLM_BASE_URL=https://seu-servico.exemplo.com/v1 LLM_MODEL=qwen2.5-7b-instruct \
 Ele avisa quando a correção passa de 55 s (limite da Vercel no plano atual) e manda usar
 `pnpm corrigir:lote`.
 
+### O que o corretor faz quando o modelo falha
+
+`pnpm test:llm:mock` não precisa de credencial: sobe um servidor HTTP local no lugar do Coolify e
+responde o que cada caso precisa. É o único jeito de testar o caminho do erro — com o modelo de
+verdade, 401 e resposta cortada não acontecem na hora que você quer.
+
+| O modelo devolve | Código | Retenta? | O que o professor lê |
+|---|---|---|---|
+| JSON certo (ou entre ` ```json `) | — | — | nota + devolutiva |
+| Texto sem JSON | `RESPOSTA_INVALIDA` | sim, 1× | “devolveu um JSON que não consegui interpretar… use a correção manual” |
+| JSON sem todos os critérios | `RESPOSTA_INCOMPLETA` | sim, 1× | correção recusada, sem nota zero silenciosa |
+| `finish_reason: length` | `RESPOSTA_TRUNCADA` | não | “aumente LLM_MAX_TOKENS” |
+| HTTP 500 / 401 | `LLM_FALHOU` | não | “o modelo respondeu 500/401. Verifique LLM_BASE_URL/LLM_MODEL” |
+| Demora > `LLM_TIMEOUT_MS` | `LLM_DEMOROU` | não | “passou de 55 s… corrija à mão ou use `pnpm corrigir:lote`” |
+| Serviço fora do ar | `LLM_INALCANCAVEL` | não | “confira LLM_BASE_URL e se o serviço no Coolify está no ar” |
+| `LLM_TIMEOUT_MS` < 6 s | `LLM_DEMOROU` | não chama | “o prazo configurado é curto demais… use o padrão (55000)” |
+
+A contagem de tentativas é verificada: retentar o que não adianta (resposta truncada, rede) gasta
+tempo do professor e cota do modelo; não retentar o que adianta (JSON quebrado de modelo pequeno)
+manda corrigir à mão por causa de uma vírgula.
+
+O teste também confere o **pedido** que sai: `model`, `temperature: 0.1`, `max_tokens`, duas
+mensagens (sistema + usuário), tema, texto e rubrica dentro do prompt, `Authorization: Bearer` só
+quando há chave, `LLM_MAX_PALAVRAS` truncando o texto e `LLM_JSON_MODE=1` pedindo `response_format`.
+
+Foi ele que achou um caso real: com `LLM_TIMEOUT_MS` abaixo de 6 s, o laço de tentativas saía com
+`throw null` e o professor recebia **“Erro interno ao processar a solicitação”** — sem nada para
+ajustar. Agora sai `LLM_DEMOROU` dizendo qual variável mudar, antes de gastar chamada.
+
 ### OCR da foto
 
 A leitura da letra é uma etapa à parte (o Llama é de texto). O caminho recomendado é o **Google
@@ -653,7 +682,7 @@ LLM_REAL=1 LLM_MODEL=llama3:latest SENHA_PROFESSOR='...' node e2e/smoke.mjs --ma
 ```
 
 `--manter` deixa os dados no banco para inspecionar `correcoes`; sem a flag, o teste limpa tudo.
-O prompt está em `api/_lib/rubrica.ts` (versão `rubrica-v2`): itens de devolutiva precisam citar um
+O prompt está em `api/_lib/rubrica.ts` (versão `rubrica-v3`, gravada em `correcoes.prompt_versao`): itens de devolutiva precisam citar um
 trecho concreto da redação, frases genéricas são proibidas e "pontos a desenvolver" começam com
 verbo de ação.
 

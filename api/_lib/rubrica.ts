@@ -53,6 +53,19 @@ export interface EntradaCorrecao {
   limitePalavras?: number
 }
 
+/**
+ * Versão do prompt gravada em cada correção (`correcoes.prompt_versao`).
+ *
+ * É registro de auditoria: "por que esta nota?" precisa poder voltar ao texto
+ * que pediu a nota. **Suba a versão sempre que mudar algo que altera a nota** —
+ * SISTEMA, FAIXAS, montarUsuario ou a normalização de `montarCorrecao` — e
+ * escreva aqui o que mudou. Mudança só de comentário não conta.
+ *
+ * - v1: prompt inicial, pedindo uma nota de 0 ao máximo de cada critério.
+ * - v2: devolutiva presa ao texto da redação (proíbe elogio genérico).
+ * - v3: nível categórico ancorando a nota numa faixa (FAIXAS) e conferência
+ *   das citações do modelo contra o texto do aluno (`citacao_conferida`).
+ */
 const VERSAO_PROMPT = 'rubrica-v3'
 
 const SISTEMA = `Você é um professor universitário de bioestatística corrigindo redações de estudantes de graduação da UFJF.
@@ -463,7 +476,19 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
   let ultimo: unknown = null
   for (let tentativa = 1; tentativa <= 2; tentativa++) {
     const orcamento = restante()
-    if (orcamento < 6_000) break
+    if (orcamento < 6_000) {
+      // Menos de 6 s não dá para uma chamada útil. Se foi a primeira tentativa
+      // (prazo configurado curto demais), o erro precisa dizer isso: antes o
+      // laço saía com `throw null` e o professor via "Erro interno" — o pior
+      // tipo de mensagem, porque não há o que fazer com ela.
+      if (ultimo) throw ultimo
+      throw new ErroHttp(
+        504,
+        'LLM_DEMOROU',
+        `O prazo configurado (LLM_TIMEOUT_MS=${limiteMs} ms) é curto demais: sobram menos de 6 s para a ` +
+          'primeira tentativa. Use o padrão (55000) ou um valor maior.',
+      )
+    }
     try {
       const json = await pedir(orcamento)
       return montarCorrecao(json, entrada.rubrica, modelo, texto)
@@ -473,7 +498,7 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
       ultimo = erro
     }
   }
-  throw ultimo
+  throw ultimo ?? new ErroHttp(502, 'LLM_FALHOU', 'A correção automática não completou. Tente de novo.')
 }
 
 /**
