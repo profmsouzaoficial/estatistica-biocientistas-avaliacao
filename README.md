@@ -233,6 +233,20 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Contraste e toque
+
+`pnpm test:contraste` abre 9 telas na demonstração, lê a cor calculada de cada elemento com texto, acha o
+fundo efetivo subindo a árvore e aplica a fórmula de luminância da WCAG. Reprova texto pequeno abaixo de
+4.5:1 e grande abaixo de 3:1. Foi ele que encontrou os dois problemas de hoje: as legendas em
+`tinta-fraca` (#8b968f) davam **2.59:1** em todos os fundos, e os botões desativados saíam a **1.09:1**
+(verde a 50% com texto branco). A paleta mudou (`tinta-suave` #4b5853 = 6.30 · `tinta-fraca` #616964 =
+4.79 · `ambar` #a74d08 = 4.79) e o botão desativado virou cinza com texto escuro — continua dizendo
+“Corrigir 0 pendente(s)”, agora legível.
+
+`pnpm e2e:mobile` mede os alvos de toque das 12 telas principais em 360×740 e reprova qualquer controle
+abaixo de 40px. Foi ele que achou as abas “Transcrição/Foto original” (32px) e o “Voltar para a lista”
+(20px) na tela de revisão.
+
 ### Ligar a IA em um comando
 
 A correção precisa de um LLM compatível com OpenAI (o Llama no Coolify, por exemplo) e a leitura da foto

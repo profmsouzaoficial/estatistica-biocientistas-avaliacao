@@ -36,7 +36,9 @@
     "configurar:ia": "node scripts/configurar-ia.mjs",
     "test:ocr:foto": "node scripts/ocr-real.mjs",
     "test:configuracao": "node scripts/testar-configuracao.mjs",
-    "test:configuracao:vercel": "node scripts/testar-configuracao-vercel.mjs"
+    "test:configuracao:vercel": "node scripts/testar-configuracao-vercel.mjs",
+    "e2e:contraste": "node e2e/contraste.mjs",
+    "test:contraste": "node e2e/contraste.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

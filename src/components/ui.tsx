@@ -7,8 +7,11 @@ import { Link } from '../lib/router'
 type Variante = 'primario' | 'secundario' | 'fantasma' | 'perigo' | 'suave'
 
 const variantes: Record<Variante, string> = {
-  primario: 'bg-verde text-white hover:bg-verde-escuro active:bg-verde-escuro disabled:bg-verde/50',
-  secundario: 'bg-white text-tinta border border-borda hover:bg-papel-fundo disabled:text-tinta-fraca',
+  // Desativado continua legível: o rótulo diz o que falta (“Corrigir 0 pendente(s)”)
+  // e precisa ser lido. Antes era verde a 50% com texto branco — 1.09:1.
+  primario:
+    'bg-verde text-white hover:bg-verde-escuro active:bg-verde-escuro disabled:bg-tinta-fraca/25 disabled:text-tinta-suave',
+  secundario: 'bg-white text-tinta border border-borda hover:bg-papel-fundo disabled:bg-papel-fundo disabled:text-tinta-fraca',
   fantasma: 'bg-transparent text-verde hover:bg-verde-claro',
   perigo: 'bg-vermelho text-white hover:bg-vermelho/90',
   suave: 'bg-verde-claro text-verde-escuro hover:bg-verde/15',

@@ -21,13 +21,17 @@
   --color-papel-fundo: #efece2;
   --color-cartao: #ffffff;
   --color-tinta: #16211f;
-  --color-tinta-suave: #5c6b66;
-  --color-tinta-fraca: #8b968f;
+  /* Contraste medido com `pnpm test:contraste` (WCAG AA, texto pequeno):
+     tinta-suave 6.30 e tinta-fraca 4.79 no pior fundo do app (papel-fundo).
+     Os valores antigos (#5c6b66 e #8b968f) davam 4.74 e 2.59 — o segundo
+     reprovava em todo fundo, e é usado em legendas de 11–12px. */
+  --color-tinta-suave: #4b5853;
+  --color-tinta-fraca: #616964;
   --color-borda: #e2ddd1;
   --color-verde: #0f5f52;
   --color-verde-escuro: #0a443b;
   --color-verde-claro: #e8f1ee;
-  --color-ambar: #b45309;
+  --color-ambar: #a74d08;
   --color-ambar-claro: #fdf3e3;
   --color-vermelho: #b3261e;
   --color-vermelho-claro: #fdeceb;
