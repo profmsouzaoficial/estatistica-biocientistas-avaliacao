@@ -243,6 +243,19 @@ com a rubrica e o prompt do app, e mostra nota, tempo e se a ordem se manteve. �
 LLM_BASE_URL=http://127.0.0.1:11434/v1 LLM_API_KEY=ollama pnpm comparar:modelos
 ```
 
+### Links de e-mail (confirmação e recuperação de senha)
+
+O Supabase monta o link com o **Site URL** do projeto. Se ele continuar em `http://localhost:3000`,
+o aluno recebe um link que não abre. O ajuste é no painel (Authentication → URL Configuration):
+
+| Campo | Valor |
+|---|---|
+| Site URL | `https://estatistica-biocientistas-avaliacao.vercel.app` |
+| Redirect URLs | `https://estatistica-biocientistas-avaliacao.vercel.app/**`, `http://localhost:3210/**` |
+
+O passo 22 do `pnpm e2e` percorre o caminho real (gera o link pela API de administração, abre no
+navegador, define a senha e entra com ela). Já está aplicado no projeto `ozjpshdqpqrpdzisfkzq`.
+
 ### Conferência do lançamento
 
 `GET /api/siga/notas?turma=…&periodo=…` lê o quadro da turma no SIGA (só leitura, exige sessão de

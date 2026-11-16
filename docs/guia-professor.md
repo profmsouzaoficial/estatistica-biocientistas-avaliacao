@@ -6,7 +6,9 @@ Tudo é feito pelo celular, mas a tela de revisão é mais confortável no compu
 
 1. Abra o endereço do aplicativo.
 2. Entre com o e-mail institucional (`marcio.souza@ufjf.br`) e a senha definida na criação da conta.
-3. Se esquecer a senha, use **Esqueci minha senha** — o link volta para o próprio app.
+3. Se esquecer a senha, use **Esqueci minha senha** — o link volta para o próprio app, na tela
+   **Definir nova senha**. Vale para o professor e para o aluno: o e-mail sai em nome do Supabase
+   (remetente padrão), então peça para olhar o spam na primeira vez.
 
 Contas de professor não são criadas pela tela de cadastro: use `pnpm professor:criar` (script em
 `scripts/criar-professor.mjs`), que autoriza o e-mail e cria o usuário.
