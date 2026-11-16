@@ -46,7 +46,7 @@ if (!resposta.ok) {
 
 const quadro = await resposta.json()
 const alunos = (quadro.alunos ?? [])
-  .map((a) => ({ matricula: String(a.matricula ?? '').trim(), nome: String(a.nome ?? '').trim() }))
+  .map((a) => ({ matricula: String(a.matricula ?? '').trim().toUpperCase(), nome: String(a.nome ?? '').trim() }))
   .filter((a) => a.matricula)
 
 if (alunos.length === 0) {

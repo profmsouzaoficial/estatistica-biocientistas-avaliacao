@@ -33,7 +33,7 @@ export function MolduraAuth({ children, rodape }: { children: ReactNode; rodape?
 
 const mensagens: Record<MotivoValidacao, string> = {
   ok: '',
-  matricula: 'Matrícula não encontrada nesta turma. Confira o número (só dígitos) ou fale com o professor.',
+  matricula: 'Matrícula não encontrada nesta turma. Confira o número (com as letras do final, se houver) ou fale com o professor.',
   email: 'Este e-mail não é o que consta na lista da turma. Use o e-mail institucional cadastrado.',
   ja_cadastrado: 'Esta matrícula já tem cadastro. Use "Esqueci minha senha" para recuperar o acesso.',
   dados_incompletos: 'Preencha turma, matrícula e e-mail.',

@@ -33,8 +33,11 @@ export function interpretarCsv(
       problemas.push(`Linha ${indice + 1}: precisa de matrícula e nome.`)
       return
     }
-    const [matricula, nome, email = ''] = campos
-    if (!/^\d{4,}$/.test(matricula)) {
+    // SIGA em GV usa dígitos + sufixo do campus (202506007GV); aceita os dois
+    const matricula = campos[0].toUpperCase()
+    const nome = campos[1]
+    const email = campos[2] ?? ''
+    if (!/^[0-9]{4,}[A-Z]{0,3}$/.test(matricula)) {
       problemas.push(`Linha ${indice + 1}: matrícula "${matricula}" não parece válida.`)
       return
     }
