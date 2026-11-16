@@ -81,7 +81,7 @@ export interface ResumoTurma {
 }
 
 export type RespostaApagarTurma =
-  | { ok: true; alunos: number; avaliacoes: number }
+  | { ok: true; alunos: number; avaliacoes: number; fotos_apagadas?: number }
   | { ok: false; motivo: 'sem_permissao' | 'nao_encontrada' | 'tem_lancamentos'; lancadas?: number }
 
 export interface Dados {

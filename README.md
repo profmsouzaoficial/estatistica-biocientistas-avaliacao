@@ -210,6 +210,15 @@ com 504 — a tela agora explica isso e sugere as saídas:
 | Turma inteira com modelo em CPU | `pnpm corrigir:lote` no servidor do modelo (sem limite de tempo) |
 | IA indisponível | correção manual na revisão |
 
+### Backup dos dados
+
+`pnpm backup` grava um JSON com todas as tabelas em `backups/` (ignorado pelo git, porque tem dados
+pessoais). Com `--fotos` baixa também as imagens do bucket privado. Rode antes de migrations grandes
+e no fim de cada período.
+
+`pnpm fotos:limpar` mostra as fotos que ficaram sem submissão (o Storage não segue o cascade do
+banco); `pnpm fotos:limpar --apagar` remove. A remoção de turma pela tela já apaga as fotos dela.
+
 ### Se o modelo demorar mais que o limite da Vercel
 
 `LLM_TIMEOUT_MS` (padrão 55 s) define quanto o app espera pela resposta do modelo antes de devolver

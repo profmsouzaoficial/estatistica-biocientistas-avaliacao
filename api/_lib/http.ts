@@ -137,6 +137,55 @@ export async function atualizar<T>(tabela: string, filtros: string, valores: unk
   return (Array.isArray(lista) ? lista[0] : lista) as T
 }
 
+/**
+ * Chama uma função do banco em nome do usuário logado.
+ *
+ * Algumas funções SQL decidem o que fazer com base em `auth.uid()` (é o caso de
+ * `apagar_turma`, que só o professor pode rodar). Com a chave de serviço o
+ * `auth.uid()` fica nulo e a função recusaria; por isso repassamos o token do
+ * próprio usuário.
+ */
+export async function rpcComoUsuario<T>(req: Requisicao, funcao: string, corpo: unknown): Promise<T> {
+  const cabecalho = req.cabecalhos.authorization ?? req.cabecalhos.Authorization ?? ''
+  const token = cabecalho.toLowerCase().startsWith('bearer ') ? cabecalho.slice(7).trim() : ''
+  if (!token) throw new ErroHttp(401, 'SEM_TOKEN', 'Faça login para continuar.')
+
+  const resposta = await fetch(`${urlSupabase()}/rest/v1/rpc/${funcao}`, {
+    method: 'POST',
+    headers: { apikey: chaveAnon(), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo),
+  })
+  const texto = await resposta.text()
+  let dados: unknown = null
+  try {
+    dados = texto ? JSON.parse(texto) : null
+  } catch {
+    dados = texto
+  }
+  if (!resposta.ok) {
+    const mensagem =
+      dados && typeof dados === 'object' && 'message' in dados
+        ? String((dados as { message: unknown }).message)
+        : `O banco recusou a operação (${resposta.status}).`
+    throw new ErroHttp(502, 'RPC_FALHOU', mensagem, dados)
+  }
+  return dados as T
+}
+
+/** Apaga objetos do Storage (sem erro se algum já não existir). */
+export async function apagarObjetos(bucket: string, caminhos: string[]): Promise<number> {
+  if (caminhos.length === 0) return 0
+  const resposta = await fetch(`${urlSupabase()}/storage/v1/object/${bucket}`, {
+    method: 'DELETE',
+    headers: { apikey: chaveServico(), Authorization: `Bearer ${chaveServico()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefixes: caminhos }),
+  })
+  if (!resposta.ok) {
+    throw new ErroHttp(502, 'STORAGE_FALHOU', `O Storage recusou apagar ${caminhos.length} arquivo(s).`)
+  }
+  return caminhos.length
+}
+
 /** Baixa um objeto do Storage com a chave de serviço. */
 export async function baixarObjeto(bucket: string, caminho: string): Promise<{ bytes: ArrayBuffer; tipo: string }> {
   const url = `${urlSupabase()}/storage/v1/object/${bucket}/${encodeURI(caminho)}`

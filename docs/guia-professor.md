@@ -129,6 +129,13 @@ tudo de novo no site do SIGA. Depois da criação, a conferência já reconhece 
 > relatório), cadastre no SIGA e use **Buscar** na criação da avaliação para copiar a descrição
 > exata — assim o lançamento encontra a coluna certa.
 
+### Remover a turma
+
+No rodapé do cartão da turma existe o link **Remover esta turma…**. Ele mostra quantos alunos,
+avaliações e redações serão apagados e só libera o botão depois que você digita o código do SIGA.
+A remoção leva junto a lista, as avaliações, as redações e **as fotos** guardadas no bucket privado.
+Se já houver nota lançada no SIGA, o app recusa — o histórico do lançamento não pode desaparecer.
+
 ### Quando a correção automática demora
 
 A hospedagem gratuita da Vercel corta qualquer função em 60 segundos. O app espera até 55 s pelo

@@ -18,7 +18,9 @@
     "test:parser": "node scripts/testar-parser.mjs",
     "test:ocr": "node scripts/testar-ocr.mjs",
     "test:llm": "node scripts/testar-llm.mjs",
-    "test:producao": "node e2e/producao.mjs"
+    "test:producao": "node e2e/producao.mjs",
+    "backup": "node scripts/backup.mjs",
+    "fotos:limpar": "node scripts/limpar-fotos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

@@ -279,9 +279,9 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     },
 
     async apagarTurma(turmaId) {
-      const { data, error } = await sb.rpc('apagar_turma', { p_turma: turmaId })
-      if (error) throw new Error(error.message)
-      return data as RespostaApagarTurma
+      // Passa pelo servidor para apagar também as fotos do bucket privado — o
+      // SQL sozinho não alcança o Storage.
+      return api<RespostaApagarTurma>('/turma-excluir', { turma_id: turmaId })
     },
 
     async resumoAvaliacoes() {
