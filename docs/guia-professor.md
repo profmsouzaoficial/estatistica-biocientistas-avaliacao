@@ -97,6 +97,9 @@ Na tela da avaliação:
 2. Toque no nome do aluno para abrir a **revisão**:
    - aba **Transcrição** (texto que será corrigido) e **Foto original** (comprovante);
    - nota por critério com justificativa do modelo — ajuste qualquer valor se discordar;
+   - se a justificativa citar um trecho **entre aspas** que não existe na transcrição, aparece um
+     aviso âmbar: *"A citação entre aspas não aparece na transcrição — confira antes de aprovar."*
+     É sinal de que o modelo inventou a evidência; nesse caso, dê a nota você mesmo;
    - **Pontos fortes** e **A desenvolver**: campos de texto, um item por linha. O que você
      escrever aqui substitui o texto do modelo e é o que o aluno lê na devolutiva.
 3. **Aprovar e liberar para o aluno** (ou *Salvar ajustes e liberar*, se mudou algo). Nesse

@@ -778,6 +778,11 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                         </div>
                       </div>
                       <p className="mt-1 text-[12.5px] leading-snug text-tinta-suave">{c.justificativa}</p>
+                      {c.citacao_conferida === false ? (
+                        <p className="mt-1 text-[11.5px] font-medium text-ambar">
+                          A citação entre aspas não aparece na transcrição — confira antes de aprovar.
+                        </p>
+                      ) : null}
                     </li>
                   )
                 })}

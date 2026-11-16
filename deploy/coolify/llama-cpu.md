@@ -3,6 +3,21 @@
 Este arquivo é um **template para colar no Coolify** (New Resource → Docker Compose).
 Ele sobe o `llama-server` com API compatível com OpenAI em `/v1`.
 
+### Qual modelo escolher (medido em CPU, 12 vCPU)
+
+`pnpm comparar:modelos` manda a mesma redação em três níveis (fraca, média, boa) para cada modelo,
+com a rubrica do app. O que medi nesta máquina:
+
+| Modelo | fraca | média | boa | tempo por redação | observação |
+|---|---|---|---|---|---|
+| `llama3:8b` | 7,0 | 7,6 | 8,1 | ~9 s | não separa bem; cita a rubrica como se fosse o texto |
+| `deepseek-r1:8b` | 2,5 | 9,7 | — | 26–68 s | separa melhor, mas estoura o limite de 60 s da Vercel e trunca |
+
+Conclusão prática: prefira um modelo **instruct de 7B a 14B** (o compose abaixo usa
+`Qwen2.5-7B-Instruct`), com `LLM_MAX_TOKENS` em 2000 e `LLM_TIMEOUT_MS` em 55000 na Vercel. Modelos
+de raciocínio (R1 e afins) gastam o orçamento de tokens "pensando" e são piores para o limite de
+60 s; se quiser usá-los, rode `pnpm corrigir:lote` num servidor sem esse limite.
+
 Ajuste `THREADS` para o número de **núcleos físicos** da máquina (não hyperthreads):
 `grep -c ^processor /proc/cpuinfo` costuma contar threads; use metade se for o caso.
 

@@ -67,11 +67,17 @@ export interface Submissao {
   criado_em: string
 }
 
+export type NivelNota = 'excelente' | 'bom' | 'regular' | 'insuficiente'
+
 export interface CriterioNota {
   id: string
   nome: string
   valor: number
   justificativa: string
+  /** Nível declarado pelo modelo; a nota fica dentro da faixa dele. */
+  nivel?: NivelNota | null
+  /** A citação entre aspas existe na transcrição? `null` quando não há citação. */
+  citacao_conferida?: boolean | null
 }
 
 export type Decisao = 'pendente' | 'aprovada' | 'ajustada' | 'rejeitada'

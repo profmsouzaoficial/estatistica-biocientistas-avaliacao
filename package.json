@@ -22,7 +22,8 @@
     "backup": "node scripts/backup.mjs",
     "fotos:limpar": "node scripts/limpar-fotos.mjs",
     "test:seguranca": "node e2e/seguranca.mjs",
-    "test:rubrica": "node scripts/testar-rubrica.mjs"
+    "test:rubrica": "node scripts/testar-rubrica.mjs",
+    "comparar:modelos": "node scripts/comparar-modelos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

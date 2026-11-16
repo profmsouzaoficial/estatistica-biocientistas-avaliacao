@@ -227,16 +227,27 @@ em CPU, use `pnpm corrigir:lote` na sua máquina — o script já espera 10 minu
 
 ### A conta da nota
 
-`pnpm test:rubrica` roda 21 verificações sobre a normalização da resposta do modelo — valor acima do
+`pnpm test:rubrica` roda 39 verificações sobre a normalização da resposta do modelo — valor acima do
 máximo do critério, número em texto, vírgula decimal, critério faltando, critério fora de ordem,
-campos ausentes. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e
-testa a função que decide a nota.
+campos ausentes, nível declarado que não bate com a nota e citação entre aspas que não existe no
+texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
+função que decide a nota.
+
+### Comparar modelos
+
+`pnpm comparar:modelos` manda a **mesma** redação (três níveis: fraca, média, boa) para dois modelos,
+com a rubrica e o prompt do app, e mostra nota, tempo e se a ordem se manteve. É o teste que responde
+"o modelo que vou usar no Coolify separa uma redação boa de uma fraca?".
+
+```bash
+LLM_BASE_URL=http://127.0.0.1:11434/v1 LLM_API_KEY=ollama pnpm comparar:modelos
+```
 
 ### Isolamento entre alunos
 
 `pnpm test:seguranca` cria duas contas descartáveis no Supabase de produção, envia uma redação com
 a primeira e tenta, com a segunda, ler o que não é dela: submissão, devolutiva, perfil, foto e até
-apagar a turma. Termina apagando tudo. São 13 verificações; nenhuma nota vai ao SIGA.
+apagar a turma e a avaliação. Termina apagando tudo. São 14 verificações; nenhuma nota vai ao SIGA.
 
 ### Antes de publicar
 

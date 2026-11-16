@@ -189,6 +189,66 @@ conferir('ponto forte cita o critério e a justificativa', /^Precisão conceitua
 conferir('ponto a desenvolver cita o pior critério', /^Argumentação:/.test(vazias.pontos_desenvolver[0]), vazias.pontos_desenvolver[0])
 conferir('lista vazia nunca chega ao aluno', vazias.pontos_fortes.length > 0 && vazias.pontos_desenvolver.length > 0)
 
+// 7c. nível declarado pelo modelo limita a nota (evita inflação)
+const nivelBom = montarCorrecao(
+  { criterios: [{ id: 'c1', nivel: 'bom', valor: 6 }, { id: 'c2', nivel: 'regular', valor: 6 }, { id: 'c3', nivel: 'insuficiente', valor: 4 }, { id: 'c4', nivel: 'excelente', valor: 4 }] },
+  rubrica,
+  'teste',
+)
+conferir("'bom' com valor máximo é cortado para 89% do critério (5,3 de 6)", nivelBom.criterios[0].valor === 5.3, `${nivelBom.criterios[0].valor}`)
+conferir("'regular' com valor máximo é cortado para 69% do critério (4,1 de 6)", nivelBom.criterios[1].valor === 4.1, `${nivelBom.criterios[1].valor}`)
+conferir("'insuficiente' nunca passa de 49%", nivelBom.criterios[2].valor <= 2, `${nivelBom.criterios[2].valor}`)
+conferir("'excelente' com 4 fica em 4", nivelBom.criterios[3].valor === 4)
+conferir('nível fica registrado no critério', nivelBom.criterios[0].nivel === 'bom')
+
+const semNivel = montarCorrecao(
+  { criterios: [{ id: 'c1', valor: 6 }, { id: 'c2', nivel: 'ótimo', valor: 6 }, { id: 'c3', valor: 4 }, { id: 'c4', valor: 4 }] },
+  rubrica,
+  'teste',
+)
+conferir('nível ausente não altera a nota', semNivel.criterios[0].valor === 6)
+conferir('nível desconhecido é ignorado', semNivel.criterios[1].valor === 6 && semNivel.criterios[1].nivel === null)
+
+const nivelSemNumero = montarCorrecao(
+  { criterios: [{ id: 'c1', nivel: 'excelente', valor: 'sem nota' }, { id: 'c2', valor: 4 }, { id: 'c3', valor: 3 }, { id: 'c4', valor: 3 }] },
+  rubrica,
+  'teste',
+)
+conferir('nível sem número não inventa nota', nivelSemNumero.criterios[0].valor === 0 && nivelSemNumero.criterios[0].nivel === null)
+
+// 7d. citação entre aspas é conferida contra a transcrição
+const textoBase = 'A sensibilidade é a proporção de doentes identificados como positivos, e a especificidade mede os sadios.'
+const comCitacao = montarCorrecao(
+  {
+    criterios: [
+      { id: 'c1', valor: 6, justificativa: 'Define bem ao dizer "a proporção de doentes identificados como positivos".' },
+      { id: 'c2', valor: 6, justificativa: 'Cita "o valor preditivo depende da prevalência da doença", que não está no texto.' },
+      { id: 'c3', valor: 4, justificativa: 'Sem citação alguma aqui.' },
+      { id: 'c4', valor: 4, justificativa: 'Cita "A SENSIBILIDADE É A PROPORÇÃO DE DOENTES" em maiúsculas.' },
+    ],
+  },
+  rubrica,
+  'teste',
+  textoBase,
+)
+conferir('citação que existe é confirmada', comCitacao.criterios[0].citacao_conferida === true)
+conferir('citação inventada é sinalizada', comCitacao.criterios[1].citacao_conferida === false)
+conferir('sem citação não há o que conferir', comCitacao.criterios[2].citacao_conferida === null)
+conferir('conferência ignora caixa', comCitacao.criterios[3].citacao_conferida === true)
+const semTexto = montarCorrecao(
+  {
+    criterios: [
+      { id: 'c1', valor: 6, justificativa: 'Cita "algo que não existe aqui".' },
+      { id: 'c2', valor: 6 },
+      { id: 'c3', valor: 4 },
+      { id: 'c4', valor: 4 },
+    ],
+  },
+  rubrica,
+  'teste',
+)
+conferir('sem transcrição não há conferência', semTexto.criterios[0].citacao_conferida === null)
+
 // 8. rubrica de 10 pontos: a nota final é normalizada em 0–10
 const dez = montarCorrecao(
   { criterios: [{ id: 'a', valor: 5 }, { id: 'b', valor: 2.5 }] },

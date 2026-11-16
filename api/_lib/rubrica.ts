@@ -15,11 +15,20 @@ export interface CriterioRubrica {
   valor: number
 }
 
+export type NivelNota = 'excelente' | 'bom' | 'regular' | 'insuficiente'
+
 export interface CriterioAvaliado {
   id: string
   nome: string
   valor: number
   justificativa: string
+  /** Nível declarado pelo modelo; a nota fica dentro da faixa dele. */
+  nivel?: NivelNota | null
+  /**
+   * Quando a justificativa cita um trecho entre aspas, diz se esse trecho existe
+   * mesmo na transcrição. `null` quando não há citação para conferir.
+   */
+  citacao_conferida?: boolean | null
 }
 
 export interface SaidaCorrecao {
@@ -44,7 +53,7 @@ export interface EntradaCorrecao {
   limitePalavras?: number
 }
 
-const VERSAO_PROMPT = 'rubrica-v2'
+const VERSAO_PROMPT = 'rubrica-v3'
 
 const SISTEMA = `Você é um professor universitário de bioestatística corrigindo redações de estudantes de graduação da UFJF.
 
@@ -53,7 +62,7 @@ Sua tarefa é avaliar a redação segundo a rubrica fornecida e devolver SOMENTE
 Formato exato:
 {
   "criterios": [
-    { "id": "<id da rubrica>", "valor": <número>, "justificativa": "<até 25 palavras>" }
+    { "id": "<id da rubrica>", "nivel": "excelente|bom|regular|insuficiente", "valor": <número>, "justificativa": "<até 25 palavras>" }
   ],
   "pontos_fortes": ["<até 15 palavras>", "..."],
   "pontos_desenvolver": ["<até 15 palavras, acionável>", "..."],
@@ -63,6 +72,8 @@ Formato exato:
 
 Regras obrigatórias:
 - Devolva exatamente um item em "criterios" para cada id da rubrica recebida, na mesma ordem.
+- "nivel" ancora a nota: excelente = 90-100% do máximo do critério; bom = 70-89%; regular = 50-69%;
+  insuficiente = 0-49%. O "valor" precisa ficar dentro da faixa do nível que você escolheu.
 - "valor" nunca pode ser negativo nem ultrapassar o máximo do critério.
 - Avalie apenas o texto transcrito. Se o texto estiver incompleto, avalie o que existe e registre isso em "pontos_desenvolver".
 - Não invente dados que não estão na redação.
@@ -77,7 +88,18 @@ Regras obrigatórias:
   Corrija) e diga o que fazer na próxima redação.
 - Não repita a mesma ideia em "pontos_fortes" e em "pontos_desenvolver".
 - Seja breve: cada frase com no máximo 25 palavras. Respostas curtas são melhores que longas.
-- Seja criterioso e justo: a nota deve refletir o que o estudante demonstrou, não o esforço.`
+- Seja criterioso e justo: a nota deve refletir o que o estudante demonstrou, não o esforço.
+- Ancoragem da nota: só chega a 90–100% do máximo o critério em que a redação comprova o que foi pedido
+  com definição precisa E exemplo E justificativa. Faltando um desses, o critério fica abaixo de 80%.
+- Trocar definições é erro grave: se a redação confunde conceitos (chama o valor preditivo de
+  sensibilidade, diz que especificidade é o mesmo que acurácia), o critério de conceitos recebe no
+  máximo metade do valor.
+- Se a redação não trata de algum elemento pedido no tema (por exemplo, não discute a prevalência),
+  o critério correspondente não pode passar de 60%.
+- A justificativa e a nota têm de combinar: se você escreveu que faltou algo, a nota não pode ser máxima.
+- Em cada justificativa, cite entre aspas um trecho literal da redação que comprove a nota (12 a 100
+  caracteres). Se não houver trecho que comprove, abaixe a nota até o nível que o texto sustenta.
+- Antes de dar nota máxima, localize o trecho da redação que comprova; sem trecho, reduza a nota.`
 
 function montarUsuario(entrada: EntradaCorrecao, texto: string): string {
   const rubrica = entrada.rubrica
@@ -242,7 +264,68 @@ export function decodificarJson(bruto: string): { json: unknown; reparado: boole
 }
 
 const arredondar = (n: number) => Math.round(n * 10) / 10
+
+/**
+ * Faixas de cada nível, como fração do máximo do critério.
+ *
+ * Pedir só um número de 0 ao máximo dá nota inflada: modelos pequenos devolvem
+ * 100% para redação mediana. Pedindo o nível e prendendo o número à faixa do nível,
+ * o modelo primeiro classifica (tarefa mais fácil e mais estável) e só depois
+ * escolhe o valor dentro de uma janela estreita.
+ */
+const FAIXAS: Record<NivelNota, [number, number]> = {
+  excelente: [0.9, 1],
+  bom: [0.7, 0.89],
+  regular: [0.5, 0.69],
+  insuficiente: [0, 0.49],
+}
+
+function faixaDoNivel(nivel: unknown, maximo: number): [number, number] | null {
+  if (typeof nivel !== 'string') return null
+  const chave = nivel.trim().toLowerCase() as NivelNota
+  const faixa = FAIXAS[chave]
+  if (!faixa) return null
+  return [arredondar(maximo * faixa[0]), arredondar(maximo * faixa[1])]
+}
 const limitar = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
+
+/** Compara texto sem acento, sem pontuação e sem caixa. */
+function achatar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+/**
+ * Confere se os trechos entre aspas da justificativa existem na redação.
+ *
+ * Modelos pequenos inventam citações para justificar uma nota alta — na redação
+ * de teste, o llama3 escreveu "com números coerentes" num texto sem nenhum número.
+ * Não dá para impedir a invenção por prompt, mas dá para mostrá-la ao professor.
+ */
+function conferirCitacoes(justificativa: string, texto: string | undefined): boolean | null {
+  if (!texto) return null
+  const citacoes = [
+    ...justificativa.matchAll(/"([^"]{12,400})"|“([^”]{12,400})”|«([^»]{12,400})»|'([^']{12,400})'/g),
+  ]
+    .map((m) => m[1] ?? m[2] ?? m[3] ?? m[4])
+    .filter(Boolean)
+    .map((c) => c.trim())
+  if (citacoes.length === 0) return null
+  const alvo = achatar(texto)
+  // O modelo costuma cortar a citação com "...": cada pedaço com 12+ letras
+  // precisa existir no texto; pedaços curtos não permitem conferência.
+  return citacoes.every((citacao) => {
+    const pedacos = citacao
+      .split(/\.\.\.|…/)
+      .map((p) => p.trim())
+      .filter((p) => p.length >= 12)
+    return pedacos.length > 0 && pedacos.every((p) => alvo.includes(achatar(p)))
+  })
+}
 
 /**
  * Devolutiva mínima quando o modelo esquece "pontos_fortes" ou "pontos_desenvolver".
@@ -313,70 +396,84 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
   // professor vê só um 504 sem explicação. O padrão de 55 s cabe no limite de
   // 60 s do plano Hobby da Vercel; o lote fora da Vercel pode esperar mais.
   const limiteMs = Number(envOpcional('LLM_TIMEOUT_MS') ?? 55_000)
-  let resposta: Response
-  try {
-    resposta = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(chave ? { Authorization: `Bearer ${chave}` } : {}),
-      },
-      body: JSON.stringify(corpo),
-      signal: AbortSignal.timeout(limiteMs),
-    })
-  } catch (erro) {
-    const abortou = erro instanceof Error && (erro.name === 'TimeoutError' || erro.name === 'AbortError')
-    if (abortou) {
+  const inicio = Date.now()
+  const restante = () => limiteMs - (Date.now() - inicio)
+
+  /** Uma chamada ao modelo, com o orçamento de tempo que ainda sobra. */
+  const pedir = async (orcamentoMs: number) => {
+    let resposta: Response
+    try {
+      resposta = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(chave ? { Authorization: `Bearer ${chave}` } : {}),
+        },
+        body: JSON.stringify(corpo),
+        signal: AbortSignal.timeout(orcamentoMs),
+      })
+    } catch (erro) {
+      const abortou = erro instanceof Error && (erro.name === 'TimeoutError' || erro.name === 'AbortError')
+      if (abortou) {
+        throw new ErroHttp(
+          504,
+          'LLM_DEMOROU',
+          `O modelo passou de ${Math.round(limiteMs / 1000)} s e a correção foi interrompida. ` +
+            'Tente de novo com uma redação por vez, corrija à mão — ou rode o lote no servidor do modelo ' +
+            '(pnpm corrigir:lote), que espera mais tempo.',
+        )
+      }
       throw new ErroHttp(
-        504,
-        'LLM_DEMOROU',
-        `O modelo passou de ${Math.round(limiteMs / 1000)} s e a correção foi interrompida. ` +
-          'Tente de novo com uma redação por vez, corrija à mão — ou rode o lote no servidor do modelo ' +
-          '(pnpm corrigir:lote), que espera mais tempo.',
+        502,
+        'LLM_INALCANCAVEL',
+        'Não consegui falar com o modelo. Confira LLM_BASE_URL e se o serviço no Coolify está no ar.',
+        erro instanceof Error ? erro.message : String(erro),
       )
     }
-    throw new ErroHttp(
-      502,
-      'LLM_INALCANCAVEL',
-      'Não consegui falar com o modelo. Confira LLM_BASE_URL e se o serviço no Coolify está no ar.',
-      erro instanceof Error ? erro.message : String(erro),
-    )
+
+    const bruto = await resposta.text()
+    if (!resposta.ok) {
+      throw new ErroHttp(
+        502,
+        'LLM_FALHOU',
+        `O modelo respondeu ${resposta.status}. Verifique LLM_BASE_URL/LLM_MODEL e se o serviço está de pé.`,
+        bruto.slice(0, 600),
+      )
+    }
+
+    const dados = JSON.parse(bruto) as {
+      choices?: { message?: { content?: string }; finish_reason?: string }[]
+    }
+    const escolha = dados.choices?.[0]
+    const conteudo = escolha?.message?.content ?? ''
+    if (escolha?.finish_reason === 'length') {
+      throw new ErroHttp(
+        502,
+        'RESPOSTA_TRUNCADA',
+        'O modelo atingiu o limite de tokens e cortou a correção. Aumente LLM_MAX_TOKENS (ou peça justificativas mais curtas) e corrija de novo.',
+        conteudo.slice(-400),
+      )
+    }
+    return decodificarJson(conteudo).json as Parameters<typeof montarCorrecao>[0]
   }
 
-  const bruto = await resposta.text()
-  if (!resposta.ok) {
-    throw new ErroHttp(
-      502,
-      'LLM_FALHOU',
-      `O modelo respondeu ${resposta.status}. Verifique LLM_BASE_URL/LLM_MODEL e se o serviço está de pé.`,
-      bruto.slice(0, 600),
-    )
-  }
-
-  const dados = JSON.parse(bruto) as {
-    choices?: { message?: { content?: string }; finish_reason?: string }[]
-  }
-  const escolha = dados.choices?.[0]
-  const conteudo = escolha?.message?.content ?? ''
-  if (escolha?.finish_reason === 'length') {
-    throw new ErroHttp(
-      502,
-      'RESPOSTA_TRUNCADA',
-      'O modelo atingiu o limite de tokens e cortou a correção. Aumente LLM_MAX_TOKENS (ou peça justificativas mais curtas) e corrija de novo.',
-      conteudo.slice(-400),
-    )
-  }
-  const { json } = decodificarJson(conteudo) as {
-    json: {
-      criterios?: { id?: string; valor?: unknown; justificativa?: unknown }[]
-      pontos_fortes?: unknown
-      pontos_desenvolver?: unknown
-      comentario?: unknown
-      confianca?: unknown
+  // Modelo pequeno às vezes devolve JSON quebrado ou sem todos os critérios.
+  // Uma segunda tentativa costuma bastar, e é melhor que mandar o professor
+  // corrigir à mão por causa de uma vírgula. Nunca repete erro de rede/tempo.
+  let ultimo: unknown = null
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    const orcamento = restante()
+    if (orcamento < 6_000) break
+    try {
+      const json = await pedir(orcamento)
+      return montarCorrecao(json, entrada.rubrica, modelo, texto)
+    } catch (erro) {
+      const codigo = erro instanceof ErroHttp ? erro.codigo : null
+      if (codigo !== 'RESPOSTA_INVALIDA' && codigo !== 'RESPOSTA_INCOMPLETA') throw erro
+      ultimo = erro
     }
   }
-
-  return montarCorrecao(json, entrada.rubrica, modelo)
+  throw ultimo
 }
 
 /**
@@ -385,7 +482,7 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
  */
 export function montarCorrecao(
   json: {
-    criterios?: { id?: string; valor?: unknown; justificativa?: unknown }[]
+    criterios?: { id?: string; nivel?: unknown; valor?: unknown; justificativa?: unknown }[]
     pontos_fortes?: unknown
     pontos_desenvolver?: unknown
     comentario?: unknown
@@ -393,6 +490,7 @@ export function montarCorrecao(
   },
   rubrica: CriterioRubrica[],
   modelo: string,
+  textoOriginal?: string,
 ): SaidaCorrecao {
   const recebidos = Array.isArray(json.criterios) ? json.criterios : []
 
@@ -409,12 +507,22 @@ export function montarCorrecao(
   const criterios: CriterioAvaliado[] = rubrica.map((c) => {
     const achado = recebidos.find((r) => r.id === c.id) ?? recebidos[rubrica.findIndex((x) => x.id === c.id)]
     const valorNumerico = typeof achado?.valor === 'number' ? achado.valor : Number(String(achado?.valor ?? '').replace(',', '.'))
-    const valor = Number.isFinite(valorNumerico) ? arredondar(limitar(valorNumerico, 0, c.valor)) : 0
+    let valor = Number.isFinite(valorNumerico) ? arredondar(limitar(valorNumerico, 0, c.valor)) : 0
+    const faixa = faixaDoNivel(achado?.nivel, c.valor)
+    const nivel = faixa && Number.isFinite(valorNumerico) ? (String(achado?.nivel).trim().toLowerCase() as NivelNota) : null
+    if (faixa && nivel) valor = arredondar(limitar(valor, faixa[0], Math.max(faixa[0], faixa[1])))
     const justificativa =
       typeof achado?.justificativa === 'string' && achado.justificativa.trim()
         ? achado.justificativa.trim()
         : 'Sem justificativa do modelo para este critério.'
-    return { id: c.id, nome: c.nome, valor, justificativa }
+    return {
+      id: c.id,
+      nome: c.nome,
+      valor,
+      justificativa,
+      nivel,
+      citacao_conferida: conferirCitacoes(justificativa, textoOriginal),
+    }
   })
 
   const notaBruta = arredondar(criterios.reduce((t, c) => t + c.valor, 0))
