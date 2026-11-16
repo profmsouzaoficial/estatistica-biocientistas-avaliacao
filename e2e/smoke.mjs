@@ -394,9 +394,19 @@ async function main() {
     )
     const ok = (lancamentos ?? []).filter((l) => l.sucesso)
     if (ok.length !== 1) throw new Error(`Esperava 1 lançamento no SIGA, encontrei ${ok.length}.`)
-    // A rubrica soma 15 de 20 e a avaliação escolhida no mock ("TVC 1") tem peso 10.
-    // O número exato confere a conta da escala: 15/20 × 10 = 7,5.
-    if (Math.abs(ok[0].nota - 7.5) > 0.05) throw new Error(`Nota enviada ao SIGA deveria ser 7,5; veio ${ok[0].nota}.`)
+    // A nota enviada tem de ser a bruta convertida ao peso do SIGA: bruta/valor_total × peso.
+    // Com o modelo simulado a bruta é sempre 15 de 20 e o "TVC 1" tem peso 10 → 7,5.
+    const [avaliacaoLancada] = await supabaseRest(
+      `avaliacoes?id=eq.${idAvaliacao}&select=valor_total,peso_siga`,
+    )
+    const subsDaAvaliacao = await supabaseRest(`submissoes?avaliacao_id=eq.${idAvaliacao}&select=id`)
+    const [correcaoLancada] = await supabaseRest(
+      `correcoes?submissao_id=eq.${subsDaAvaliacao[0].id}&select=nota_bruta`,
+    )
+    const esperada = Math.round((correcaoLancada.nota_bruta / avaliacaoLancada.valor_total) * avaliacaoLancada.peso_siga * 100) / 100
+    if (Math.abs(ok[0].nota - esperada) > 0.01) {
+      throw new Error(`Nota no SIGA deveria ser ${esperada} (${correcaoLancada.nota_bruta}/${avaliacaoLancada.valor_total} × ${avaliacaoLancada.peso_siga}); veio ${ok[0].nota}.`)
+    }
     if (!/Pontos fortes/i.test(nota)) throw new Error('A devolutiva não exibiu os pontos fortes.')
 
 // ---- 10. segunda avaliação (para o caminho sem IA) --------------------

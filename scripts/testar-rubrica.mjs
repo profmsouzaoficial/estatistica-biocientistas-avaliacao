@@ -152,6 +152,12 @@ const vazio = montarCorrecao(
   'teste',
 )
 conferir('pontos fortes tem valor padrão', vazio.pontos_fortes.length > 0)
+conferir(
+  'padrão de pontos fortes vem dos critérios, não de frase genérica',
+  vazio.pontos_fortes.every((t) => !/^Redação entregue dentro das instruções\.$/.test(t)),
+  vazio.pontos_fortes[0],
+)
+conferir('padrão de a desenvolver é acionável', /Mantenha o padrão/i.test(vazio.pontos_desenvolver[0]), vazio.pontos_desenvolver[0])
 conferir('pontos a desenvolver tem valor padrão', vazio.pontos_desenvolver.length > 0)
 conferir('comentário tem valor padrão', vazio.comentario.length > 0)
 conferir('confiança acima de 1 é cortada', vazio.confianca === 1, `${vazio.confianca}`)
@@ -163,6 +169,25 @@ const semConfianca = montarCorrecao(
 )
 conferir('confiança inválida vira nula', semConfianca.confianca === null)
 conferir('nota final coerente com a bruta', semConfianca.nota_final === 2, `${semConfianca.nota_bruta}/20 → ${semConfianca.nota_final}`)
+
+// 7b. modelo devolve listas vazias: a devolutiva sai dos critérios
+const vazias = montarCorrecao(
+  {
+    criterios: [
+      { id: 'c1', valor: 6, justificativa: 'Definiu bem sensibilidade e especificidade.' },
+      { id: 'c2', valor: 2, justificativa: 'Não aplicou a um caso concreto.' },
+      { id: 'c3', valor: 1, justificativa: 'Trouxe afirmação sem fonte.' },
+      { id: 'c4', valor: 4 },
+    ],
+    pontos_fortes: [],
+    pontos_desenvolver: [],
+  },
+  rubrica,
+  'teste',
+)
+conferir('ponto forte cita o critério e a justificativa', /^Precisão conceitual: Definiu bem/.test(vazias.pontos_fortes[0]), vazias.pontos_fortes[0])
+conferir('ponto a desenvolver cita o pior critério', /^Argumentação:/.test(vazias.pontos_desenvolver[0]), vazias.pontos_desenvolver[0])
+conferir('lista vazia nunca chega ao aluno', vazias.pontos_fortes.length > 0 && vazias.pontos_desenvolver.length > 0)
 
 // 8. rubrica de 10 pontos: a nota final é normalizada em 0–10
 const dez = montarCorrecao(

@@ -244,6 +244,42 @@ export function decodificarJson(bruto: string): { json: unknown; reparado: boole
 const arredondar = (n: number) => Math.round(n * 10) / 10
 const limitar = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
 
+/**
+ * Devolutiva mínima quando o modelo esquece "pontos_fortes" ou "pontos_desenvolver".
+ *
+ * Antes o padrão era uma frase genérica ("Redação entregue dentro das instruções") —
+ * justamente o tipo de frase que o prompt proíbe. Modelos pequenos frequentemente
+ * devolvem a lista vazia; em vez de elogio vazio, usamos o que a própria correção
+ * já diz: os critérios em que o aluno foi melhor e os em que foi pior, com a
+ * justificativa dada a cada um.
+ */
+function devolutivaDerivada(criterios: CriterioAvaliado[], rubrica: CriterioRubrica[]) {
+  const comMaximo = criterios.map((c) => ({ ...c, maximo: rubrica.find((r) => r.id === c.id)?.valor ?? 0 }))
+  const proporcao = (c: { valor: number; maximo: number }) => (c.maximo > 0 ? c.valor / c.maximo : 0)
+  const linha = (c: CriterioAvaliado & { maximo: number }) =>
+    c.justificativa && !/^Sem justificativa/.test(c.justificativa)
+      ? `${c.nome}: ${c.justificativa}`
+      : `${c.nome} (${arredondar(c.valor)} de ${arredondar(c.maximo)} pontos).`
+
+  const fortes = comMaximo
+    .filter((c) => proporcao(c) >= 0.6)
+    .sort((a, b) => proporcao(b) - proporcao(a))
+    .slice(0, 3)
+  const fracos = comMaximo
+    .filter((c) => proporcao(c) < 0.6)
+    .sort((a, b) => proporcao(a) - proporcao(b))
+    .slice(0, 3)
+
+  return {
+    fortes: fortes.length
+      ? fortes.map(linha)
+      : ['A redação foi entregue; o desempenho ficou parecido entre os critérios — veja a nota por critério.'],
+    desenvolver: fracos.length
+      ? fracos.map(linha)
+      : ['Mantenha o padrão e aplique os mesmos conceitos a um exemplo novo.'],
+  }
+}
+
 function listaDeTextos(valor: unknown, padrao: string[]): string[] {
   if (!Array.isArray(valor)) return padrao
   const textos = valor.filter((v): v is string => typeof v === 'string' && v.trim().length > 0).map((v) => v.trim())
@@ -388,12 +424,14 @@ export function montarCorrecao(
   const confianca =
     typeof json.confianca === 'number' && Number.isFinite(json.confianca) ? limitar(json.confianca, 0, 1) : null
 
+  const derivada = devolutivaDerivada(criterios, rubrica)
+
   return {
     criterios,
     nota_bruta: notaBruta,
     nota_final: limitar(notaFinal, 0, 10),
-    pontos_fortes: listaDeTextos(json.pontos_fortes, ['Redação entregue dentro das instruções.']),
-    pontos_desenvolver: listaDeTextos(json.pontos_desenvolver, ['Detalhe melhor o raciocínio estatístico na próxima.']),
+    pontos_fortes: listaDeTextos(json.pontos_fortes, derivada.fortes),
+    pontos_desenvolver: listaDeTextos(json.pontos_desenvolver, derivada.desenvolver),
     comentario:
       typeof json.comentario === 'string' && json.comentario.trim()
         ? json.comentario.trim()
