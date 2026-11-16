@@ -38,6 +38,13 @@ como pedir exclusão — está em `/privacidade`, legível também sem login.
 
 > O código do SIGA é o que define para onde as notas vão. Errar aqui lança nota na turma errada.
 
+### Matrícula com letras
+
+A lista do SIGA em Governador Valadares traz a matrícula com o sufixo do campus —
+`202506007GV`, não só `202506007`. O app aceita os dois formatos e não diferencia maiúsculas de
+minúsculas: o aluno pode digitar `202506007gv` que o cadastro encontra a linha da lista. Ao colar a
+lista, mantenha o número exatamente como veio do SIGA; o app normaliza para maiúsculas sozinho.
+
 ## 3. Criar a avaliação
 
 **Painel → Nova**

@@ -30,7 +30,7 @@ const ALUNO = {
   turma: 'TESTE-E2E · Turma',
   codigo: 'TESTEE2E-A',
   periodo: '2026/3',
-  matricula: '2026999001',
+  matricula: '2026999001GV', // com letras: é o formato do SIGA em GV
   nome: 'Aluno Teste E2E',
   email: 'aluno.e2e@estudante.ufjf.br',
   senha: 'Teste12345',
@@ -38,7 +38,7 @@ const ALUNO = {
 
 /** Aluno que só existe na lista por matrícula + nome (turma sem e-mail). */
 const RECLAMANTE = {
-  matricula: '2026999003',
+  matricula: '2026999003GV',
   nome: 'Daniel Sem Email',
   email: 'daniel.claim@estudante.ufjf.br',
   senha: 'Teste12345',
@@ -152,6 +152,21 @@ async function foto(page, nome) {
   console.log(`  📸 ${nome}.png`)
 }
 
+/**
+ * Escolhe a turma do teste pelo código, não pela posição: em produção existem
+ * turmas reais na mesma lista e o índice 1 poderia ser a turma de verdade.
+ */
+async function escolherTurmaDeTeste(page) {
+  const porRotulo = page.getByLabel('Turma').first()
+  const select = (await porRotulo.count()) ? porRotulo : page.locator('select').first()
+  // o rótulo da opção varia: "TESTE-E2E · Turma · 2026/3" no cadastro e
+  // "TESTE-E2E · Turma · 2026/3 (TESTEE2E-A)" no painel — o nome casa nos dois
+  const opcao = select.locator('option', { hasText: ALUNO.turma }).first()
+  const valor = await opcao.getAttribute('value')
+  if (!valor) throw new Error(`A turma ${ALUNO.turma} não apareceu na lista de turmas.`)
+  await select.selectOption(valor)
+}
+
 async function entrar(page, email, senha) {
   await page.goto(`${WEB}/entrar`, { waitUntil: 'networkidle' })
   await page.getByLabel('E-mail').fill(email)
@@ -209,9 +224,16 @@ async function main() {
     console.log('  ▸ 1/18 professor entra')
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.getByText('Painel do professor').first().waitFor()
-    // lista de conferência do primeiro uso (some quando tudo estiver pronto)
-    await page.getByText('Para começar').waitFor({ timeout: 15000 })
-    await page.getByText('Criar a turma').waitFor()
+    // A lista de conferência do primeiro uso só aparece quando o professor está
+    // começando. Como o banco é o de produção (com a turma real), ela pode não
+    // estar na tela: o teste confere o essencial (as três colunas do painel).
+    if (await page.getByText('Para começar').count()) {
+      await page.getByText('Para começar').waitFor({ timeout: 15000 })
+      await page.getByText('Criar a turma').waitFor()
+    } else {
+      await page.getByText('A CORRIGIR').waitFor()
+      await page.getByText('A LANÇAR').waitFor()
+    }
     // o diagnóstico do servidor chega depois: SIGA/IA/OCR deixam de dizer "Verificando"
     await page.getByText(/Notas podem ser lançadas direto na turma/).waitFor({ timeout: 15000 })
     await foto(page, '01-painel-professor')
@@ -242,7 +264,7 @@ async function main() {
     // ---- 3. cria a avaliação ----------------------------------------------
     console.log('  ▸ 3/18 cria avaliação')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
-    await page.locator('select').first().selectOption({ index: 1 })
+    await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 1 — Testes diagnósticos')
     await page
       .locator('#tema')
@@ -270,7 +292,7 @@ async function main() {
     console.log('  ▸ 4/18 aluno se cadastra')
     await sair(page)
     await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
-    await page.getByLabel('Turma').selectOption({ index: 1 })
+    await escolherTurmaDeTeste(page)
     await page.getByLabel('Nome completo').fill(ALUNO.nome)
     await page.getByLabel('Matrícula', { exact: true }).fill(ALUNO.matricula)
     await page.getByLabel('E-mail institucional').fill(ALUNO.email)
@@ -375,7 +397,7 @@ async function main() {
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
-    await page.locator('select').first().selectOption({ index: 1 })
+    await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 2 — Razão de chances')
     await page
       .locator('#tema')
@@ -460,7 +482,7 @@ async function main() {
     // ---- 13. encerrar entregas -------------------------------------------
     console.log('  ▸ 13/18 professor cria a terceira avaliação e encerra as entregas')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
-    await page.locator('select').first().selectOption({ index: 1 })
+    await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 3 — Intervalo de confiança')
     await page.locator('#tema').fill('O que um intervalo de confiança de 95% informa — e o que ele não informa?')
     await page.locator('#instrucoes').fill('Escreva de 10 a 20 linhas, à mão, com um exemplo.')
@@ -530,6 +552,8 @@ async function main() {
     // ---- 16. turma sem e-mail: lista só com matrícula e nome ------------
     console.log('  ▸ 16/18 lista sem e-mail e cadastro que informa o próprio e-mail')
     await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
+    // com mais de uma turma na lista, nada vem selecionado por padrão
+    await escolherTurmaDeTeste(page)
     const caixaExigir = page.getByRole('checkbox', { name: /Exigir o e-mail na lista/ })
     if (!(await caixaExigir.isChecked())) throw new Error('A exigência de e-mail deveria começar marcada.')
     await caixaExigir.uncheck()
@@ -550,7 +574,7 @@ async function main() {
     const pagRecl = await contextoRecl.newPage()
     pagRecl.setDefaultTimeout(25000)
     await pagRecl.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
-    await pagRecl.getByLabel('Turma').selectOption({ index: 1 })
+    await escolherTurmaDeTeste(pagRecl)
     await pagRecl.getByLabel('Nome completo').fill(RECLAMANTE.nome)
     await pagRecl.getByLabel('Matrícula', { exact: true }).fill(RECLAMANTE.matricula)
     await pagRecl.getByLabel('E-mail institucional').fill(RECLAMANTE.email)
@@ -576,7 +600,7 @@ async function main() {
     // ---- 18. avaliação que ainda não existe no SIGA ----------------------
     console.log('  ▸ 18/18 cria a avaliação direto no SIGA')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
-    await page.locator('select').first().selectOption({ index: 1 })
+    await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 4 — Revisão de literatura')
     await page.locator('#tema').fill('Resuma um artigo científico em três parágrafos, destacando o desenho do estudo.')
     await page.locator('#instrucoes').fill('De 15 a 20 linhas, à mão, em folha A4.')

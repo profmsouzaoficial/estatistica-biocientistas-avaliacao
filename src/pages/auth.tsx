@@ -227,12 +227,16 @@ export function Cadastrar() {
         />
         <Campo
           rotulo="Matrícula"
-          inputMode="numeric"
           required
           value={matricula}
-          onChange={(e) => setMatricula(e.target.value.replace(/\D/g, ''))}
-          placeholder="2026301001"
-          dica="A matrícula precisa ser igual à da lista da turma — é por ela que a nota chega ao SIGA."
+          // o SIGA em GV usa dígitos + sufixo do campus (202506007GV): deixa letras
+          onChange={(e) =>
+            setMatricula(e.target.value.replace(/[^0-9A-Za-z]/g, '').toUpperCase().slice(0, 16))
+          }
+          placeholder="2026301001 ou 202506007GV"
+          autoCapitalize="characters"
+          autoComplete="username"
+          dica="A matrícula precisa ser igual à da lista da turma — é por ela que a nota chega ao SIGA. Pode digitar as letras do final em minúsculas."
         />
         <Campo
           rotulo="E-mail institucional"
