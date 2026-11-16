@@ -701,6 +701,8 @@ async function main() {
     await foto(page, '20-meus-dados')
 
     const senhaNova = 'Teste54321'
+    // a senha atual é conferida: sessão aberta não basta (celular na mesa)
+    await page.getByLabel('Senha atual').fill(ALUNO.senha)
     await page.getByLabel('Nova senha', { exact: true }).fill(senhaNova)
     await page.getByLabel('Repita a nova senha', { exact: true }).fill(senhaNova)
     await page.getByRole('button', { name: 'Alterar senha' }).click()
