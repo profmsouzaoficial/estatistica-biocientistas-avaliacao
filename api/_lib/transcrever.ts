@@ -12,7 +12,7 @@
  *     manuscrita; aceita chave de API simples ou o JSON da conta de serviço)
  */
 import { createSign } from 'node:crypto'
-import { ErroHttp, envOpcional } from './http.js'
+import { ErroHttp, buscar, envOpcional } from './http.js'
 
 export interface ResultadoTranscricao {
   texto: string
@@ -65,12 +65,27 @@ export async function transcreverImagem(bytes: ArrayBuffer, mimetype: string): P
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Prazo do OCR, lido a cada chamada.
+ *
+ * Ler `process.env` no topo do módulo congela o valor no import — em produção o
+ * ambiente não muda, mas em teste (e no lote) muda. Foi assim que o OCR do teste
+ * esperou 25 s e devolveu "sem texto legível" quando o serviço só estava lento.
+ */
+const configOcr = (servico = 'serviço de leitura da foto (OCR)') => ({
+  servico,
+  dica: 'A redação não foi transcrita. Tente de novo; se persistir, digite o texto — ele vale como entrega.',
+  prazoMs: Number(envOpcional('OCR_TIMEOUT_MS') ?? 25_000),
+  codigoRede: 'OCR_INALCANCAVEL',
+  codigoTempo: 'OCR_DEMOROU',
+})
+
 async function transcricaoCompativel(chave: string, base64: string, mimetype: string): Promise<ResultadoTranscricao> {
   const base = (envOpcional('VISION_BASE_URL') ?? 'https://openrouter.ai/api/v1').replace(/\/+$/, '')
   const modelo = envOpcional('VISION_MODEL') ?? 'google/gemini-2.5-flash'
   const rotulo = base.includes('openrouter') ? 'openrouter' : 'openai-compativel'
 
-  const resposta = await fetch(`${base}/chat/completions`, {
+  const resposta = await buscar(`${base}/chat/completions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${chave}`,
@@ -91,7 +106,7 @@ async function transcricaoCompativel(chave: string, base64: string, mimetype: st
         },
       ],
     }),
-  })
+  }, configOcr())
 
   const texto = await resposta.text()
   if (!resposta.ok) {
@@ -106,7 +121,7 @@ async function transcricaoGoogle(chave: string, base64: string, mimetype: string
   const modelo = envOpcional('VISION_MODEL') ?? 'gemini-2.5-flash'
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`
 
-  const resposta = await fetch(url, {
+  const resposta = await buscar(url, {
     method: 'POST',
     headers: { 'x-goog-api-key': chave, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -117,7 +132,7 @@ async function transcricaoGoogle(chave: string, base64: string, mimetype: string
       ],
       generationConfig: { temperature: 0, maxOutputTokens: 2000 },
     }),
-  })
+  }, configOcr())
 
   const texto = await resposta.text()
   if (!resposta.ok) {
@@ -170,11 +185,15 @@ async function tokenDaContaDeServico(conta: ContaServico): Promise<string> {
   const assinatura = createSign('RSA-SHA256').update(semAssinatura).sign(conta.private_key, 'base64url')
   const jwt = `${semAssinatura}.${assinatura}`
 
-  const resposta = await fetch(corpo.aud, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-  })
+  const resposta = await buscar(
+    corpo.aud,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
+    },
+    configOcr('login da conta de serviço do Google'),
+  )
   const texto = await resposta.text()
   if (!resposta.ok) {
     throw new ErroHttp(502, 'OCR_CREDENCIAL', 'O Google recusou a conta de serviço.', texto.slice(0, 600))
@@ -195,7 +214,7 @@ async function transcricaoCloudVision(chave: string, base64: string): Promise<Re
     url += `?key=${encodeURIComponent(chave)}`
   }
 
-  const resposta = await fetch(url, {
+  const resposta = await buscar(url, {
     method: 'POST',
     headers: cabecalhos,
     body: JSON.stringify({
@@ -207,7 +226,7 @@ async function transcricaoCloudVision(chave: string, base64: string): Promise<Re
         },
       ],
     }),
-  })
+  }, configOcr())
 
   const texto = await resposta.text()
   if (!resposta.ok) {

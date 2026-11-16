@@ -40,12 +40,16 @@ const servidor = createServer((req, res) => {
     res.writeHead(404).end('{}')
   })
 })
-await new Promise((r) => servidor.listen(3211, '127.0.0.1', r))
+// Porta 0 = o sistema escolhe uma livre. Com porta fixa, um servidor de outro
+// teste que ficou de pé derrubava esta suíte com EADDRINUSE, sem dizer o porquê.
+await new Promise((r) => servidor.listen(0, '127.0.0.1', r))
+const PORTA = servidor.address().port
+const BASE = `http://127.0.0.1:${PORTA}`
 
 // --- 1. chave de API simples
 process.env.VISION_PROVIDER = 'google-cloud'
 process.env.VISION_API_KEY = 'chave-simples'
-process.env.GOOGLE_VISION_BASE = 'http://127.0.0.1:3211'
+process.env.GOOGLE_VISION_BASE = BASE
 let { transcreverImagem } = await import(saida + '?a=1')
 const r1 = await transcreverImagem(new TextEncoder().encode('foto').buffer, 'image/jpeg')
 console.log('1) chave simples →', r1.modelo, '| texto:', r1.texto.slice(0, 40) + '…')
@@ -58,7 +62,7 @@ const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 20
 const conta = {
   client_email: 'visao@projeto.iam.gserviceaccount.com',
   private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
-  token_uri: 'http://127.0.0.1:3211/token',
+  token_uri: `${BASE}/token`,
 }
 process.env.VISION_API_KEY = JSON.stringify(conta)
 const mod = await import(saida + '?b=1')

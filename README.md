@@ -680,6 +680,28 @@ Foi ele que achou um caso real: com `LLM_TIMEOUT_MS` abaixo de 6 s, o laço de t
 `throw null` e o professor recebia **“Erro interno ao processar a solicitação”** — sem nada para
 ajustar. Agora sai `LLM_DEMOROU` dizendo qual variável mudar, antes de gastar chamada.
 
+### Quando um serviço externo não responde
+
+Todo pedido que sai do app (banco, login, Storage, SIGA, OCR, modelo) tem prazo. Sem isso, o serviço
+que engasga não gera erro: gera espera até a Vercel matar a função — e o navegador recebe um 504
+**sem corpo**, que a tela mostra como "erro de rede". O professor tenta de novo sem saber o que caiu.
+
+`pnpm test:rede` sobe um servidor local fazendo o papel de cada serviço e confere código, mensagem e
+tempo (21 verificações):
+
+| Serviço | Prazo padrão | Variável | Não respondeu | Fora do ar |
+|---|---|---|---|---|
+| banco, login, Storage (Supabase) | 8 s | `HTTP_TIMEOUT_MS` | `SUPABASE_DEMOROU` / `AUTH_DEMOROU` / `STORAGE_DEMOROU` | `SUPABASE_INALCANCAVEL`… |
+| API do SIGA | 15 s | `SIGA_TIMEOUT_MS` | `SIGA_DEMOROU` (“a nota não foi lançada”) | `SIGA_INALCANCAVEL` |
+| leitura da foto (OCR) | 25 s | `OCR_TIMEOUT_MS` | `OCR_DEMOROU` (“digite o texto — ele vale como entrega”) | `OCR_INALCANCAVEL` |
+| modelo (Llama) | 55 s | `LLM_TIMEOUT_MS` | `LLM_DEMOROU` | `LLM_INALCANCAVEL` |
+| download da foto | 15 s | `STORAGE_TIMEOUT_MS` | `STORAGE_DEMOROU` | `STORAGE_INALCANCAVEL` |
+
+O prazo cobre **cabeçalho e corpo**: o corpo é lido dentro do prazo, porque um servidor que manda
+`200` e trava no meio da resposta escapa de um timeout aplicado só ao `fetch`. Foi assim que apareceu
+o defeito mais enganoso desta rodada — OCR lento devolvia `SEM_TEXTO`, ou seja, o aluno lia “não
+encontrei texto manuscrito legível na foto” quando o problema era fila no serviço, não a letra dele.
+
 ### OCR da foto
 
 A leitura da letra é uma etapa à parte (o Llama é de texto). O caminho recomendado é o **Google

@@ -56,6 +56,74 @@ export function env(nome: string, padrao?: string): string {
   throw new ErroHttp(503, 'CONFIGURACAO_AUSENTE', `A variável de ambiente ${nome} não está configurada.`)
 }
 
+/**
+ * `fetch` com prazo — para toda chamada que sai do app.
+ *
+ * Sem prazo, um serviço que não responde não gera erro: gera espera. A função da
+ * Vercel é morta pela plataforma (~10 s no plano Hobby), o navegador recebe um
+ * 504 sem corpo e a tela mostra "erro de rede" — o professor não sabe se o banco,
+ * o SIGA ou o modelo caiu, e tentar de novo parece a única saída.
+ *
+ * Com prazo, o app responde antes da plataforma, com código e instrução. O
+ * tempo total conta desde o pedido até o último byte do corpo: o mesmo sinal
+ * aborta a leitura, então um servidor que manda cabeçalho e trava no corpo também
+ * é interrompido.
+ *
+ * Só a correção por modelo tinha prazo; banco, Storage, login, SIGA e OCR não
+ * tinham — todos ficavam pendurados no mesmo lugar.
+ */
+export async function buscar(
+  url: string,
+  opcoes: RequestInit,
+  config: {
+    servico: string
+    dica?: string
+    prazoMs?: number
+    codigoRede?: string
+    codigoTempo?: string
+  },
+): Promise<Response> {
+  const padrao = Number(envOpcional('HTTP_TIMEOUT_MS') ?? 8_000)
+  const prazoMs = config.prazoMs ?? (Number.isFinite(padrao) && padrao > 0 ? padrao : 8_000)
+  const inicio = Date.now()
+
+  try {
+    const resposta = await fetch(url, { ...opcoes, signal: opcoes.signal ?? AbortSignal.timeout(prazoMs) })
+    // O corpo é lido AQUI, dentro do prazo. Fora daqui, um servidor que manda o
+    // cabeçalho 200 e trava no meio do corpo escapa do `timeout`: o fetch já
+    // resolveu. Foi assim que a foto do aluno "não tinha texto legível" quando o
+    // OCR estava só demorando — o texto vazio era o corpo abortado.
+    const corpo = await resposta.arrayBuffer()
+    const semCorpo = corpo.byteLength === 0 || resposta.status === 204 || resposta.status === 304
+    return new Response(semCorpo ? null : corpo, {
+      status: resposta.status,
+      statusText: resposta.statusText,
+      headers: resposta.headers,
+    })
+  } catch (erro) {
+    const nome = erro instanceof Error ? erro.name : ''
+    const abortou = nome === 'TimeoutError' || nome === 'AbortError'
+    const segundos = Math.max(1, Math.round(prazoMs / 1000))
+    const detalhe = `${Date.now() - inicio} ms · ${erro instanceof Error ? erro.message : String(erro)}`
+
+    if (abortou) {
+      throw new ErroHttp(
+        504,
+        config.codigoTempo ?? 'TEMPO_ESGOTADO',
+        `O ${config.servico} não respondeu em ${segundos} s e a operação foi interrompida. ` +
+          (config.dica ?? 'Tente de novo em instantes.'),
+        detalhe,
+      )
+    }
+    throw new ErroHttp(
+      502,
+      config.codigoRede ?? 'INALCANCAVEL',
+      `Não consegui falar com ${config.servico}. ` + (config.dica ?? 'Confira a conexão e o endereço configurado.'),
+      detalhe,
+    )
+  }
+}
+
 export function envOpcional(nome: string): string | undefined {
   const valor = process.env[nome]
   return valor && valor.trim() !== '' ? valor.trim() : undefined
@@ -78,17 +146,26 @@ export interface OpcoesSupabase {
 
 export async function supabase<T = unknown>(caminho: string, opcoes: OpcoesSupabase = {}): Promise<T> {
   const url = `${urlSupabase()}/rest/v1/${caminho}`
-  const resposta = await fetch(url, {
-    method: opcoes.metodo ?? 'GET',
-    headers: {
-      apikey: chaveServico(),
-      Authorization: `Bearer ${chaveServico()}`,
-      'Content-Type': 'application/json',
-      ...(opcoes.prefer ? { Prefer: opcoes.prefer } : {}),
-      ...opcoes.cabecalhos,
+  const resposta = await buscar(
+    url,
+    {
+      method: opcoes.metodo ?? 'GET',
+      headers: {
+        apikey: chaveServico(),
+        Authorization: `Bearer ${chaveServico()}`,
+        'Content-Type': 'application/json',
+        ...(opcoes.prefer ? { Prefer: opcoes.prefer } : {}),
+        ...opcoes.cabecalhos,
+      },
+      body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
     },
-    body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
-  })
+    {
+      servico: 'banco (Supabase)',
+      dica: 'Confira SUPABASE_URL e se o projeto está de pé (status.supabase.com).',
+      codigoRede: 'SUPABASE_INALCANCAVEL',
+      codigoTempo: 'SUPABASE_DEMOROU',
+    },
+  )
 
   const texto = await resposta.text()
   let dados: unknown = null
@@ -150,11 +227,20 @@ export async function rpcComoUsuario<T>(req: Requisicao, funcao: string, corpo: 
   const token = cabecalho.toLowerCase().startsWith('bearer ') ? cabecalho.slice(7).trim() : ''
   if (!token) throw new ErroHttp(401, 'SEM_TOKEN', 'Faça login para continuar.')
 
-  const resposta = await fetch(`${urlSupabase()}/rest/v1/rpc/${funcao}`, {
-    method: 'POST',
-    headers: { apikey: chaveAnon(), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo),
-  })
+  const resposta = await buscar(
+    `${urlSupabase()}/rest/v1/rpc/${funcao}`,
+    {
+      method: 'POST',
+      headers: { apikey: chaveAnon(), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    },
+    {
+      servico: 'banco (Supabase)',
+      dica: 'Se o erro persistir, confira o status do projeto no Supabase.',
+      codigoRede: 'SUPABASE_INALCANCAVEL',
+      codigoTempo: 'SUPABASE_DEMOROU',
+    },
+  )
   const texto = await resposta.text()
   let dados: unknown = null
   try {
@@ -175,11 +261,24 @@ export async function rpcComoUsuario<T>(req: Requisicao, funcao: string, corpo: 
 /** Apaga objetos do Storage (sem erro se algum já não existir). */
 export async function apagarObjetos(bucket: string, caminhos: string[]): Promise<number> {
   if (caminhos.length === 0) return 0
-  const resposta = await fetch(`${urlSupabase()}/storage/v1/object/${bucket}`, {
-    method: 'DELETE',
-    headers: { apikey: chaveServico(), Authorization: `Bearer ${chaveServico()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prefixes: caminhos }),
-  })
+  const resposta = await buscar(
+    `${urlSupabase()}/storage/v1/object/${bucket}`,
+    {
+      method: 'DELETE',
+      headers: {
+        apikey: chaveServico(),
+        Authorization: `Bearer ${chaveServico()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prefixes: caminhos }),
+    },
+    {
+      servico: 'Storage do Supabase',
+      dica: 'As fotos continuam lá; apague de novo em instantes.',
+      codigoRede: 'STORAGE_INALCANCAVEL',
+      codigoTempo: 'STORAGE_DEMOROU',
+    },
+  )
   if (!resposta.ok) {
     throw new ErroHttp(502, 'STORAGE_FALHOU', `O Storage recusou apagar ${caminhos.length} arquivo(s).`)
   }
@@ -189,9 +288,17 @@ export async function apagarObjetos(bucket: string, caminhos: string[]): Promise
 /** Baixa um objeto do Storage com a chave de serviço. */
 export async function baixarObjeto(bucket: string, caminho: string): Promise<{ bytes: ArrayBuffer; tipo: string }> {
   const url = `${urlSupabase()}/storage/v1/object/${bucket}/${encodeURI(caminho)}`
-  const resposta = await fetch(url, {
-    headers: { apikey: chaveServico(), Authorization: `Bearer ${chaveServico()}` },
-  })
+  const resposta = await buscar(
+    url,
+    { headers: { apikey: chaveServico(), Authorization: `Bearer ${chaveServico()}` } },
+    {
+      servico: 'Storage do Supabase',
+      dica: 'Se a foto demorar assim de novo, tente a correção pela transcrição.',
+      prazoMs: Number(envOpcional('STORAGE_TIMEOUT_MS') ?? 15_000),
+      codigoRede: 'STORAGE_INALCANCAVEL',
+      codigoTempo: 'STORAGE_DEMOROU',
+    },
+  )
   if (!resposta.ok) {
     throw new ErroHttp(404, 'FOTO_NAO_ENCONTRADA', `Não encontrei a foto em ${bucket}/${caminho}.`)
   }
@@ -223,9 +330,16 @@ export async function exigirUsuario(req: Requisicao): Promise<Usuario> {
   const token = cabecalho.toLowerCase().startsWith('bearer ') ? cabecalho.slice(7).trim() : ''
   if (!token) throw new ErroHttp(401, 'SEM_TOKEN', 'Faça login para continuar.')
 
-  const resposta = await fetch(`${urlSupabase()}/auth/v1/user`, {
-    headers: { apikey: chaveAnon(), Authorization: `Bearer ${token}` },
-  })
+  const resposta = await buscar(
+    `${urlSupabase()}/auth/v1/user`,
+    { headers: { apikey: chaveAnon(), Authorization: `Bearer ${token}` } },
+    {
+      servico: 'login (Supabase Auth)',
+      dica: 'Tente de novo em instantes; se persistir, saia e entre novamente.',
+      codigoRede: 'AUTH_INALCANCAVEL',
+      codigoTempo: 'AUTH_DEMOROU',
+    },
+  )
   if (!resposta.ok) throw new ErroHttp(401, 'SESSAO_INVALIDA', 'Sessão expirada. Entre novamente.')
 
   const dados = (await resposta.json()) as { id?: string; email?: string }

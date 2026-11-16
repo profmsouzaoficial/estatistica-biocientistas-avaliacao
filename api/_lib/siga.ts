@@ -7,7 +7,7 @@
  *   GET  /api/notas?turma&periodo
  * Autenticação: cabeçalho X-API-Key em todas as rotas /api/*.
  */
-import { ErroHttp, env, envOpcional } from './http.js'
+import { ErroHttp, buscar, env, envOpcional } from './http.js'
 
 export interface ResultadoSiga {
   status: number
@@ -56,24 +56,27 @@ export function escalaDaNota(): 'nota10' | 'pontos' {
 }
 
 async function chamar(caminho: string, init: RequestInit): Promise<ResultadoSiga> {
-  let resposta: Response
-  try {
-    resposta = await fetch(`${base()}${caminho}`, {
+  // 15 s: lançar nota é escrita, e o SIGA às vezes demora. Prazo maior que o do
+  // banco, menor que o da plataforma derrubar a função — e a resposta sai com
+  // "SIGA_DEMOROU" em vez de um 504 vazio.
+  const resposta = await buscar(
+    `${base()}${caminho}`,
+    {
       ...init,
       headers: {
         'X-API-Key': chave(),
         'Content-Type': 'application/json',
         ...(init.headers ?? {}),
       },
-    })
-  } catch (erro) {
-    throw new ErroHttp(
-      502,
-      'SIGA_INALCANCAVEL',
-      'Não consegui falar com a API do SIGA. Verifique a conexão e o endereço configurado.',
-      erro instanceof Error ? erro.message : String(erro),
-    )
-  }
+    },
+    {
+      servico: 'API do SIGA',
+      dica: 'Confira SIGA_API_BASE e se o SIGA está no ar; a nota não foi lançada.',
+      prazoMs: Number(envOpcional('SIGA_TIMEOUT_MS') ?? 15_000),
+      codigoRede: 'SIGA_INALCANCAVEL',
+      codigoTempo: 'SIGA_DEMOROU',
+    },
+  )
 
   const texto = await resposta.text()
   let corpo: unknown = texto
