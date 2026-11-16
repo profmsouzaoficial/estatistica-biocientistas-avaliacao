@@ -20,7 +20,8 @@
     "test:llm": "node scripts/testar-llm.mjs",
     "test:producao": "node e2e/producao.mjs",
     "backup": "node scripts/backup.mjs",
-    "fotos:limpar": "node scripts/limpar-fotos.mjs"
+    "fotos:limpar": "node scripts/limpar-fotos.mjs",
+    "test:seguranca": "node e2e/seguranca.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

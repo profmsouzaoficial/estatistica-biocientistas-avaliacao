@@ -225,6 +225,12 @@ banco); `pnpm fotos:limpar --apagar` remove. A remoção de turma pela tela já 
 um erro explicativo. O plano Hobby da Vercel corta funções em ~60 s; para um modelo grande rodando
 em CPU, use `pnpm corrigir:lote` na sua máquina — o script já espera 10 minutos por redação.
 
+### Isolamento entre alunos
+
+`pnpm test:seguranca` cria duas contas descartáveis no Supabase de produção, envia uma redação com
+a primeira e tenta, com a segunda, ler o que não é dela: submissão, devolutiva, perfil, foto e até
+apagar a turma. Termina apagando tudo. São 13 verificações; nenhuma nota vai ao SIGA.
+
 ### Antes de publicar
 
 1. `pnpm lint` (tipos) e `pnpm build`.
