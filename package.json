@@ -32,7 +32,11 @@
     "e2e:mobile": "node e2e/mobile.mjs",
     "e2e:foto": "node e2e/foto.mjs",
     "verificar": "node scripts/conferir-dados.mjs",
-    "test:integridade": "node scripts/testar-integridade.mjs"
+    "test:integridade": "node scripts/testar-integridade.mjs",
+    "configurar:ia": "node scripts/configurar-ia.mjs",
+    "test:ocr:foto": "node scripts/ocr-real.mjs",
+    "test:configuracao": "node scripts/testar-configuracao.mjs",
+    "test:configuracao:vercel": "node scripts/testar-configuracao-vercel.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

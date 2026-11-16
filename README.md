@@ -233,6 +233,32 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Ligar a IA em um comando
+
+A correção precisa de um LLM compatível com OpenAI (o Llama no Coolify, por exemplo) e a leitura da foto
+precisa de um modelo que enxergue imagem. **Podem ser o mesmo serviço:** se o modelo for multimodal
+(Qwen2.5-VL, MiniCPM-V, Llama 3.2 Vision), o mesmo endpoint e a mesma chave servem para as duas etapas —
+não é obrigatório ter Google Cloud.
+
+```bash
+pnpm configurar:ia --ensaio \
+  --base https://SEU-SERVICO.coolify.app/v1 --modelo Qwen2.5-7B-Instruct --chave sk-... \
+  --visao-modelo Qwen2.5-VL-7B-Instruct --foto ~/redacao.jpg
+```
+
+Sem `--ensaio` (que só mostra o plano), o script: grava as variáveis em `~/.dsh/secrets/avaliacoes.env`
+sem apagar as que já existem, publica as mesmas na Vercel (Production, `encrypted`), refaz o deploy, roda
+`pnpm test:llm`, roda `pnpm test:ocr:foto` na foto indicada e consulta `/api/saude` em produção para
+confirmar que corretor, leitura e SIGA aparecem ligados. Se a Vercel recusar uma variável, ele para e diz
+qual foi — sem deixar a configuração pela metade em silêncio.
+
+`pnpm test:configuracao` (23 verificações) prova que o arquivo de segredos sobrevive: chaves novas são
+acrescentadas, existentes são atualizadas no lugar, comentários e as outras chaves (Supabase, SIGA)
+ficam intactos, e a permissão continua 600. `pnpm test:configuracao:vercel` (12) faz o mesmo contra um
+servidor que imita a API da Vercel: 8 `POST` + 1 `PATCH` (para a chave que já existe), sempre com
+`target: ["production"]` e `type: "encrypted"`, e o script abortando com mensagem clara quando a Vercel
+responde 500.
+
 ### Conferir os dados (e o backup)
 
 Nota de aluno é documento. `pnpm verificar` lê o banco e responde se os dados fazem sentido:
