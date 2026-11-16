@@ -160,7 +160,7 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
         .from('avaliacoes')
         .select('*')
         .eq('turma_id', perfil.turma_id)
-        .eq('status', 'publicada')
+        .in('status', ['publicada', 'encerrada'])
         .order('criado_em', { ascending: false })
       if (error) throw new Error(error.message)
       if (!avs?.length) return []

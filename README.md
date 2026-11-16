@@ -76,7 +76,8 @@ Variáveis lidas pelo servidor (nunca expostas ao navegador): `SUPABASE_SERVICE_
 
 ## 4. Banco de dados
 
-Migração idempotente em `supabase/migrations/0001_init.sql`:
+Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutura) e
+`0002_encerrada.sql` (avaliação encerrada continua visível ao aluno, mas não aceita entrega nova):
 
 | Tabela | Papel |
 |---|---|
@@ -92,7 +93,8 @@ Migração idempotente em `supabase/migrations/0001_init.sql`:
 
 Garantias no banco: RLS em todas as tabelas, bucket privado, gatilho `handle_new_user` que recusa
 cadastro fora da lista (`MATRICULA_NAO_LISTADA`, `EMAIL_NAO_CONFERE`) e gatilho que exige
-`Σ rubrica = valor_total`.
+`Σ rubrica = valor_total`. A política de `submissoes` só aceita **insert** quando a avaliação está
+`publicada` — encerrar entrega não depende da boa vontade da tela.
 
 ```bash
 pnpm db:aplicar          # aplica as migrações via Management API
@@ -223,7 +225,10 @@ Chromium em viewport de celular e valida o banco ao final:
 5. o teste confere `lancamentos_siga` (1 registro, nota entre 0 e 10);
 6. **segunda avaliação, sem IA**: o aluno envia outra redação e o professor usa
    **Corrigir manualmente** → digita notas, pontos fortes e a desenvolver → aprova → lança;
-7. o teste confere a segunda nota, a decisão `ajustada` e o texto gravado em `pontos_fortes`.
+7. o teste confere a segunda nota, a decisão `ajustada` e o texto gravado em `pontos_fortes`;
+8. o professor cria uma terceira avaliação e **encerra as entregas**; o teste tenta inserir uma
+   submissão pela API REST com o token do aluno e exige **403** da RLS;
+9. o aluno vê "Entregas encerradas" sem botão de envio e o professor **reabre**.
 
 Capturas em `e2e/resultados/`. Nada é enviado ao SIGA de verdade: `SIGA_API_BASE` aponta para o mock.
 

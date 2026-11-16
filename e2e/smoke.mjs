@@ -44,7 +44,8 @@ if (!PROFESSOR.senha) {
   process.exit(1)
 }
 
-const anon = process.env.VITE_SUPABASE_ANON_KEY
+// dev.mjs injeta a chave com prefixo VITE_; as secrets guardam sem prefixo
+const anon = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY
 const servico = process.env.SUPABASE_SERVICE_ROLE_KEY
 const urlSb = (process.env.SUPABASE_URL ?? '').replace(/\/+$/, '')
 
@@ -193,7 +194,7 @@ async function main() {
 
   try {
     // ---- 1. professor entra ------------------------------------------------
-    console.log('  ▸ 1/12 professor entra')
+    console.log('  ▸ 1/15 professor entra')
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.getByText('Painel do professor').first().waitFor()
     // lista de conferência do primeiro uso (some quando tudo estiver pronto)
@@ -204,7 +205,7 @@ async function main() {
     await foto(page, '01-painel-professor')
 
     // ---- 2. cria turma e importa a lista ----------------------------------
-    console.log('  ▸ 2/12 cria turma e importa alunos')
+    console.log('  ▸ 2/15 cria turma e importa alunos')
     await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Nova turma' }).click()
     await page.getByLabel('Nome da turma').fill(ALUNO.turma)
@@ -227,7 +228,7 @@ async function main() {
     await foto(page, '02-turma-importada')
 
     // ---- 3. cria a avaliação ----------------------------------------------
-    console.log('  ▸ 3/12 cria avaliação')
+    console.log('  ▸ 3/15 cria avaliação')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
     await page.locator('select').first().selectOption({ index: 1 })
     await page.getByLabel('Título').fill('Redação 1 — Testes diagnósticos')
@@ -254,7 +255,7 @@ async function main() {
     await foto(page, '03-avaliacao-criada')
 
     // ---- 4. aluno se cadastra ---------------------------------------------
-    console.log('  ▸ 4/12 aluno se cadastra')
+    console.log('  ▸ 4/15 aluno se cadastra')
     await sair(page)
     await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
     await page.getByLabel('Turma').selectOption({ index: 1 })
@@ -270,7 +271,7 @@ async function main() {
     await foto(page, '04-aluno-inicio')
 
     // ---- 5. aluno envia a foto --------------------------------------------
-    console.log('  ▸ 5/12 aluno fotografa e envia')
+    console.log('  ▸ 5/15 aluno fotografa e envia')
     await page.getByText('Redação 1 — Testes diagnósticos').first().click()
     await page.getByRole('button', { name: /Fotografar minha redação/ }).click()
     await page.waitForURL(/\/enviar$/)
@@ -287,7 +288,7 @@ async function main() {
     await foto(page, '06-aluno-enviado')
 
     // ---- 6. professor corrige ---------------------------------------------
-    console.log('  ▸ 6/12 professor corrige')
+    console.log('  ▸ 6/15 professor corrige')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     console.log(`     logado como professor, em ${page.url()}`)
@@ -298,7 +299,7 @@ async function main() {
     await foto(page, '07-avaliacao-corrigida')
 
     // ---- 7. revisa, aprova e lança no SIGA --------------------------------
-    console.log('  ▸ 7/12 revisa, aprova e lança no SIGA')
+    console.log('  ▸ 7/15 revisa, aprova e lança no SIGA')
     await page.getByRole('button', { name: new RegExp(ALUNO.nome) }).click()
     await page.waitForURL(/\/revisao\//)
     await page.getByText('Nota por critério').waitFor()
@@ -310,7 +311,7 @@ async function main() {
     await foto(page, '09-lancado-siga')
 
     // ---- 8. aluno vê a devolutiva -----------------------------------------
-    console.log('  ▸ 8/12 aluno vê a devolutiva')
+    console.log('  ▸ 8/15 aluno vê a devolutiva')
     await sair(page)
     await entrar(page, ALUNO.email, ALUNO.senha)
     // com correção aprovada, o card do aluno já leva direto para a devolutiva
@@ -321,7 +322,7 @@ async function main() {
     const nota = await page.locator('body').innerText()
 
     // ---- 9. confere o registro do lançamento ------------------------------
-    console.log('  ▸ 9/12 confere a trilha de auditoria')
+    console.log('  ▸ 9/15 confere a trilha de auditoria')
     const lancamentos = await supabaseRest(
       `lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}&select=matricula,nota,sucesso,http_status,descricao_avaliacao`,
     )
@@ -332,7 +333,7 @@ async function main() {
     if (!/Pontos fortes/i.test(nota)) throw new Error('A devolutiva não exibiu os pontos fortes.')
 
 // ---- 10. segunda avaliação (para o caminho sem IA) --------------------
-    console.log('  ▸ 10/12 professor cria a segunda avaliação')
+    console.log('  ▸ 10/15 professor cria a segunda avaliação')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
@@ -354,7 +355,7 @@ async function main() {
     console.log(`     avaliação ${idAvaliacao2}`)
 
     // ---- 11. aluno envia a segunda redação --------------------------------
-    console.log('  ▸ 11/12 aluno envia a segunda redação')
+    console.log('  ▸ 11/15 aluno envia a segunda redação')
     await sair(page)
     await entrar(page, ALUNO.email, ALUNO.senha)
     await page.getByText('Redação 2 — Razão de chances').first().click()
@@ -368,7 +369,7 @@ async function main() {
     await page.getByText('Redação enviada').waitFor()
 
     // ---- 12. correção manual (sem IA), aprovação e lançamento --------------
-    console.log('  ▸ 12/12 professor corrige à mão e lança no SIGA')
+    console.log('  ▸ 12/15 professor corrige à mão e lança no SIGA')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao2}`, { waitUntil: 'networkidle' })
@@ -394,6 +395,7 @@ async function main() {
     await page.getByText('Lançada no SIGA').waitFor({ timeout: 30000 })
     await foto(page, '12-manual-lancada')
 
+
     const manuais = await supabaseRest(
       `lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}&descricao_avaliacao=eq.${encodeURIComponent('TVC 2')}&select=matricula,nota,sucesso`,
     )
@@ -409,6 +411,75 @@ async function main() {
     if (cm.decisao !== 'ajustada') throw new Error(`Decisão deveria ser "ajustada", veio "${cm.decisao}".`)
     if (!(cm.nota_final > 0)) throw new Error('A correção manual ficou com nota final 0.')
     if (!(cm.pontos_fortes ?? []).length) throw new Error('Os pontos fortes digitados não foram gravados.')
+
+    // ---- 13. encerrar entregas -------------------------------------------
+    console.log('  ▸ 13/15 professor cria a terceira avaliação e encerra as entregas')
+    await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
+    await page.locator('select').first().selectOption({ index: 1 })
+    await page.getByLabel('Título').fill('Redação 3 — Intervalo de confiança')
+    await page.locator('#tema').fill('O que um intervalo de confiança de 95% informa — e o que ele não informa?')
+    await page.locator('#instrucoes').fill('Escreva de 10 a 20 linhas, à mão, com um exemplo.')
+    await page.getByLabel('Capítulo do livro').selectOption({ index: 7 })
+    await page.getByRole('button', { name: 'Buscar' }).click()
+    await page.getByRole('button', { name: /TVC 2/ }).click()
+    await page.getByLabel('Data no SIGA').fill('2026-12-11')
+    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
+    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
+    const idAvaliacao3 = page.url().split('/').pop()
+
+    await page.getByRole('button', { name: /Encerrar entregas/ }).click()
+    await page.getByText('Entregas encerradas. Os alunos continuam vendo').waitFor({ timeout: 20000 })
+    await page.getByText('entregas encerradas').first().waitFor()
+    await foto(page, '13-avaliacao-encerrada')
+
+    // ---- 14. o banco recusa entrega nova ---------------------------------
+    console.log('  ▸ 14/15 banco recusa entrega em avaliação encerrada')
+    const login = await fetch(`${urlSb}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: anon, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: ALUNO.email, password: ALUNO.senha }),
+    })
+    const sessao = await login.json()
+    if (!sessao.access_token) throw new Error('Não consegui autenticar o aluno por REST.')
+    const perfilAluno = await supabaseRest(`profiles?email=eq.${encodeURIComponent(ALUNO.email)}&select=id`)
+    const tentativa = await fetch(`${urlSb}/rest/v1/submissoes`, {
+      method: 'POST',
+      headers: {
+        apikey: anon,
+        Authorization: `Bearer ${sessao.access_token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ avaliacao_id: idAvaliacao3, aluno_id: perfilAluno[0].id }),
+    })
+    if (tentativa.status !== 403) {
+      throw new Error(`RLS deveria recusar a entrega (403), veio ${tentativa.status}.`)
+    }
+
+    // ---- 15. aluno vê o bloqueio e o professor reabre --------------------
+    console.log('  ▸ 15/15 aluno vê o bloqueio; professor reabre')
+    const contextoAluno = await navegador.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+      locale: 'pt-BR',
+      timezoneId: 'America/Sao_Paulo',
+    })
+    const paginaAluno = await contextoAluno.newPage()
+    paginaAluno.setDefaultTimeout(25000)
+    await entrar(paginaAluno, ALUNO.email, ALUNO.senha)
+    await paginaAluno.getByText('Redação 3 — Intervalo de confiança').first().waitFor()
+    await paginaAluno.getByText('Entregas encerradas').first().waitFor()
+    await paginaAluno.getByText('Redação 3 — Intervalo de confiança').first().click()
+    await paginaAluno.getByText('O professor encerrou o recebimento desta redação').waitFor()
+    if (await paginaAluno.getByRole('button', { name: /Fotografar minha redação/ }).count()) {
+      throw new Error('A avaliação encerrada ainda oferece o botão de envio.')
+    }
+    await foto(paginaAluno, '14-aluno-entregas-encerradas')
+    await contextoAluno.close()
+
+    await page.getByRole('button', { name: /Reabrir entregas/ }).click()
+    await page.getByText('Entregas reabertas').waitFor({ timeout: 20000 })
+
 
     console.log('\n  ✓ Fluxo completo validado')
     console.log(`    IA:     matrícula ${ok[0].matricula} · nota ${ok[0].nota} · "${ok[0].descricao_avaliacao}"`)

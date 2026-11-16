@@ -9,6 +9,7 @@ import type { Avaliacao, AvaliacaoDoAluno } from '../lib/types'
 export function rotuloEstado(a: AvaliacaoDoAluno): { texto: string; tom: 'neutro' | 'verde' | 'ambar' | 'vermelho' | 'azul' } {
   const s = a.submissao
   if (!s) {
+    if (a.status === 'encerrada') return { texto: 'Entregas encerradas', tom: 'neutro' }
     const atrasada = a.prazo_em && new Date(a.prazo_em).getTime() < Date.now()
     return atrasada ? { texto: 'Prazo encerrado', tom: 'vermelho' } : { texto: 'A fazer', tom: 'ambar' }
   }
@@ -152,7 +153,10 @@ export function AlunoAvaliacao({ id }: { id: string }) {
 
   const estado = rotuloEstado(a)
   const prazoPassado = a.prazo_em ? new Date(a.prazo_em).getTime() < Date.now() : false
-  const podeEnviar = !a.submissao || a.submissao.status === 'rascunho' || a.submissao.status === 'devolvida'
+  const encerrada = a.status === 'encerrada'
+  // Encerrada bloqueia entrega nova (o banco também barra). Quem já tinha
+  // rascunho ou foi devolvido ainda conclui o que começou.
+  const podeEnviar = !a.submissao ? !encerrada : a.submissao.status === 'rascunho' || a.submissao.status === 'devolvida'
 
   return (
     <>
@@ -237,6 +241,13 @@ export function AlunoAvaliacao({ id }: { id: string }) {
           >
             {prazoPassado ? 'Prazo encerrado' : a.submissao ? 'Reenviar redação' : 'Fotografar minha redação'}
           </Botao>
+        ) : null}
+
+        {encerrada && !a.submissao ? (
+          <Alerta tom="neutro" titulo="Entregas encerradas">
+            O professor encerrou o recebimento desta redação. Se você precisa entregar, fale com ele —
+            a entrega pode ser reaberta.
+          </Alerta>
         ) : null}
 
         {prazoPassado && podeEnviar ? (

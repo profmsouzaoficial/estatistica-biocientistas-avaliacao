@@ -52,7 +52,22 @@ peso e data — assim a nota não cai na avaliação errada por causa de uma let
 
 Deixe **Publicar agora** marcado para o aluno ver; desmarque para rascunho.
 
-## 4. Corrigir e revisar
+## 4. Encerrar (e reabrir) as entregas
+
+Na página da avaliação, a faixa de estado mostra se ela está **recebendo entregas**, **encerrada** ou
+em **rascunho**, com o botão correspondente:
+
+| Estado | O que o aluno vê | Botão |
+|---|---|---|
+| recebendo entregas | tema, rubrica e o botão de enviar | **Encerrar entregas** |
+| entregas encerradas | continua vendo tema, rubrica e **a devolutiva**, mas não abre entrega nova | **Reabrir entregas** |
+| rascunho | nada (a avaliação não aparece) | **Publicar para os alunos** |
+
+Encerrar não apaga nada e é reversível. O bloqueio vale também no banco: mesmo que alguém tente
+enviar por fora do app, a política de segurança recusa a entrega nova. Quem já tinha rascunho ou
+teve a redação devolvida para reescrever continua conseguindo concluir.
+
+## 5. Corrigir e revisar
 
 Na tela da avaliação:
 
@@ -73,7 +88,7 @@ Na tela da avaliação:
 A nota final é sempre `soma dos critérios ÷ valor total × 10`, arredondada a uma casa. Não é o
 modelo que decide a nota no SIGA.
 
-## 5. Lançar no SIGA
+## 6. Lançar no SIGA
 
 1. Confira a descrição do SIGA na tela da avaliação.
 2. **Lançar N no SIGA** (em lote) ou **Lançar X no SIGA** (aluno por aluno).
@@ -85,14 +100,14 @@ use **Buscar** na criação da avaliação para escolher a descrição exata. A 
 só para TVCs (`POST /api/siga/avaliacao`, exige descrição no formato "TVC 3") e não tem botão na
 interface — é uma chamada de API, para não criar avaliação errada por engano.
 
-## 6. Acompanhar
+## 7. Acompanhar
 
 - **Painel**: quantas redações aguardam correção, revisão e lançamento.
 - **CSV** na tela da avaliação: planilha com nome, matrícula, nota bruta, nota final e decisão —
   serve de backup independente do SIGA.
 - A aba **no SIGA** de cada avaliação mostra quantas notas já foram aceitas.
 
-## 7. Se algo der errado
+## 8. Se algo der errado
 
 | Sintoma | O que checar |
 |---|---|

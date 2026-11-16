@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Download, ImageOff, Loader2, Pencil, Send, Sparkles, Undo2, UploadCloud } from 'lucide-react'
+import { CheckCircle2, Download, ImageOff, Loader2, Pencil, Send, Sparkles, Undo2, UploadCloud, Lock, Unlock, Eye } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Carregando, Cartao, Selo } from '../components/ui'
@@ -28,6 +28,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [erro, setErro] = useState<string | null>(null)
   const [progresso, setProgresso] = useState<string | null>(null)
   const [resultado, setResultado] = useState<string | null>(null)
+  const [ocupado, setOcupado] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     if (!d) return
@@ -51,6 +52,26 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     () => (itens ?? []).filter((i) => i.correcao && i.correcao.decisao !== 'pendente' && !i.lancamento?.sucesso),
     [itens],
   )
+
+  async function mudarStatus(novo: 'publicada' | 'encerrada') {
+    if (!d) return
+    setErro(null)
+    setResultado(null)
+    setOcupado('status')
+    try {
+      await d.mudarStatusAvaliacao(id, novo)
+      await carregar()
+      setResultado(
+        novo === 'encerrada'
+          ? 'Entregas encerradas. Os alunos continuam vendo a devolutiva; ninguém abre entrega nova.'
+          : 'Entregas reabertas: a avaliação voltou a aceitar envios.',
+      )
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível mudar o estado da avaliação.')
+    } finally {
+      setOcupado(null)
+    }
+  }
 
   async function corrigirPendentes() {
     if (!d || pendentes.length === 0) return
@@ -150,6 +171,41 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             <Download className="size-3.5" aria-hidden /> CSV
           </button>
         </div>
+
+        <Cartao className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+          <div className="flex items-center gap-2">
+            <Selo tom={avaliacao.status === 'publicada' ? 'verde' : avaliacao.status === 'encerrada' ? 'neutro' : 'ambar'}>
+              {avaliacao.status === 'publicada' ? 'recebendo entregas' : avaliacao.status === 'encerrada' ? 'entregas encerradas' : 'rascunho'}
+            </Selo>
+            <span className="text-[12.5px] text-tinta-suave">
+              {avaliacao.status === 'publicada'
+                ? 'O aluno vê o tema e pode enviar.'
+                : avaliacao.status === 'encerrada'
+                  ? 'O aluno vê a devolutiva, mas não abre entrega nova.'
+                  : 'O aluno ainda não vê esta avaliação.'}
+            </span>
+          </div>
+          {avaliacao.status === 'publicada' ? (
+            <button
+              type="button"
+              onClick={() => mudarStatus('encerrada')}
+              disabled={ocupado === 'status'}
+              className="inline-flex items-center gap-1 rounded-lg border border-borda px-2.5 py-1 text-[12.5px] font-medium text-tinta-suave disabled:opacity-50"
+            >
+              <Lock className="size-3.5" aria-hidden /> Encerrar entregas
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => mudarStatus('publicada')}
+              disabled={ocupado === 'status'}
+              className="inline-flex items-center gap-1 rounded-lg border border-verde/30 px-2.5 py-1 text-[12.5px] font-medium text-verde disabled:opacity-50"
+            >
+              {avaliacao.status === 'encerrada' ? <Unlock className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
+              {avaliacao.status === 'encerrada' ? 'Reabrir entregas' : 'Publicar para os alunos'}
+            </button>
+          )}
+        </Cartao>
 
         {progresso ? (
           <Cartao>
