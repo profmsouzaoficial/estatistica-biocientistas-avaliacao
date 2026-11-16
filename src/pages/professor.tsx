@@ -540,7 +540,7 @@ export function ProfessorNovaAvaliacao() {
                   {rubrica.length > 1 ? (
                     <button
                       type="button"
-                      className="mt-1.5 text-[12px] text-vermelho"
+                      className="alvo-toque mt-1 justify-start text-[12px] text-vermelho"
                       onClick={() => setRubrica((atual) => atual.filter((x) => x.id !== c.id))}
                     >
                       remover critério

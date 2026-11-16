@@ -118,7 +118,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       setTurma(achada)
       // A avaliação precisa existir no SIGA antes de receber notas. Consulta a
       // lista oficial para saber se já existe; sem SIGA configurado, não mostra nada.
-      if (achada?.codigo_siga && av.descricao_siga) {
+      if (achada?.codigo_siga && av.descricao_siga && d.modo === 'supabase') {
         try {
           const r = await api<{ avaliacoes: AvaliacaoSiga[] }>(
             `/siga/avaliacoes?turma=${encodeURIComponent(achada.codigo_siga)}&periodo=${encodeURIComponent(achada.periodo)}`,
@@ -419,7 +419,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           <Link href="/" className="text-[13px] text-tinta-suave hover:text-verde">
             ← Painel
           </Link>
-          <button onClick={exportarCsv} className="inline-flex items-center gap-1 text-[13px] text-verde">
+          <button onClick={exportarCsv} className="alvo-toque gap-1 text-[13px] text-verde">
             <Download className="size-3.5" aria-hidden /> CSV
           </button>
         </div>
@@ -442,7 +442,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               type="button"
               onClick={() => mudarStatus('encerrada')}
               disabled={ocupado === 'status'}
-              className="inline-flex items-center gap-1 rounded-lg border border-borda px-2.5 py-1 text-[12.5px] font-medium text-tinta-suave disabled:opacity-50"
+              className="alvo-toque gap-1 rounded-lg border border-borda px-2.5 text-[12.5px] font-medium text-tinta-suave disabled:opacity-50"
             >
               <Lock className="size-3.5" aria-hidden /> Encerrar entregas
             </button>
@@ -504,7 +504,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                   setPrazoNovo(paraInputLocal(avaliacao.prazo_em))
                   setPrazoEmEdicao(true)
                 }}
-                className="inline-flex items-center gap-1 rounded-lg border border-borda px-2.5 py-1 text-[12.5px] font-medium text-tinta-suave"
+                className="alvo-toque gap-1 rounded-lg border border-borda px-2.5 text-[12.5px] font-medium text-tinta-suave"
               >
                 <CalendarClock className="size-3.5" aria-hidden />
                 {avaliacao.prazo_em ? 'Estender ou mudar o prazo' : 'Definir um prazo'}
@@ -514,7 +514,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                   type="button"
                   onClick={() => salvarPrazo('')}
                   disabled={ocupado === 'prazo'}
-                  className="text-[12.5px] text-tinta-suave underline-offset-2 hover:text-tinta hover:underline disabled:opacity-50"
+                  className="alvo-toque px-1 text-[12.5px] text-tinta-suave underline-offset-2 hover:text-tinta hover:underline disabled:opacity-50"
                 >
                   Remover prazo
                 </button>

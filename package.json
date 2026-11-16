@@ -28,7 +28,8 @@
     "test:formato": "node scripts/testar-formato.mjs",
     "test:reenvio": "node scripts/testar-reenvio.mjs",
     "test:auditoria": "node scripts/testar-auditoria.mjs",
-    "test:peso": "node scripts/testar-peso-siga.mjs"
+    "test:peso": "node scripts/testar-peso-siga.mjs",
+    "e2e:mobile": "node e2e/mobile.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

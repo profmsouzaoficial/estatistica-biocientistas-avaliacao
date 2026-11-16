@@ -233,6 +233,22 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Conferência em tela pequena
+
+A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O
+`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre onze telas em
+360×740 e reprova quando:
+
+- alguma tela rola para o lado (`scrollWidth > innerWidth`) — o sintoma clássico de tabela ou
+  `flex` sem `min-w-0`;
+- algum botão fica abaixo de 40 px de altura (a utilidade `alvo-toque` garante o mínimo sem mudar o
+  desenho);
+- aparece erro de JavaScript no console.
+
+São 11 telas e 97 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
+demonstração também deixou de chamar a API do SIGA (não há servidor ali), o que eliminava um erro de
+rede no console sem função nenhuma.
+
 ### O peso do SIGA manda na escala
 
 A nota que chega ao SIGA não é a nota de 0 a 10 do app: é a nota na escala da avaliação **no SIGA**,

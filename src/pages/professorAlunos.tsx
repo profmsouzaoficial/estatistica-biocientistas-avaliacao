@@ -242,7 +242,7 @@ export function ProfessorAlunos() {
                     type="button"
                     onClick={abrirRemocao}
                     disabled={ocupado}
-                    className="mt-1 self-start text-[12.5px] text-tinta-fraca underline decoration-dotted underline-offset-2 hover:text-vermelho disabled:opacity-50"
+                    className="alvo-toque mt-1 self-start justify-start text-[12.5px] text-tinta-fraca underline decoration-dotted underline-offset-2 hover:text-vermelho disabled:opacity-50"
                   >
                     Remover esta turma…
                   </button>

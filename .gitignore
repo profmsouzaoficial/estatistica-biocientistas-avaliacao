@@ -23,3 +23,6 @@ importacao/
 
 # backups locais (contêm dados pessoais)
 backups/
+
+# build do teste de layout (modo demonstração)
+dist-demo/
