@@ -233,6 +233,33 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Conferir os dados (e o backup)
+
+Nota de aluno é documento. `pnpm verificar` lê o banco e responde se os dados fazem sentido:
+
+| Conferência | Exemplo de problema que ela pega |
+|---|---|
+| rubrica × valor total | avaliação com rubrica somando 19 e valor total 20 |
+| nota final × fórmula | correção com `nota_final` 8 para 15/20 |
+| critérios × nota bruta | critério revisado sem atualizar a nota |
+| vínculos | redação apontando para avaliação apagada, perfil numa turma inexistente |
+| matrícula × conta | `alunos_esperados.user_id` apontando para conta que sumiu |
+| envio | submissão `enviada` sem data, aprovada sem revisão |
+| SIGA | lançamento apontando para correção apagada, nota negativa |
+| duplicidade | duas submissões para a mesma avaliação e aluno |
+| fotos (`--fotos`) | arquivo no bucket sem submissão apontando para ele |
+
+`pnpm verificar --arquivo backups/backup-....json` faz o mesmo no arquivo de backup, sem tocar no banco:
+é o teste que responde "esse backup presta?" sem esperar o dia do desastre.
+
+O `pnpm test:integridade` (20 verificações) prova que a conferência **detecta** as coisas: cada caso
+estraga um dado de propósito e exige o código de erro correspondente. Sem isso, uma tela verde num
+banco vazio não significaria nada.
+
+Duas coisas que a conferência ensina: mudar `valor_total` depois de existir correção desalinha
+`nota_final` (o app não oferece essa edição de propósito), e `nota_bruta` fora de `0..valor_total` é
+erro, não arredondamento.
+
 ### A foto do celular
 
 Uma câmera de celular produz 12 MP e 4 a 8 MB — acima do limite de 4,5 MB de corpo das funções da

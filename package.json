@@ -30,7 +30,9 @@
     "test:auditoria": "node scripts/testar-auditoria.mjs",
     "test:peso": "node scripts/testar-peso-siga.mjs",
     "e2e:mobile": "node e2e/mobile.mjs",
-    "e2e:foto": "node e2e/foto.mjs"
+    "e2e:foto": "node e2e/foto.mjs",
+    "verificar": "node scripts/conferir-dados.mjs",
+    "test:integridade": "node scripts/testar-integridade.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
