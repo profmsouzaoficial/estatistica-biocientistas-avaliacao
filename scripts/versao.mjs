@@ -30,6 +30,16 @@ export function lerVersaoDoHtml(html) {
   return conteudo ? conteudo[1].trim() || null : null
 }
 
+/** Arquivos alterados e ainda não commitados (vazio = árvore limpa). */
+export function mudancasNaoCommitadas(cwd = process.cwd()) {
+  try {
+    const saida = execFileSync('git', ['status', '--porcelain'], { cwd, encoding: 'utf8' }).trim()
+    return saida ? saida.split('\n').length : 0
+  } catch {
+    return 0
+  }
+}
+
 /** Commit do repositório local (curto). */
 export function commitLocal(cwd = process.cwd()) {
   try {
@@ -66,11 +76,12 @@ export async function versaoPublicada(site = SITE, { timeoutMs = 15000 } = {}) {
 async function principal() {
   const json = process.argv.includes('--json')
   const local = commitLocal()
+  const sujas = mudancasNaoCommitadas()
   const { versao: publicada, motivo } = await versaoPublicada()
 
   const estado = !publicada ? 'desconhecida' : publicada === local ? 'igual' : 'atrasada'
   if (json) {
-    console.log(JSON.stringify({ commit: local, publicado: publicada, estado, motivo, site: SITE }))
+    console.log(JSON.stringify({ commit: local, publicado: publicada, estado, motivo, site: SITE, sujas }))
     process.exit(!publicada ? 2 : publicada === local ? 0 : 1)
   }
 
@@ -78,6 +89,7 @@ async function principal() {
   console.log(`  site          ${SITE}`)
   console.log(`  repositório   ${local ?? '(sem git)'}`)
   console.log(`  publicado     ${publicada ?? `(não consegui ler${motivo ? `: ${motivo}` : ''})`}`)
+  if (sujas) console.log(`  árvore        ${sujas} arquivo(s) não commitado(s)`)
   console.log()
   if (estado === 'igual') console.log('  ✓ produção roda o mesmo código do repositório.\n')
   else if (estado === 'atrasada') console.log('  ! produção está atrás. Publique com `pnpm publicar`.\n')

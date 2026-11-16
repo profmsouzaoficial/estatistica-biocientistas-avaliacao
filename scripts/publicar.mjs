@@ -20,7 +20,7 @@
  * (a mensagem explica quando tentar de novo).
  */
 import { spawnSync } from 'node:child_process'
-import { commitLocal, versaoPublicada } from './versao.mjs'
+import { commitLocal, mudancasNaoCommitadas, versaoPublicada } from './versao.mjs'
 
 const FORCAR = process.argv.includes('--forcar')
 const ESPERA_MAXIMA = 8 * 60 * 1000
@@ -53,6 +53,17 @@ async function principal() {
   }
 
   console.log('\n  Publicar\n')
+
+  // `vercel --prod` envia os arquivos locais, não o commit do Git: publicar com a
+  // árvore suja carimba código não commitado com o hash do último commit — e a
+  // marca de versão passa a mentir.
+  const sujas = mudancasNaoCommitadas()
+  if (sujas && !FORCAR) {
+    console.log(`  ! há ${sujas} arquivo(s) com mudanças não commitadas.`)
+    console.log('    Publique depois de commitar (ou use --forcar, assumindo o risco).\n')
+    process.exit(1)
+  }
+
   const antes = await versaoPublicada()
   console.log(`  commit        ${commit}`)
   console.log(`  no ar         ${antes.versao ?? `(${antes.motivo})`}`)

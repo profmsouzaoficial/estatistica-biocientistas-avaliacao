@@ -40,6 +40,9 @@ Duas travas que já custaram caro:
 - **Deploy não é publicação.** O `vercel --prod` pode terminar "com sucesso" e a versão antiga
   continuar no ar por cache. Por isso o script espera a marca de versão nova aparecer no HTML, em vez
   de confiar no comando.
+- **Publicar com arquivo não commitado.** O `vercel --prod` envia os arquivos do disco, não o commit:
+  o site sairia com código que não está no GitHub carimbado com o hash do último commit. O
+  `pnpm publicar` recusa nesse caso e diz quantos arquivos faltam commitar.
 
 O rodapé da tela **Ajuda** e o fim do painel do professor mostram `Versão abc1234 · compilada hoje às
 18:40` — é a mesma marca que o `pnpm versao` lê. Se o professor mandar uma captura de tela, dá para

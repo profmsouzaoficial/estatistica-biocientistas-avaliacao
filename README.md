@@ -704,6 +704,7 @@ ainda serve o HTML antigo, ele continua esperando em vez de anunciar sucesso.
 | produção = repositório | `✓ produção roda o mesmo código` | nada |
 | produção atrás | `! produção está atrás` | `pnpm publicar` |
 | sem a marca no HTML | `(site no ar, mas sem a marca app-versao…)` | build anterior ao marcador: publique uma vez |
+| árvore suja | `3 arquivo(s) não commitado(s)` | commitar antes: `vercel --prod` envia o disco, não o commit |
 | site fora do ar | `(não consegui ler: …)` | conferir a Vercel antes de publicar |
 
 Detalhe que custa caro: as funções usam **ESM** (`"type": "module"` no `package.json`), então todo
