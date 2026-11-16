@@ -26,6 +26,17 @@ export function sigaConfigurado(): boolean {
   return Boolean(envOpcional('SIGA_API_KEY'))
 }
 
+/**
+ * Escala da nota que vai para o SIGA:
+ *   'nota10' (padrão) — 0 a 10, o que o app já calcula como nota final;
+ *   'pontos'          — a nota bruta da rubrica, de 0 até o valor total da avaliação.
+ * O SIGA não documenta a escala; a escolha fica explícita aqui para não depender
+ * de suposição escondida no código.
+ */
+export function escalaDaNota(): 'nota10' | 'pontos' {
+  return envOpcional('SIGA_ESCALA') === 'pontos' ? 'pontos' : 'nota10'
+}
+
 async function chamar(caminho: string, init: RequestInit): Promise<ResultadoSiga> {
   let resposta: Response
   try {

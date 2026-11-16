@@ -8,6 +8,28 @@ import { notaParaSiga } from '../lib/types'
 import type { Avaliacao, CriterioNota, SubmissaoDoProfessor, Turma } from '../lib/types'
 import { api } from '../lib/servidor'
 
+/**
+ * Escala em que o SIGA recebe a nota. Quem manda é o servidor (SIGA_ESCALA, em
+ * `api/_lib/siga.ts`): 'nota10' converte para 0–10 e 'pontos' manda a nota bruta da
+ * rubrica. A tela mostra exatamente o número que será gravado.
+ */
+function usarEscalaSiga(d: ReturnType<typeof usarSessao>['d']): 'nota10' | 'pontos' {
+  const [escala, setEscala] = useState<'nota10' | 'pontos'>('nota10')
+  useEffect(() => {
+    if (!d) return
+    d.saude()
+      .then((s) => {
+        if (s?.siga.escala) setEscala(s.siga.escala)
+      })
+      .catch(() => {})
+  }, [d])
+  return escala
+}
+
+function notaParaSigaNaEscala(escala: 'nota10' | 'pontos', bruta: number, total: number): number {
+  return escala === 'pontos' ? bruta : notaParaSiga(bruta, total)
+}
+
 function estadoDaSubmissao(item: SubmissaoDoProfessor) {
   const { submissao: s, correcao: c, lancamento: l } = item
   if (!s) return { texto: 'não enviou', tom: 'neutro' as const }
@@ -35,6 +57,8 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [sigaTem, setSigaTem] = useState<boolean | null>(null)
   const [criandoSiga, setCriandoSiga] = useState(false)
   const [erroSiga, setErroSiga] = useState<string | null>(null)
+  // A escala do SIGA vem do servidor (SIGA_ESCALA); 0–10 é o padrão.
+  const escalaSiga = usarEscalaSiga(d)
 
   const carregar = useCallback(async () => {
     if (!d) return
@@ -300,7 +324,9 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                       <span className="text-tinta-fraca"> · {i.aluno.matricula}</span>
                     </span>
                     <strong className="shrink-0 font-semibold tabular-nums">
-                      {i.correcao ? formatarNota(notaParaSiga(i.correcao.nota_bruta, avaliacao.valor_total)) : '—'}
+                      {i.correcao
+                        ? formatarNota(notaParaSigaNaEscala(escalaSiga, i.correcao.nota_bruta, avaliacao.valor_total))
+                        : '—'}
                     </strong>
                   </li>
                 ))}
@@ -333,7 +359,10 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           <div className="space-y-2">
             <p className="px-1 text-[12.5px] text-tinta-suave">
               SIGA: <strong className="font-medium text-tinta">{avaliacao.descricao_siga}</strong> · peso{' '}
-              {avaliacao.peso_siga} · conversão automática para 0–10.
+              {avaliacao.peso_siga} ·{' '}
+              {escalaSiga === 'pontos'
+                ? `nota enviada em pontos (0 a ${formatarPontos(avaliacao.valor_total)})`
+                : 'nota enviada de 0 a 10'}.
             </p>
             {sigaTem === false ? (
               <Alerta tom="ambar" titulo="Esta avaliação ainda não existe no SIGA">
@@ -430,6 +459,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
   const [aba, setAba] = useState<'texto' | 'foto'>('texto')
   const [erro, setErro] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState<string | null>(null)
+  const escalaSiga = usarEscalaSiga(d)
   const [pronto, setPronto] = useState(false)
 
   const carregar = useCallback(async () => {
@@ -605,7 +635,12 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                 <h2 className="font-serif text-[16px] text-tinta">Nota por critério</h2>
                 <p className="text-[13px] text-tinta-suave">
                   <strong className="font-semibold text-tinta">{formatarPontos(notaBruta)}</strong> /{' '}
-                  {formatarPontos(avaliacao.valor_total)} · SIGA <strong className="font-semibold text-tinta">{formatarNota(notaFinal)}</strong>
+                  {formatarPontos(avaliacao.valor_total)} · SIGA{' '}
+                  <strong className="font-semibold text-tinta">
+                    {escalaSiga === 'pontos'
+                      ? formatarPontos(notaParaSigaNaEscala(escalaSiga, notaBruta, avaliacao.valor_total))
+                      : formatarNota(notaFinal)}
+                  </strong>
                 </p>
               </div>
               <p className="mt-1 text-[12.5px] leading-snug text-tinta-suave">

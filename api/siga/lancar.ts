@@ -9,13 +9,14 @@ import {
   type Requisicao,
   type Resposta,
 } from '../_lib/http.js'
-import { lancarNotas } from '../_lib/siga.js'
+import { escalaDaNota, lancarNotas } from '../_lib/siga.js'
 
 interface CorrecaoServidor {
   id: string
   submissao_id: string
-  decisao: 'pendente' | 'aprovada' | 'ajustada' | 'rejeitada'
+  decisao: string
   nota_final: number
+  nota_bruta: number
 }
 
 interface SubmissaoServidor {
@@ -66,7 +67,7 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
 
   const correcao = await selecionarUm<CorrecaoServidor>(
     'correcoes',
-    `id=eq.${encodeURIComponent(correcaoId)}&select=id,submissao_id,decisao,nota_final`,
+    `id=eq.${encodeURIComponent(correcaoId)}&select=id,submissao_id,decisao,nota_final,nota_bruta`,
   )
   if (!correcao) throw new ErroHttp(404, 'NAO_ENCONTRADA', 'Correção não encontrada.')
   if (correcao.decisao !== 'aprovada' && correcao.decisao !== 'ajustada') {
@@ -102,7 +103,10 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
   )
   if (!turma) throw new ErroHttp(404, 'TURMA', 'Turma não encontrada.')
 
-  const nota = Number(correcao.nota_final)
+  // A devolutiva do aluno é sempre 0 a 10; o número que vai ao SIGA depende da escala
+  // configurada em SIGA_ESCALA (ver escalaDaNota em _lib/siga.ts).
+  const escala = escalaDaNota()
+  const nota = escala === 'pontos' ? Number(correcao.nota_bruta) : Number(correcao.nota_final)
   const base = {
     correcao_id: correcao.id,
     submissao_id: submissao.id,
@@ -111,6 +115,7 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
     periodo: turma.periodo,
     descricao_avaliacao: avaliacao.descricao_siga,
     nota,
+    escala,
   }
 
   try {

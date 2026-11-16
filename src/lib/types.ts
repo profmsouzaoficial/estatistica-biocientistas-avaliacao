@@ -185,6 +185,6 @@ export function notaComVirgula(nota: number): string {
 export interface Diagnostico {
   ocr: { configurado: boolean; provedor: string; modelo: string | null }
   corretor: { configurado: boolean; modelo: string | null }
-  siga: { configurado: boolean }
+  siga: { configurado: boolean; escala?: 'nota10' | 'pontos' }
   supabase: { configurado: boolean }
 }

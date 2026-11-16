@@ -129,6 +129,14 @@ tudo de novo no site do SIGA. Depois da criação, a conferência já reconhece 
 > relatório), cadastre no SIGA e use **Buscar** na criação da avaliação para copiar a descrição
 > exata — assim o lançamento encontra a coluna certa.
 
+### Escala da nota no SIGA
+
+O SIGA não diz, na documentação da API, se a nota vai de 0 a 10 ou de 0 até o peso da avaliação.
+O app assume **0 a 10**; se a sua turma usa pontos (uma Prova 1 de peso 20 recebendo 16, por
+exemplo), peça para ligar `SIGA_ESCALA=pontos` no servidor. A tela da avaliação mostra, embaixo do
+nome da avaliação no SIGA, em que escala a nota será enviada — e a confirmação do lançamento lista
+aluno por aluno o número exato que será gravado.
+
 ### O que o aluno vê
 
 A devolutiva traz a nota, os pontos por critério com a justificativa, os pontos fortes, os pontos a
