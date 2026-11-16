@@ -276,7 +276,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           <Botao
             variante="secundario"
             onClick={() => setConfirmandoLancamento(true)}
-            disabled={aLancar.length === 0 || !!progresso || confirmandoLancamento}
+            disabled={aLancar.length === 0 || !!progresso || confirmandoLancamento || !avaliacao.descricao_siga}
             icone={<UploadCloud className="size-4" />}
           >
             Lançar {aLancar.length} no SIGA
