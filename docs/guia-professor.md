@@ -102,14 +102,20 @@ modelo que decide a nota no SIGA.
 ## 6. Lançar no SIGA
 
 1. Confira a descrição do SIGA na tela da avaliação.
-2. **Lançar N no SIGA** (em lote) ou **Lançar X no SIGA** (aluno por aluno).
+2. **Lançar N no SIGA** (em lote) ou **Lançar X no SIGA** (aluno por aluno). O lote pede
+   confirmação, com a turma e a descrição que serão gravadas.
 3. Verde = aceito. Vermelho = recusado; a mensagem do SIGA aparece na tela e fica registrada em
    `lancamentos_siga` (com o corpo da resposta), então nada se perde.
 
-Se a avaliação ainda não existir no SIGA, crie lá primeiro (SIGA → Turma → Avaliações) e depois
-use **Buscar** na criação da avaliação para escolher a descrição exata. A criação automática existe
-só para TVCs (`POST /api/siga/avaliacao`, exige descrição no formato "TVC 3") e não tem botão na
-interface — é uma chamada de API, para não criar avaliação errada por engano.
+**Se a avaliação ainda não existir no SIGA**, a tela mostra o aviso amarelo *Esta avaliação ainda
+não existe no SIGA* com o resumo do que será criado — turma, descrição, peso e data — e o botão
+**Criar no SIGA**. O SIGA recusa notas para avaliação inexistente, e criar por aqui evita cadastrar
+tudo de novo no site do SIGA. Depois da criação, a conferência já reconhece a avaliação.
+
+> A criação automática só funciona para descrições no formato de TVC (`TVC 3`, `4ª TVC`), porque é
+> esse número que a rota `/api/criar-avaliacao` exige. Para outro tipo de avaliação (trabalho,
+> relatório), cadastre no SIGA e use **Buscar** na criação da avaliação para copiar a descrição
+> exata — assim o lançamento encontra a coluna certa.
 
 ## 7. Acompanhar
 

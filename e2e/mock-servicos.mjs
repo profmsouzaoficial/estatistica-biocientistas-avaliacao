@@ -56,6 +56,11 @@ function responderJson(res, status, corpo) {
   res.end(JSON.stringify(corpo))
 }
 
+let avaliacoes = [
+  { id: 'mock-1', descricao: 'TVC 1', peso: 10, data: '20/11/2026' },
+  { id: 'mock-2', descricao: 'TVC 2', peso: 20, data: '11/12/2026' },
+]
+
 const servidor = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const pedacos = []
@@ -105,6 +110,8 @@ const servidor = createServer(async (req, res) => {
   }
 
   // ---- SIGA ---------------------------------------------------------------
+  // A lista de avaliações é mutável: criar uma aqui a faz aparecer na consulta
+  // seguinte, como acontece no SIGA de verdade.
   if (url.pathname.startsWith('/api/')) {
     if (req.headers['x-api-key'] !== 'mock-siga') {
       return responderJson(res, 403, { detail: 'X-API-Key ausente ou inválida (mock).' })
@@ -120,17 +127,21 @@ const servidor = createServer(async (req, res) => {
       })
     }
     if (url.pathname === '/api/criar-avaliacao') {
-      return responderJson(res, 200, { ok: true, criada: corpo, origem: 'mock' })
+      const nova = {
+        id: `mock-${avaliacoes.length + 1}`,
+        descricao: corpo?.descricao,
+        peso: corpo?.peso,
+        data: corpo?.data,
+      }
+      avaliacoes = [...avaliacoes.filter((a) => a.descricao !== nova.descricao), nova]
+      return responderJson(res, 200, { ok: true, criada: nova, origem: 'mock' })
     }
     if (url.pathname === '/api/notas') {
       const turma = url.searchParams.get('turma') ?? ''
       const periodo = url.searchParams.get('periodo') ?? ''
       return responderJson(res, 200, {
         consulta: { turma, periodo, id_turma: 'mock-turma', id_periodo: 'mock-periodo' },
-        avaliacoes: [
-          { id: 'mock-1', descricao: 'TVC 1', peso: 10, data: '20/11/2026' },
-          { id: 'mock-2', descricao: 'TVC 2', peso: 20, data: '11/12/2026' },
-        ],
+        avaliacoes,
         alunos: [],
         resumo: {},
         origem: 'mock',

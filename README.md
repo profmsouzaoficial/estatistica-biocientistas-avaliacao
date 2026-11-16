@@ -237,7 +237,8 @@ Chromium em viewport de celular e valida o banco ao final:
 9. o aluno vê "Entregas encerradas" sem botão de envio e o professor **reabre**;
 10. o cadastro só libera depois do aceite do aviso de privacidade (`/privacidade`), e o aceite é
     conferido no banco;
-11. o professor desmarca a exigência de e-mail e importa um aluno só com matrícula e nome;
+11. uma avaliação criada fora do SIGA mostra o aviso e é criada pela própria tela (`/api/siga/avaliacao`);
+12. o professor desmarca a exigência de e-mail e importa um aluno só com matrícula e nome;
     esse aluno se cadastra informando o próprio e-mail, e o banco confere que o e-mail e o
     `user_id` ficaram gravados na lista.
 

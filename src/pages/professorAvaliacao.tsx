@@ -3,9 +3,10 @@ import { CheckCircle2, Download, ImageOff, Loader2, Pencil, Send, Sparkles, Undo
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Carregando, Cartao, Selo } from '../components/ui'
-import { formatarDataHora, formatarNota, formatarPontos } from '../lib/formato'
+import { formatarData, formatarDataHora, formatarNota, formatarPontos } from '../lib/formato'
 import { notaParaSiga } from '../lib/types'
-import type { Avaliacao, CriterioNota, SubmissaoDoProfessor } from '../lib/types'
+import type { Avaliacao, CriterioNota, SubmissaoDoProfessor, Turma } from '../lib/types'
+import { api } from '../lib/servidor'
 
 function estadoDaSubmissao(item: SubmissaoDoProfessor) {
   const { submissao: s, correcao: c, lancamento: l } = item
@@ -30,7 +31,10 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [resultado, setResultado] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [confirmandoLancamento, setConfirmandoLancamento] = useState(false)
-  const [codigoTurma, setCodigoTurma] = useState<string | null>(null)
+  const [turma, setTurma] = useState<Turma | null>(null)
+  const [sigaTem, setSigaTem] = useState<boolean | null>(null)
+  const [criandoSiga, setCriandoSiga] = useState(false)
+  const [erroSiga, setErroSiga] = useState<string | null>(null)
 
   const carregar = useCallback(async () => {
     if (!d) return
@@ -39,7 +43,23 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     setItens(subs)
     if (av) {
       const turmas = await d.turmasTodas().catch(() => [])
-      setCodigoTurma(turmas.find((t) => t.id === av.turma_id)?.codigo_siga ?? null)
+      const achada = turmas.find((t) => t.id === av.turma_id) ?? null
+      setTurma(achada)
+      // A avaliação precisa existir no SIGA antes de receber notas. Consulta a
+      // lista oficial para saber se já existe; sem SIGA configurado, não mostra nada.
+      if (achada?.codigo_siga && av.descricao_siga) {
+        try {
+          const r = await api<{ avaliacoes: { descricao: string }[] }>(
+            `/siga/avaliacoes?turma=${encodeURIComponent(achada.codigo_siga)}&periodo=${encodeURIComponent(achada.periodo)}`,
+          )
+          const descricao = av.descricao_siga.trim().toLowerCase()
+          setSigaTem(r.avaliacoes.some((a) => a.descricao.trim().toLowerCase() === descricao))
+          setErroSiga(null)
+        } catch {
+          setSigaTem(null)
+          setErroSiga(null)
+        }
+      }
     }
   }, [d, id])
 
@@ -103,6 +123,22 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
         : 'Nenhuma correção foi gerada.',
     )
     if (falhas.length) setErro(falhas.join(' · '))
+  }
+
+  async function criarNoSiga() {
+    if (!d || !avaliacao) return
+    setCriandoSiga(true)
+    setErroSiga(null)
+    setResultado(null)
+    try {
+      await api('/siga/avaliacao', { avaliacao_id: avaliacao.id })
+      setSigaTem(true)
+      setResultado('Avaliação criada no SIGA. Agora as notas podem ser lançadas.')
+    } catch (e) {
+      setErroSiga(e instanceof Error ? e.message : 'O SIGA não aceitou criar a avaliação.')
+    } finally {
+      setCriandoSiga(false)
+    }
   }
 
   async function lancarAprovadas() {
@@ -252,7 +288,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             <p className="text-[13.5px] leading-snug">
               Vai gravar <strong>{aLancar.length} nota(s)</strong> em{' '}
               <strong>{avaliacao.descricao_siga ?? 'avaliação sem descrição no SIGA'}</strong>
-              {codigoTurma ? ` · turma ${codigoTurma}` : ''}. Depois do envio, a nota aparece no SIGA
+              {turma ? ` · turma ${turma.codigo_siga}` : ''}. Depois do envio, a nota aparece no SIGA
               e não há como desfazer por aqui — confira a lista antes.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -267,10 +303,28 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
         ) : null}
 
         {avaliacao.descricao_siga ? (
-          <p className="px-1 text-[12.5px] text-tinta-suave">
-            SIGA: <strong className="font-medium text-tinta">{avaliacao.descricao_siga}</strong> · peso{' '}
-            {avaliacao.peso_siga} · conversão automática para 0–10.
-          </p>
+          <div className="space-y-2">
+            <p className="px-1 text-[12.5px] text-tinta-suave">
+              SIGA: <strong className="font-medium text-tinta">{avaliacao.descricao_siga}</strong> · peso{' '}
+              {avaliacao.peso_siga} · conversão automática para 0–10.
+            </p>
+            {sigaTem === false ? (
+              <Alerta tom="ambar" titulo="Esta avaliação ainda não existe no SIGA">
+                <p className="text-[13.5px] leading-snug">
+                  Sem ela, o SIGA recusa as notas. Será criada em{' '}
+                  <strong>{turma?.codigo_siga ?? 'turma'}</strong> com a descrição{' '}
+                  <strong>{avaliacao.descricao_siga}</strong>, peso <strong>{avaliacao.peso_siga}</strong> e data{' '}
+                  <strong>{avaliacao.data_siga ? formatarData(avaliacao.data_siga) : 'de hoje'}</strong>.
+                </p>
+                <div className="mt-2">
+                  <Botao onClick={criarNoSiga} carregando={criandoSiga} icone={<UploadCloud className="size-4" />}>
+                    Criar no SIGA
+                  </Botao>
+                </div>
+                {erroSiga ? <p className="mt-2 text-[13px] leading-snug">{erroSiga}</p> : null}
+              </Alerta>
+            ) : null}
+          </div>
         ) : (
           <Alerta tom="ambar">
             Esta avaliação não tem descrição do SIGA configurada. Preencha na criação para poder lançar as notas.
