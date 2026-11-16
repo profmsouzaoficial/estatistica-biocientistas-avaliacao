@@ -7,6 +7,39 @@
  */
 import type { LinhaImportacao } from './dados'
 
+/**
+ * Decodifica o arquivo escolhido pelo professor.
+ *
+ * O Excel em português salva "CSV (separado por vírgulas)" em **Windows-1252**,
+ * não em UTF-8. Lido como UTF-8, "Conceição" vira "Concei��o" — e esse nome
+ * errado iria para a devolutiva do aluno. Aqui o arquivo é lido como bytes,
+ * tentamos UTF-8 estrito e, se falhar, caímos para Windows-1252 avisando.
+ *
+ * Planilha .xlsx não é texto: começa com "PK". Em vez de importar lixo, o app
+ * diz o que fazer.
+ */
+export function decodificarArquivo(bytes: ArrayBuffer): { texto: string; aviso: string | null } {
+  const dados = new Uint8Array(bytes)
+  const ehZip = dados[0] === 0x50 && dados[1] === 0x4b
+  const ehXlsAntigo = dados[0] === 0xd0 && dados[1] === 0xcf && dados[2] === 0x11 && dados[3] === 0xe0
+  if (ehZip || ehXlsAntigo) {
+    return {
+      texto: '',
+      aviso:
+        'Esse arquivo é uma planilha do Excel, não um CSV. Abra no Excel e use "Salvar como" → "CSV UTF-8 (delimitado por vírgulas)".',
+    }
+  }
+  try {
+    return { texto: new TextDecoder('utf-8', { fatal: true }).decode(dados), aviso: null }
+  } catch {
+    return {
+      texto: new TextDecoder('windows-1252').decode(dados),
+      aviso:
+        'O arquivo não estava em UTF-8 — é o que o Excel em português costuma gerar. Li como Windows-1252: confira os acentos na prévia antes de importar.',
+    }
+  }
+}
+
 export interface ResultadoImportacao {
   linhas: LinhaImportacao[]
   problemas: string[]

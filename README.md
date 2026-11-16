@@ -233,6 +233,26 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### A lista da turma, lida dos bytes
+
+O caminho que todo semestre começa — importar a lista — tinha um defeito silencioso: o app lia o
+arquivo escolhido com `arquivo.text()`, que só entende UTF-8. O Excel em português salva “CSV (separado
+por vírgulas)” em **Windows-1252**, então:
+
+```
+antes   "2026301001;Ana Concei��o;ana@x.br"
+agora   "2026301001;Ana Conceição;ana@x.br"
+```
+
+O nome errado não ficava só na tela: ia para a devolutiva do aluno. `decodificarArquivo()` em
+`src/lib/csv.ts` lê os bytes, tenta UTF-8 **estrito** (`TextDecoder` com `fatal: true`) e, se falhar,
+relê como Windows-1252 com um aviso amarelo na prévia. Planilha `.xlsx` (que começa com `PK`) é recusada
+com instrução em vez de importar lixo.
+
+`pnpm test:csv` passou de 16 para **24 verificações**, incluindo as que dependem de bytes: Windows-1252
+preservando acentos, UTF-8 com e sem BOM, `.xlsx` recusado, `.xls` antigo recusado, cabeçalho com
+colunas extras e uma turma de 40 alunos sem perder ninguém.
+
 ### O roteiro de operação
 
 `docs/operacao.md` é o documento para tocar o app sem ninguém por perto: os seis passos de antes do
@@ -260,7 +280,7 @@ fundo efetivo subindo a árvore e aplica a fórmula de luminância da WCAG. Repr
 4.79 · `ambar` #a74d08 = 4.79) e o botão desativado virou cinza com texto escuro — continua dizendo
 “Corrigir 0 pendente(s)”, agora legível.
 
-`pnpm e2e:mobile` mede os alvos de toque das 12 telas principais em 360×740 e reprova qualquer controle
+`pnpm e2e:mobile` mede os alvos de toque das 13 telas principais em 360×740 e reprova qualquer controle
 abaixo de 40px. Foi ele que achou as abas “Transcrição/Foto original” (32px) e o “Voltar para a lista”
 (20px) na tela de revisão.
 
@@ -340,7 +360,7 @@ tela mudar, o teste de layout gera a captura nova.
 ### Conferência em tela pequena
 
 A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O
-`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre doze telas em
+`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre treze telas em
 360×740 e reprova quando:
 
 - alguma tela rola para o lado (`scrollWidth > innerWidth`) — o sintoma clássico de tabela ou
@@ -349,7 +369,7 @@ A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e
   desenho);
 - aparece erro de JavaScript no console.
 
-São 12 telas e 109 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
+São 13 telas e 120 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
 demonstração também deixou de chamar a API do SIGA (não há servidor ali), o que eliminava um erro de
 rede no console sem função nenhuma.
 

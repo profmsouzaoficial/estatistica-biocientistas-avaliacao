@@ -17,7 +17,8 @@
  * que a turma inteira abre o link no intervalo da aula.
  */
 import { spawn } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 
@@ -232,7 +233,21 @@ async function main() {
   ok = (await medir(page, 'professor · revisão com foto')) && ok
   await foto(page, 'mobile-12-professor-revisao')
 
+  // importação com um arquivo de verdade: CSV do Excel em português, que é
+  // Windows-1252 e não UTF-8. Lido como UTF-8, "Conceição" vira "Concei??o".
   await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
+  const tabela = { á: 0xe1, ã: 0xe3, é: 0xe9, ç: 0xe7, ô: 0xf4, í: 0xed, ó: 0xf3, ú: 0xfa, ê: 0xea }
+  const bytes = [...'Matrícula;Nome;E-mail\r\n2099301001;Ana Conceição;ana.conceicao@x.br\r\n']
+    .flatMap((c) => (tabela[c] === undefined ? [...Buffer.from(c, 'utf8')] : [tabela[c]]))
+  const arquivoCsv = join(tmpdir(), 'lista-windows1252.csv')
+  writeFileSync(arquivoCsv, Buffer.from(bytes))
+  await page.setInputFiles('input[type=file]', arquivoCsv)
+  await page.getByText(/Windows-1252/).waitFor({ timeout: 15000 })
+  await page.getByText(/Ana Conceição/).first().waitFor({ timeout: 15000 })
+  await page.getByText(/1 linha\(s\) válida\(s\)/).waitFor({ timeout: 15000 })
+  ok = (await medir(page, 'professor · importar lista')) && ok
+  await foto(page, 'mobile-13-importar-lista')
+
   ok = (await medir(page, 'professor · alunos')) && ok
   await foto(page, 'mobile-11-professor-alunos')
 

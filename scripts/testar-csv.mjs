@@ -28,7 +28,7 @@ await build({
   outfile: saida,
   logLevel: 'error',
 })
-const { interpretarCsv } = await import(pathToFileURL(saida).href)
+const { interpretarCsv, decodificarArquivo } = await import(pathToFileURL(saida).href)
 
 let total = 0
 let falhas = 0
@@ -179,6 +179,83 @@ caso(
   '202506007gv;Ana Clara Souza;a@x.br',
   {},
   { linhas: 1, primeira: { matricula: '202506007GV' } },
+)
+
+// ---- arquivos de verdade: bytes, não texto -------------------------------
+// O Excel em português salva CSV em Windows-1252. Lido como UTF-8, "Conceição"
+// vira "Concei\ufffd\ufffdo" e o nome errado segue para a devolutiva.
+const bytes = (texto, codificacao) => {
+  if (codificacao === 'windows-1252') {
+    const tabela = { á: 0xe1, à: 0xe0, â: 0xe2, ã: 0xe3, é: 0xe9, ê: 0xea, í: 0xed, ó: 0xf3, ô: 0xf4, õ: 0xf5, ú: 0xfa, ç: 0xe7, Á: 0xc1, À: 0xc0, Ã: 0xc3, É: 0xc9, Ç: 0xc7, Ó: 0xd3 }
+    const saida = []
+    for (const c of texto) saida.push(tabela[c] ?? c.charCodeAt(0))
+    return new Uint8Array(saida).buffer
+  }
+  return new TextEncoder().encode(texto).buffer
+}
+
+function casoBytes(nome, buffer, esperado) {
+  total += 1
+  const r = decodificarArquivo(buffer)
+  const erros = []
+  if (esperado.texto !== undefined && r.texto !== esperado.texto) {
+    erros.push(`texto: esperava ${JSON.stringify(esperado.texto)}, veio ${JSON.stringify(r.texto)}`)
+  }
+  if (esperado.contemTexto && !r.texto.includes(esperado.contemTexto)) {
+    erros.push(`texto não contém ${JSON.stringify(esperado.contemTexto)}: ${JSON.stringify(r.texto)}`)
+  }
+  if (esperado.aviso === null && r.aviso !== null) erros.push(`aviso inesperado: ${r.aviso}`)
+  if (esperado.aviso && !(r.aviso ?? '').includes(esperado.aviso)) {
+    erros.push(`aviso: esperava conter ${JSON.stringify(esperado.aviso)}, veio ${JSON.stringify(r.aviso)}`)
+  }
+  if (!esperado.aviso && r.aviso !== null) erros.push(`não esperava aviso: ${r.aviso}`)
+  if (erros.length) {
+    falhas += 1
+    console.log(`  ✗ ${nome}`)
+    for (const e of erros) console.log(`      ${e}`)
+  } else {
+    console.log(`  ✓ ${nome}`)
+  }
+}
+
+console.log('\n  Arquivos de verdade\n')
+
+casoBytes('CSV do Excel em Windows-1252: acentos preservados', bytes('2026301001;Ana Conceição;ana@x.br', 'windows-1252'), {
+  texto: '2026301001;Ana Conceição;ana@x.br',
+  aviso: 'Windows-1252',
+})
+
+casoBytes('CSV UTF-8 com BOM: sem aviso', bytes('\ufeff2026301001;Ana Conceição;ana@x.br', 'utf-8'), {
+  aviso: null,
+})
+
+casoBytes('CSV UTF-8 puro: sem aviso', bytes('2026301001;Ana Conceição;ana@x.br', 'utf-8'), { aviso: null })
+
+casoBytes('Planilha .xlsx recusada com instrução', bytes('PK\u0003\u0004resto', 'utf-8'), {
+  aviso: 'Salvar como',
+})
+
+casoBytes('Planilha .xls antiga recusada', new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0, 0]).buffer, { aviso: 'Excel' })
+
+caso(
+  'Windows-1252 + cabeçalho + colunas fora de ordem, de ponta a ponta',
+  decodificarArquivo(bytes('Nome;Matrícula;E-mail\r\nAna Conceição;2026301001;ana@x.br\r\n', 'windows-1252')).texto,
+  {},
+  { linhas: 1, primeira: { matricula: '2026301001', nome_completo: 'Ana Conceição' } },
+)
+
+caso(
+  'Cabeçalho com colunas extras (Curso, Situação)',
+  'Matrícula;Nome;E-mail;Curso;Situação\n2026301001;Ana Lima;ana@x.br;Ciências Biológicas;Ativo',
+  {},
+  { linhas: 1, primeira: { matricula: '2026301001', nome_completo: 'Ana Lima', email: 'ana@x.br' } },
+)
+
+caso(
+  'Turma inteira: 40 alunos, nenhum perdido',
+  Array.from({ length: 40 }, (_, i) => `20263010${String(i).padStart(2, '0')};Aluno Número ${i + 1};a${i}@x.br`).join('\n'),
+  {},
+  { linhas: 40, problemas: 0 },
 )
 
 console.log('')

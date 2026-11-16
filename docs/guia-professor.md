@@ -39,6 +39,18 @@ certo. A lista desaparece quando tudo estiver pronto — se ela sumiu, não falt
    registrado na lista — a matrícula continua sendo a chave, e ninguém entra com matrícula de
    outra pessoa sem saber o nome dela. A lista do SIGA (`pnpm turma:planilha`) já vem assim.
 
+### Enviar CSV em vez de colar
+
+**Enviar CSV** aceita o arquivo direto da planilha. Dois detalhes que já causaram nome errado na
+devolutiva:
+
+| Situação | O que o app faz |
+|---|---|
+| Excel salvou em **Windows-1252** (o padrão do “CSV (vírgula)” em português) | lê os bytes, detecta que não é UTF-8, relê como Windows-1252 e **avisa em amarelo** para conferir os acentos |
+| O arquivo é **.xlsx** (planilha, não CSV) | recusa e explica: salve como “CSV UTF-8 (delimitado por vírgulas)” |
+| Colunas a mais (Curso, Situação) | ignora as que não são matrícula, nome ou e-mail |
+| Arquivo com BOM do Excel | lê normalmente |
+
 > Marcar a caixa é o modo mais seguro (só o dono do e-mail cadastrado entra). Desmarque apenas
 > quando não houver mesmo como obter os e-mails da turma.
 

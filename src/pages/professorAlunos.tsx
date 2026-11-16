@@ -6,7 +6,7 @@ import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../compo
 import { plural } from '../lib/formato'
 import type { Esperado, Turma } from '../lib/types'
 import type { ResumoTurma } from '../lib/dados'
-import { interpretarCsv } from '../lib/csv'
+import { decodificarArquivo, interpretarCsv } from '../lib/csv'
 
 export function ProfessorAlunos() {
   const { d } = usarSessao()
@@ -16,6 +16,8 @@ export function ProfessorAlunos() {
   const [alunos, setAlunos] = useState<Esperado[] | null>(null)
   const [texto, setTexto] = useState('')
   const [previa, setPrevia] = useState<ReturnType<typeof interpretarCsv> | null>(null)
+  /** Aviso sobre o arquivo lido (planilha do Excel, codificação do CSV). */
+  const [avisoArquivo, setAvisoArquivo] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ tom: 'verde' | 'vermelho' | 'ambar'; texto: string } | null>(null)
   const [ocupado, setOcupado] = useState(false)
   // A caixa de e-mail é otimista: o clique muda a tela na hora e volta atrás
@@ -366,6 +368,7 @@ export function ProfessorAlunos() {
                     onChange={(e) => {
                       setTexto(e.target.value)
                       setPrevia(null)
+                      setAvisoArquivo(null)
                     }}
                   />
 
@@ -389,12 +392,21 @@ export function ProfessorAlunos() {
                     onChange={async (e) => {
                       const arquivo = e.target.files?.[0]
                       if (!arquivo) return
-                      const conteudo = await arquivo.text()
+                      // Lemos os bytes, não o texto: o Excel em português grava
+                      // CSV em Windows-1252, e "Conceição" viraria "Concei??o".
+                      const { texto: conteudo, aviso } = decodificarArquivo(await arquivo.arrayBuffer())
+                      setAvisoArquivo(aviso)
                       setTexto(conteudo)
-                      setPrevia(interpretarCsv(conteudo, { exigirEmail }))
+                      setPrevia(conteudo.trim() ? interpretarCsv(conteudo, { exigirEmail }) : null)
                       e.target.value = ''
                     }}
                   />
+
+                  {avisoArquivo ? (
+                    <div className="mt-3 rounded-xl bg-ambar-claro px-3 py-2.5 text-[13px] leading-snug text-tinta">
+                      {avisoArquivo}
+                    </div>
+                  ) : null}
 
                   {previa ? (
                     <div className="mt-3 rounded-xl bg-papel-fundo px-3 py-2.5 text-[13px]">
