@@ -210,6 +210,12 @@ com 504 — a tela agora explica isso e sugere as saídas:
 | Turma inteira com modelo em CPU | `pnpm corrigir:lote` no servidor do modelo (sem limite de tempo) |
 | IA indisponível | correção manual na revisão |
 
+### Se o modelo demorar mais que o limite da Vercel
+
+`LLM_TIMEOUT_MS` (padrão 55 s) define quanto o app espera pela resposta do modelo antes de devolver
+um erro explicativo. O plano Hobby da Vercel corta funções em ~60 s; para um modelo grande rodando
+em CPU, use `pnpm corrigir:lote` na sua máquina — o script já espera 10 minutos por redação.
+
 ### Verificação de produção
 
 `pnpm test:producao` roda o fluxo real contra a Vercel: cria uma turma e um aluno

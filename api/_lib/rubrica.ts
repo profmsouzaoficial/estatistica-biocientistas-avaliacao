@@ -272,14 +272,40 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
   if (envOpcional('LLM_JSON_MODE') === '1') corpo.response_format = { type: 'json_object' }
 
   const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`
-  const resposta = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(chave ? { Authorization: `Bearer ${chave}` } : {}),
-    },
-    body: JSON.stringify(corpo),
-  })
+
+  // Sem prazo, um modelo travado fica até a hospedagem matar a função — e aí o
+  // professor vê só um 504 sem explicação. O padrão de 55 s cabe no limite de
+  // 60 s do plano Hobby da Vercel; o lote fora da Vercel pode esperar mais.
+  const limiteMs = Number(envOpcional('LLM_TIMEOUT_MS') ?? 55_000)
+  let resposta: Response
+  try {
+    resposta = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(chave ? { Authorization: `Bearer ${chave}` } : {}),
+      },
+      body: JSON.stringify(corpo),
+      signal: AbortSignal.timeout(limiteMs),
+    })
+  } catch (erro) {
+    const abortou = erro instanceof Error && (erro.name === 'TimeoutError' || erro.name === 'AbortError')
+    if (abortou) {
+      throw new ErroHttp(
+        504,
+        'LLM_DEMOROU',
+        `O modelo passou de ${Math.round(limiteMs / 1000)} s e a correção foi interrompida. ` +
+          'Tente de novo com uma redação por vez, corrija à mão — ou rode o lote no servidor do modelo ' +
+          '(pnpm corrigir:lote), que espera mais tempo.',
+      )
+    }
+    throw new ErroHttp(
+      502,
+      'LLM_INALCANCAVEL',
+      'Não consegui falar com o modelo. Confira LLM_BASE_URL e se o serviço no Coolify está no ar.',
+      erro instanceof Error ? erro.message : String(erro),
+    )
+  }
 
   const bruto = await resposta.text()
   if (!resposta.ok) {

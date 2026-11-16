@@ -21,6 +21,8 @@ exigir('SUPABASE_URL')
 exigir('SUPABASE_SERVICE_ROLE_KEY')
 exigir('LLM_BASE_URL')
 exigir('LLM_MODEL')
+// Fora da Vercel não existe o corte de 60 s: o lote pode esperar o modelo em CPU.
+process.env.LLM_TIMEOUT_MS ||= '600000'
 
 const argumentos = process.argv.slice(2)
 const lerArg = (nome) => {

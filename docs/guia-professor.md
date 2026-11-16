@@ -129,6 +129,14 @@ tudo de novo no site do SIGA. Depois da criação, a conferência já reconhece 
 > relatório), cadastre no SIGA e use **Buscar** na criação da avaliação para copiar a descrição
 > exata — assim o lançamento encontra a coluna certa.
 
+### Quando a correção automática demora
+
+A hospedagem gratuita da Vercel corta qualquer função em 60 segundos. O app espera até 55 s pelo
+modelo e, se ele não responder, mostra *"O modelo passou de 55 s…"* em vez de uma tela de erro sem
+explicação. Nesse caso há dois caminhos: corrigir aquela redação à mão, ou rodar o lote no seu
+servidor com `pnpm corrigir:lote` — ele espera até 10 minutos por redação e grava as sugestões em
+`correcoes`, prontas para você revisar no app.
+
 ### Escala da nota no SIGA
 
 O SIGA não diz, na documentação da API, se a nota vai de 0 a 10 ou de 0 até o peso da avaliação.
