@@ -214,6 +214,53 @@ try {
   })
   registrar('B NÃO baixa a foto de A', !fotoB.ok, `HTTP ${fotoB.status}`)
 
+  // ---- reenvio de redação devolvida ---------------------------------------
+  // A política de UPDATE exigia que a linha nova ficasse em 'rascunho' ou
+  // 'enviada'; com a redação em 'devolvida', o aluno não conseguia nem salvar a
+  // nova transcrição nem reenviar (0011_reenvio_rls.sql).
+  const submissaoId = linhas[0].id
+  const devolver = (id) =>
+    fetch(`${base}/rest/v1/submissoes?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: servicoHeaders,
+      body: JSON.stringify({ status: 'devolvida' }),
+    })
+  const salvarTranscricao = (token, id) =>
+    fetch(`${base}/rest/v1/submissoes?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { apikey: anon, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcrito: 'Texto reescrito pela aluna.' }),
+    })
+
+  await devolver(submissaoId)
+  const salvarA = await salvarTranscricao(tokenA, submissaoId)
+  registrar('A grava a nova transcrição na redação devolvida', salvarA.ok, `HTTP ${salvarA.status}`)
+
+  const reenviarA = await fetch(`${base}/rest/v1/submissoes?id=eq.${submissaoId}`, {
+    method: 'PATCH',
+    headers: { apikey: anon, Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'enviada' }),
+  })
+  registrar('A reenvia a redação devolvida', reenviarA.ok, `HTTP ${reenviarA.status}`)
+
+  await devolver(submissaoId)
+  const antes = await fetch(`${base}/rest/v1/submissoes?id=eq.${submissaoId}&select=transcrito`, {
+    headers: servicoHeaders,
+  }).then((r) => r.json())
+  const salvarB = await fetch(`${base}/rest/v1/submissoes?id=eq.${submissaoId}`, {
+    method: 'PATCH',
+    headers: { apikey: anon, Authorization: `Bearer ${tokenB}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transcrito: 'texto trocado pela aluna B' }),
+  })
+  const depois = await fetch(`${base}/rest/v1/submissoes?id=eq.${submissaoId}&select=transcrito`, {
+    headers: servicoHeaders,
+  }).then((r) => r.json())
+  registrar(
+    'B NÃO grava na redação devolvida de A',
+    depois[0]?.transcrito === antes[0]?.transcrito,
+    `texto de A intacto · HTTP ${salvarB.status} para B`,
+  )
+
   const forjar = await fetch(`${base}/rest/v1/submissoes?select=*`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${tokenB}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },

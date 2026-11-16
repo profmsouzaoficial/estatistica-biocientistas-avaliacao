@@ -135,7 +135,12 @@ Na revisão, **Devolver para o aluno** manda a redação de volta com o seu come
 “Devolvida para ajuste”, reabre, corrige e reenvia. O reenvio volta para a sua fila como
 **a revisar** — os critérios da rodada anterior ficam ali como ponto de partida, para você ajustar em
 vez de começar do zero. Enquanto você não aprovar de novo, o aluno continua vendo “Em correção”, sem
-nota.
+nota. E a redação reenviada **não** entra no botão de lançar: ele conta só o que você aprovou depois do
+reenvio (0 de 1, no caso), porque nota aprovada antes da reescrita não vale mais.
+
+Se um aluno disser que “não consegue reenviar”, era defeito nosso até a versão de 16/11/2026: o banco
+recusava a gravação da redação devolvida. Está corrigido — ele reabre, troca ou mantém a foto, ajusta o
+texto e envia normalmente.
 
 ### Estender o prazo
 

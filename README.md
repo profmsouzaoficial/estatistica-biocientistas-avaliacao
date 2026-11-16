@@ -296,6 +296,15 @@ só considera decisões `aprovada` e `ajustada`.
 banco): devolução → reenvio devolve a decisão para pendente, reenvio sem devolução não mexe em nada e
 aprovação já dada não é desfeita.
 
+Mas o gatilho sozinho não bastava: a política de UPDATE do aluno exigia que a linha **nova** ficasse em
+`rascunho` ou `enviada`. Quem reescreve está em `devolvida`, então salvar a nova foto, a nova
+transcrição ou o próprio envio era recusado com `new row violates row-level security policy for table
+"submissoes"` — o botão "Devolver" era um beco sem saída, e nenhum teste pegava porque o teste do
+gatilho rodava como `postgres`, sem RLS. A migration 0011 aceita `devolvida` na linha nova (sem
+permitir sair de `enviada`). O passo 26 do `pnpm e2e` percorre o ciclo inteiro pelas telas, e o
+`pnpm e2e:seguranca` confirma que a aluna A grava e reenvia a própria redação devolvida enquanto a
+aluna B não altera a de A.
+
 ### Prazo de entrega
 
 O prazo é bloqueante: passada a data, o aluno não abre entrega nova (o botão fica em “Prazo

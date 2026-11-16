@@ -276,7 +276,7 @@ async function main() {
 
   try {
     // ---- 1. professor entra ------------------------------------------------
-    console.log('  ▸ 1/25 professor entra')
+    console.log('  ▸ 1/26 professor entra')
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.getByText('Painel do professor').first().waitFor()
     // A lista de conferência do primeiro uso só aparece quando o professor está
@@ -294,7 +294,7 @@ async function main() {
     await foto(page, '01-painel-professor')
 
     // ---- 2. cria turma e importa a lista ----------------------------------
-    console.log('  ▸ 2/25 cria turma e importa alunos')
+    console.log('  ▸ 2/26 cria turma e importa alunos')
     await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Nova turma' }).click()
     await page.getByLabel('Nome da turma').fill(ALUNO.turma)
@@ -317,7 +317,7 @@ async function main() {
     await foto(page, '02-turma-importada')
 
     // ---- 3. cria a avaliação ----------------------------------------------
-    console.log('  ▸ 3/25 cria avaliação')
+    console.log('  ▸ 3/26 cria avaliação')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 1 — Testes diagnósticos')
@@ -344,7 +344,7 @@ async function main() {
     await foto(page, '03-avaliacao-criada')
 
     // ---- 4. aluno se cadastra ---------------------------------------------
-    console.log('  ▸ 4/25 aluno se cadastra')
+    console.log('  ▸ 4/26 aluno se cadastra')
     await sair(page)
     await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(page)
@@ -384,7 +384,7 @@ async function main() {
     }
 
     // ---- 5. aluno envia a foto --------------------------------------------
-    console.log('  ▸ 5/25 aluno fotografa e envia')
+    console.log('  ▸ 5/26 aluno fotografa e envia')
     await page.getByText('Redação 1 — Testes diagnósticos').first().click()
     await page.getByRole('button', { name: /Fotografar minha redação/ }).click()
     await page.waitForURL(/\/enviar$/)
@@ -401,7 +401,7 @@ async function main() {
     await foto(page, '06-aluno-enviado')
 
     // ---- 6. professor corrige ---------------------------------------------
-    console.log('  ▸ 6/25 professor corrige')
+    console.log('  ▸ 6/26 professor corrige')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     console.log(`     logado como professor, em ${page.url()}`)
@@ -412,7 +412,7 @@ async function main() {
     await foto(page, '08-avaliacao-corrigida')
 
     // ---- 7. revisa, aprova e lança no SIGA --------------------------------
-    console.log('  ▸ 7/25 revisa, aprova e lança no SIGA')
+    console.log('  ▸ 7/26 revisa, aprova e lança no SIGA')
     await page.getByRole('button', { name: new RegExp(ALUNO.nome) }).click()
     await page.waitForURL(/\/revisao\//)
     await page.getByText('Nota por critério').waitFor()
@@ -424,7 +424,7 @@ async function main() {
     await foto(page, '10-lancado-siga')
 
     // ---- 8. aluno vê a devolutiva -----------------------------------------
-    console.log('  ▸ 8/25 aluno vê a devolutiva')
+    console.log('  ▸ 8/26 aluno vê a devolutiva')
     await sair(page)
     await entrar(page, ALUNO.email, ALUNO.senha)
     // com correção aprovada, o card do aluno já leva direto para a devolutiva
@@ -437,7 +437,7 @@ async function main() {
     const nota = await page.locator('body').innerText()
 
     // ---- 9. confere o registro do lançamento ------------------------------
-    console.log('  ▸ 9/25 confere a trilha de auditoria')
+    console.log('  ▸ 9/26 confere a trilha de auditoria')
     const lancamentos = await supabaseRest(
       `lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}&select=matricula,nota,sucesso,http_status,descricao_avaliacao`,
     )
@@ -459,7 +459,7 @@ async function main() {
     if (!/Pontos fortes/i.test(nota)) throw new Error('A devolutiva não exibiu os pontos fortes.')
 
 // ---- 10. segunda avaliação (para o caminho sem IA) --------------------
-    console.log('  ▸ 10/25 professor cria a segunda avaliação')
+    console.log('  ▸ 10/26 professor cria a segunda avaliação')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
@@ -481,7 +481,7 @@ async function main() {
     console.log(`     avaliação ${idAvaliacao2}`)
 
     // ---- 11. aluno envia a segunda redação --------------------------------
-    console.log('  ▸ 11/25 aluno envia a segunda redação')
+    console.log('  ▸ 11/26 aluno envia a segunda redação')
     await sair(page)
     await entrar(page, ALUNO.email, ALUNO.senha)
     await page.getByText('Redação 2 — Razão de chances').first().click()
@@ -495,7 +495,7 @@ async function main() {
     await page.getByText('Redação enviada').waitFor()
 
     // ---- 12. correção manual (sem IA), aprovação e lançamento --------------
-    console.log('  ▸ 12/25 professor corrige à mão e lança no SIGA')
+    console.log('  ▸ 12/26 professor corrige à mão e lança no SIGA')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao2}`, { waitUntil: 'networkidle' })
@@ -546,7 +546,7 @@ async function main() {
     if (!(cm.pontos_fortes ?? []).length) throw new Error('Os pontos fortes digitados não foram gravados.')
 
     // ---- 13. encerrar entregas -------------------------------------------
-    console.log('  ▸ 13/25 professor cria a terceira avaliação e encerra as entregas')
+    console.log('  ▸ 13/26 professor cria a terceira avaliação e encerra as entregas')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 3 — Intervalo de confiança')
@@ -566,7 +566,7 @@ async function main() {
     await foto(page, '15-avaliacao-encerrada')
 
     // ---- 14. o banco recusa entrega nova ---------------------------------
-    console.log('  ▸ 14/25 banco recusa entrega em avaliação encerrada')
+    console.log('  ▸ 14/26 banco recusa entrega em avaliação encerrada')
     const login = await fetch(`${urlSb}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: { apikey: anon, 'Content-Type': 'application/json' },
@@ -590,7 +590,7 @@ async function main() {
     }
 
     // ---- 15. aluno vê o bloqueio e o professor reabre --------------------
-    console.log('  ▸ 15/25 aluno vê o bloqueio; professor reabre')
+    console.log('  ▸ 15/26 aluno vê o bloqueio; professor reabre')
     const contextoAluno = await navegador.newContext({
       viewport: { width: 390, height: 844 },
       deviceScaleFactor: 2,
@@ -616,7 +616,7 @@ async function main() {
 
 
     // ---- 16. turma sem e-mail: lista só com matrícula e nome ------------
-    console.log('  ▸ 16/25 lista sem e-mail e cadastro que informa o próprio e-mail')
+    console.log('  ▸ 16/26 lista sem e-mail e cadastro que informa o próprio e-mail')
     await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
     // com mais de uma turma na lista, nada vem selecionado por padrão
     await escolherTurmaDeTeste(page)
@@ -630,7 +630,7 @@ async function main() {
     await page.getByText('e-mail ainda não informado').first().waitFor()
 
     // ---- 17. o aluno informa o e-mail e a matrícula fica vinculada ------
-    console.log('  ▸ 17/25 aluno sem e-mail na lista se cadastra informando o dele')
+    console.log('  ▸ 17/26 aluno sem e-mail na lista se cadastra informando o dele')
     const contextoRecl = await navegador.newContext({
       viewport: { width: 390, height: 844 },
       deviceScaleFactor: 2,
@@ -664,7 +664,7 @@ async function main() {
     }
 
     // ---- 18. avaliação que ainda não existe no SIGA ----------------------
-    console.log('  ▸ 18/25 cria a avaliação direto no SIGA')
+    console.log('  ▸ 18/26 cria a avaliação direto no SIGA')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 4 — Revisão de literatura')
@@ -685,7 +685,7 @@ async function main() {
     await foto(page, '19-avaliacao-criada-no-siga')
 
     // ---- 19. aluno edita os próprios dados e troca a senha ---------------
-    console.log('  ▸ 19/25 aluno edita os dados e troca a senha')
+    console.log('  ▸ 19/26 aluno edita os dados e troca a senha')
     await sair(page)
     await entrar(page, ALUNO.email, ALUNO.senha)
     await page.goto(`${WEB}/perfil`, { waitUntil: 'networkidle' })
@@ -717,7 +717,7 @@ async function main() {
     await foto(page, '21-senha-trocada')
 
     // ---- 20. professor exclui uma avaliação criada por engano ------------
-    console.log('  ▸ 20/25 professor exclui avaliação sem entregas (e não a com entregas)')
+    console.log('  ▸ 20/26 professor exclui avaliação sem entregas (e não a com entregas)')
     await sair(page)
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
 
@@ -752,7 +752,7 @@ async function main() {
     await foto(page, '22-avaliacao-excluida')
 
     // ---- 21. confere no SIGA o que foi lançado ---------------------------
-    console.log('  ▸ 21/25 confere no SIGA o que o app enviou')
+    console.log('  ▸ 21/26 confere no SIGA o que o app enviou')
     // A rota devolve nomes e notas da turma: sem sessão de professor, tem de recusar.
     const semSessao = await fetch(`${WEB}/api/siga/notas?turma=TESTEE2E-A&periodo=2026/3`)
     if (semSessao.ok) throw new Error('A rota /api/siga/notas respondeu sem sessão de professor.')
@@ -765,7 +765,7 @@ async function main() {
     await foto(page, '23-conferencia-siga')
 
     // ---- 22. recuperação de senha pelo link do e-mail --------------------
-    console.log('  ▸ 22/25 recupera a senha pelo link de e-mail')
+    console.log('  ▸ 22/26 recupera a senha pelo link de e-mail')
     const linkRecuperacao = await gerarLinkRecuperacao(
       ALUNO.email,
       'https://estatistica-biocientistas-avaliacao.vercel.app/redefinir',
@@ -795,7 +795,7 @@ async function main() {
     await sair(page)
 
     // ---- 23. página de ajuda é pública -----------------------------------
-    console.log('  ▸ 23/25 a página de ajuda abre sem login')
+    console.log('  ▸ 23/26 a página de ajuda abre sem login')
     await page.goto(`${WEB}/ajuda`, { waitUntil: 'networkidle' })
     if (new URL(page.url()).pathname !== '/ajuda') {
       throw new Error(`A ajuda exigiu login: caiu em ${page.url()}`)
@@ -805,7 +805,7 @@ async function main() {
     await foto(page, '25-ajuda-aluno')
 
     // ---- 24. professor muda e remove o prazo ------------------------------
-    console.log('  ▸ 24/25 muda o prazo e confere a marca de atraso')
+    console.log('  ▸ 24/26 muda o prazo e confere a marca de atraso')
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}`, { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Definir um prazo' }).click()
@@ -829,7 +829,7 @@ async function main() {
     }
 
     // ---- 25. peso diferente do SIGA ---------------------------------------
-    console.log('  ▸ 25/25 avisa quando o peso aqui difere do peso no SIGA')
+    console.log('  ▸ 25/26 avisa quando o peso aqui difere do peso no SIGA')
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 5 — Peso divergente')
@@ -841,6 +841,7 @@ async function main() {
     await page.getByLabel('Peso no SIGA').fill('20')
     await page.getByRole('button', { name: 'Publicar avaliação' }).click()
     await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
+    const idRedacao5 = page.url().split('/').pop()
     await page.getByText('O peso aqui não é o peso do SIGA').waitFor({ timeout: 20000 })
     await page.getByText(/No SIGA, .* vale 10 pontos/).waitFor({ timeout: 15000 })
     await foto(page, '27-peso-divergente')
@@ -850,6 +851,88 @@ async function main() {
     await page.getByText('O peso aqui não é o peso do SIGA').waitFor({ state: 'detached', timeout: 15000 })
     await page.getByText(/peso 10 ·/).first().waitFor({ timeout: 15000 })
     await foto(page, '28-peso-alinhado')
+
+    // ---- 26. devolver e reenviar ------------------------------------------
+    console.log('  ▸ 26/26 devolve, o aluno reenvia e a redação volta para a fila')
+    const senhaAtual = 'NovaSenha98765'
+
+    async function enviarNaRedacao5() {
+      await page.goto(`${WEB}/avaliacoes/${idRedacao5}`, { waitUntil: 'networkidle' })
+      await page.getByRole('button', { name: /Fotografar minha redação|Reenviar redação/ }).click()
+      await page.waitForURL(/\/enviar$/)
+
+      // No primeiro envio a tela pede a foto; no reenvio de uma redação devolvida
+      // ela já abre no texto salvo. Os dois caminhos precisam funcionar.
+      const arquivos = page.locator('input[type=file]')
+      const conferir = page.getByText(/Confira a transcrição|Transcrição digitada/)
+      await Promise.race([
+        arquivos.first().waitFor({ state: 'attached', timeout: 30000 }),
+        conferir.waitFor({ timeout: 30000 }),
+      ])
+
+      if ((await arquivos.count()) > 0) {
+        // o último seletor é o da galeria (o primeiro abre a câmera)
+        await arquivos.nth((await arquivos.count()) - 1).setInputFiles(foto_)
+        await page.getByRole('button', { name: 'Usar esta foto' }).click()
+      }
+
+      // se a transcrição falhar, o erro fica na tela: mostre-o em vez de esperar em silêncio
+      await Promise.race([
+        conferir.waitFor({ timeout: 45000 }),
+        page
+          .getByText('Atenção')
+          .waitFor({ timeout: 45000 })
+          .then(async () => {
+            throw new Error(`transcrição falhou: ${(await page.locator('main').innerText()).slice(0, 300)}`)
+          }),
+      ])
+
+      await page.getByRole('checkbox').check()
+      await page.getByRole('button', { name: 'Enviar redação' }).click()
+      await page.getByText('Redação enviada').waitFor({ timeout: 30000 })
+    }
+
+    // o aluno entrega
+    await sair(page)
+    await entrar(page, ALUNO.email, senhaAtual)
+    await enviarNaRedacao5()
+    await sair(page)
+
+    // o professor corrige e devolve
+    await entrar(page, PROFESSOR.email, PROFESSOR.senha)
+    await page.goto(`${WEB}/prof/avaliacoes/${idRedacao5}`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: /Corrigir 1 pendente/ }).click()
+    // espera a correção existir: sem ela, a revisão abre em "Ainda sem correção da IA"
+    await page.getByRole('button', { name: /Corrigir 0 pendente/ }).waitFor({ timeout: 90000 })
+    const linhaAluno = page.getByRole('button', { name: new RegExp(ALUNO.nome) })
+    await linhaAluno.waitFor({ timeout: 30000 })
+    await linhaAluno.click()
+    await page.waitForURL(/\/revisao\//)
+    await page.getByRole('button', { name: 'Devolver para o aluno reescrever' }).click()
+    await page.waitForURL(/\/prof\/avaliacoes\/[^/]+$/, { timeout: 20000 })
+    await sair(page)
+
+    // o aluno vê a devolução e reenvia
+    await entrar(page, ALUNO.email, senhaAtual)
+    await page.goto(`${WEB}/avaliacoes/${idRedacao5}`, { waitUntil: 'networkidle' })
+    await page.getByText('Devolvida para ajuste').waitFor({ timeout: 20000 })
+    await foto(page, '29-aluno-devolvida')
+    await enviarNaRedacao5()
+    await sair(page)
+
+    // o professor: a redação reenviada volta para "a revisar" e NÃO vai para o SIGA
+    await entrar(page, PROFESSOR.email, PROFESSOR.senha)
+    await page.goto(`${WEB}/prof/avaliacoes/${idRedacao5}`, { waitUntil: 'networkidle' })
+    await page.getByText('a revisar', { exact: true }).first().waitFor({ timeout: 20000 })
+    const botaoLancar = page.getByRole('button', { name: /Lançar \d+ no SIGA/ })
+    const textoLancar = await botaoLancar.textContent()
+    if (!/Lançar 0 no SIGA/.test(textoLancar ?? '')) {
+      throw new Error(`Redação reenviada não pode ir para o SIGA sem nova aprovação (botão: "${textoLancar}")`)
+    }
+    if (!(await botaoLancar.isDisabled())) {
+      throw new Error('Com 0 aprovações, o botão de lançar deveria estar desativado.')
+    }
+    await foto(page, '30-reenvio-na-fila')
 
     // ---- auditoria --------------------------------------------------------
     const acoes = (
