@@ -233,6 +233,14 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### A lista de alunos
+
+`pnpm test:csv` roda 16 verificações sobre o leitor da lista (`src/lib/csv.ts`) — o texto que o
+professor cola ou importa do SIGA. Aceita `;`, `,` ou tabulação, com ou sem cabeçalho, colunas em
+qualquer ordem e campos entre aspas (`"Souza, Ana Clara"`); recusa matrícula fora do padrão, e-mail
+inválido, linha repetida e linha sem nome, dizendo o número da linha. A matrícula precisa ter ao
+menos 6 dígitos (`202506007GV` ou `202506007`), o que barra ano e RA digitados por engano.
+
 ### Comparar modelos
 
 `pnpm comparar:modelos` manda a **mesma** redação (três níveis: fraca, média, boa) para dois modelos,

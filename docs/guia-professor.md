@@ -26,9 +26,11 @@ certo. A lista desaparece quando tudo estiver pronto — se ela sumiu, não falt
 
 1. **Nova turma**: nome livre, código **igual ao do SIGA** (`CBV018GV-A`) e período (`2026/3`).
 2. Cole a lista no formato `matrícula;nome;e-mail` (uma linha por aluno, com ou sem cabeçalho;
-   vírgula e tabulação também funcionam).
-3. **Conferir e importar** mostra quantos entraram e o que foi recusado (matrícula repetida,
-   e-mail inválido).
+   vírgula e tabulação também funcionam). Se a planilha vier com as colunas em outra ordem —
+   `Nome;Matrícula;Email`, por exemplo — pode colar assim: o cabeçalho é lido e as colunas são
+   identificadas pelo nome.
+3. **Conferir e importar** mostra quantos entraram e o que foi recusado, com o número da linha
+   (matrícula repetida, e-mail inválido, matrícula com menos de 6 dígitos).
 4. **Sem os e-mails?** Desmarque **Exigir o e-mail na lista** logo abaixo da turma e importe só
    `matrícula;nome`. Nesse modo, cada aluno digita o próprio e-mail no cadastro e o e-mail fica
    registrado na lista — a matrícula continua sendo a chave, e ninguém entra com matrícula de

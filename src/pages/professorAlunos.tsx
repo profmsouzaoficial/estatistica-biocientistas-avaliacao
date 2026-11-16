@@ -6,64 +6,7 @@ import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../compo
 import { plural } from '../lib/formato'
 import type { Esperado, Turma } from '../lib/types'
 import type { ResumoTurma } from '../lib/dados'
-import type { LinhaImportacao } from '../lib/dados'
-
-/**
- * Aceita CSV com ; ou , ou tab: matricula, nome, email (com ou sem cabeçalho).
- * Quando a turma não exige e-mail, a terceira coluna pode faltar — o aluno
- * informa o próprio e-mail no cadastro.
- */
-export function interpretarCsv(
-  texto: string,
-  opcoes: { exigirEmail?: boolean } = {},
-): { linhas: LinhaImportacao[]; problemas: string[] } {
-  const exigirEmail = opcoes.exigirEmail ?? true
-  const problemas: string[] = []
-  const linhas: LinhaImportacao[] = []
-  const brutas = texto
-    .replace(/^\ufeff/, '')
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-
-  brutas.forEach((linha, indice) => {
-    const separador = linha.includes(';') ? ';' : linha.includes('\t') ? '\t' : ','
-    const campos = linha.split(separador).map((c) => c.trim().replace(/^"(.*)"$/, '$1'))
-    if (indice === 0 && /matr[íi]cula|nome|email/i.test(campos[0]) && !/^\d+$/.test(campos[0])) return
-    if (campos.length < 2) {
-      problemas.push(`Linha ${indice + 1}: precisa de matrícula e nome.`)
-      return
-    }
-    // SIGA em GV usa dígitos + sufixo do campus (202506007GV); aceita os dois
-    const matricula = campos[0].toUpperCase()
-    const nome = campos[1]
-    const email = campos[2] ?? ''
-    if (!/^[0-9]{4,}[A-Z]{0,3}$/.test(matricula)) {
-      problemas.push(`Linha ${indice + 1}: matrícula "${matricula}" não parece válida.`)
-      return
-    }
-    if (!nome) {
-      problemas.push(`Linha ${indice + 1}: falta o nome completo.`)
-      return
-    }
-    if (email === '') {
-      if (exigirEmail) {
-        problemas.push(`Linha ${indice + 1}: falta o e-mail (esta turma exige e-mail na lista).`)
-        return
-      }
-    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      problemas.push(`Linha ${indice + 1}: e-mail "${email}" inválido.`)
-      return
-    }
-    if (linhas.some((l) => l.matricula === matricula)) {
-      problemas.push(`Linha ${indice + 1}: matrícula ${matricula} repetida.`)
-      return
-    }
-    linhas.push({ matricula, nome_completo: nome, email })
-  })
-
-  return { linhas, problemas }
-}
+import { interpretarCsv } from '../lib/csv'
 
 export function ProfessorAlunos() {
   const { d } = usarSessao()
