@@ -107,6 +107,11 @@ async function paginaEscaneada(navegador) {
 
 // ---------------------------------------------------------------------------
 
+// A turma é apagada pela tela no passo 10; a partir daí as correções e
+// submissões somem em cascata e a auditoria ficaria órfã. Por isso a limpeza
+// final usa o instante em que a rodada começou.
+const inicioDaRodada = new Date().toISOString()
+
 let turmaId = null
 let idAvaliacao = null
 let avaliacaoDaTurma = false
@@ -280,7 +285,16 @@ async function limpar() {
   }
   const cabecalhos = { apikey: chave, Authorization: `Bearer ${chave}`, Prefer: 'return=minimal' }
 
-  // além da turma desta rodada, varre sobras de rodadas anteriores (prefixos de teste)
+  // 1. auditoria da rodada: as entidades já podem ter sido apagadas pela tela
+  const limparAuditoria = await fetch(
+    `${url}/rest/v1/auditoria?criado_em=gte.${encodeURIComponent(inicioDaRodada)}`,
+    { method: 'DELETE', headers: cabecalhos },
+  )
+  if (!limparAuditoria.ok) {
+    console.error(`  ⚠ falhou limpar a auditoria da rodada: ${limparAuditoria.status}`)
+  }
+
+  // 2. além da turma desta rodada, varre sobras de rodadas anteriores (prefixos de teste)
   const turmas = await (
     await fetch(`${url}/rest/v1/turmas?or=(codigo_siga.eq.${encodeURIComponent(TURMA.codigo)},codigo_siga.like.TESTEPROD-*,codigo_siga.like.APAGAR*)&select=id,codigo_siga`, { headers: cabecalhos })
   ).json()
