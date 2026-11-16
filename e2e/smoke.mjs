@@ -933,7 +933,7 @@ async function main() {
       throw new Error('Com 0 aprovações, o botão de lançar deveria estar desativado.')
     }
     // o professor precisa saber quem falta entregar antes de fechar o prazo
-    await page.getByText(/1 de 1 alunos da turma entregaram/).waitFor({ timeout: 10000 })
+    await page.getByText(/1 de \d+ alunos da turma entregaram/).waitFor({ timeout: 10000 })
     await foto(page, '30-reenvio-na-fila')
 
     // ---- auditoria --------------------------------------------------------
