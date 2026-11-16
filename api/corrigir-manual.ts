@@ -66,15 +66,15 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
   await supabase('auditoria', {
     metodo: 'POST',
     corpo: {
-      ator_id: usuario.id,
+      ator: usuario.id,
       acao: 'correcao_manual',
       entidade: 'submissoes',
       entidade_id: submissaoId,
       detalhe: { avaliacao_id: avaliacao.id, professor: perfil.nome_completo },
     },
     prefer: 'return=minimal',
-  }).catch(() => {
-    /* auditoria é acessória */
+  }).catch((e) => {
+    console.error('auditoria não gravada (correcao_manual):', e instanceof Error ? e.message : e)
   })
 
   return criado({ correcao })

@@ -288,6 +288,26 @@ async function limpar() {
     console.error('  ⚠ não consegui listar a turma de teste:', JSON.stringify(turmas).slice(0, 160))
   }
   for (const turma of Array.isArray(turmas) ? turmas : []) {
+    // a auditoria aponta para avaliação, submissão e correção; apagar a turma em
+    // cascata deixaria esses registros órfãos na trilha
+    const avaliacoes = await (
+      await fetch(`${url}/rest/v1/avaliacoes?turma_id=eq.${turma.id}&select=id`, { headers: cabecalhos })
+    ).json()
+    for (const av of Array.isArray(avaliacoes) ? avaliacoes : []) {
+      await fetch(`${url}/rest/v1/auditoria?entidade_id=eq.${av.id}`, { method: 'DELETE', headers: cabecalhos })
+      const subs = await (
+        await fetch(`${url}/rest/v1/submissoes?avaliacao_id=eq.${av.id}&select=id`, { headers: cabecalhos })
+      ).json()
+      for (const sub of Array.isArray(subs) ? subs : []) {
+        await fetch(`${url}/rest/v1/auditoria?entidade_id=eq.${sub.id}`, { method: 'DELETE', headers: cabecalhos })
+        const cors = await (
+          await fetch(`${url}/rest/v1/correcoes?submissao_id=eq.${sub.id}&select=id`, { headers: cabecalhos })
+        ).json()
+        for (const c of Array.isArray(cors) ? cors : []) {
+          await fetch(`${url}/rest/v1/auditoria?entidade_id=eq.${c.id}`, { method: 'DELETE', headers: cabecalhos })
+        }
+      }
+    }
     const resposta = await fetch(`${url}/rest/v1/turmas?id=eq.${turma.id}`, { method: 'DELETE', headers: cabecalhos })
     if (!resposta.ok) {
       console.error(`  ⚠ falhou apagar a turma ${turma.codigo_siga}: ${resposta.status} ${(await resposta.text()).slice(0, 160)}`)

@@ -233,6 +233,26 @@ campos ausentes, nível declarado que não bate com a nota e citação entre asp
 texto. Não chama o modelo: empacota `api/_lib/rubrica.ts` com esbuild (como a Vercel faz) e testa a
 função que decide a nota.
 
+### Trilha de auditoria
+
+Toda decisão que muda o que o aluno vê ou o que vai ao SIGA fica registrada em `auditoria`
+(`ator`, `acao`, `entidade`, `entidade_id`, `detalhe` com o valor anterior e o novo):
+
+| Ação | Quem grava |
+|---|---|
+| `corrigir_ia`, `correcao_manual` | rota da API, com o id do professor |
+| `revisar_correcao` (aprovar, ajustar, devolver) | gatilho `trg_auditar_revisao` |
+| `mudar_prazo`, `mudar_status_avaliacao` | gatilho `trg_auditar_avaliacao` |
+
+Os lançamentos no SIGA têm trilha própria em `lancamentos_siga` (payload enviado, resposta, HTTP e
+erro). O gatilho existe porque três chamadas da API mandavam a coluna `ator_id` — que não existe — e o
+erro era engolido por um `catch` vazio: a tabela ficou **vazia** em todas as rodadas de teste até isso
+ser descoberto. Agora a falha de auditoria aparece no log mesmo sem derrubar a requisição.
+
+`pnpm test:auditoria` cobre os gatilhos numa transação revertida; o passo final do `pnpm e2e` confere
+que a rodada gerou `corrigir_ia`, `revisar_correcao` e `mudar_prazo`, e a limpeza apaga esses
+registros antes de derrubar as contas (senão a cascata os deixaria órfãos).
+
 ### Devolver e reenviar
 
 O professor pode devolver a redação ("reenvie com a segunda folha"): a submissão volta como

@@ -116,6 +116,12 @@ Na tela da avaliação:
 A nota final é sempre `soma dos critérios ÷ valor total × 10`, arredondada a uma casa. Não é o
 modelo que decide a nota no SIGA.
 
+### Quem mexeu no quê
+
+Cada aprovação, devolução, mudança de prazo e encerramento de entregas entra na trilha de auditoria
+com a data, o seu usuário e o valor anterior. Se alguém perguntar "por que a nota mudou depois do
+lançamento?" ou "quando o prazo foi estendido?", a resposta está lá — não depende de memória.
+
 ### Devolver uma redação
 
 Na revisão, **Devolver para o aluno** manda a redação de volta com o seu comentário. O aluno vê

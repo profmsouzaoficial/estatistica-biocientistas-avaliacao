@@ -20,15 +20,16 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
   await supabase('auditoria', {
     metodo: 'POST',
     corpo: {
-      ator_id: usuario.id,
+      ator: usuario.id,
       acao: 'corrigir_ia',
       entidade: 'submissoes',
       entidade_id: submissaoId,
       detalhe: { modelo: correcao.modelo, nota_final: correcao.nota_final, professor: perfil.nome_completo },
     },
     prefer: 'return=minimal',
-  }).catch(() => {
-    /* auditoria é acessória: não derruba a correção */
+  }).catch((e) => {
+    // a correção não pode cair por causa da auditoria, mas a falha precisa aparecer
+    console.error('auditoria não gravada (corrigir_ia):', e instanceof Error ? e.message : e)
   })
 
   return ok({ correcao })

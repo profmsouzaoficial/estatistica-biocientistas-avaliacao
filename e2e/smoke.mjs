@@ -98,12 +98,34 @@ function encerrar() {
   }
 }
 
+// Instante em que a rodada começou: a auditoria é conferida a partir daqui.
+const inicioDaRodada = new Date().toISOString()
+
 // ---------------------------------------------------------------------------
 // Limpeza dos dados de teste (idempotente)
 // ---------------------------------------------------------------------------
 
 async function limpar() {
   if (!urlSb || !servico) return
+
+  // 0. a auditoria vem antes de tudo: apagar a conta do aluno derruba o perfil,
+  // as submissões e as correções em cascata, e aí não haveria mais como achar
+  // (nem apagar) os registros de auditoria que apontam para elas.
+  const turmasAntes = await supabaseRest(`turmas?codigo_siga=eq.${ALUNO.codigo}&select=id`)
+  for (const turma of turmasAntes ?? []) {
+    const avaliacoesAntes = await supabaseRest(`avaliacoes?turma_id=eq.${turma.id}&select=id`)
+    for (const av of avaliacoesAntes ?? []) {
+      await supabaseRest(`auditoria?entidade_id=eq.${av.id}`, { metodo: 'DELETE' }).catch(() => {})
+      const subsAntes = await supabaseRest(`submissoes?avaliacao_id=eq.${av.id}&select=id`)
+      for (const s of subsAntes ?? []) {
+        await supabaseRest(`auditoria?entidade_id=eq.${s.id}`, { metodo: 'DELETE' }).catch(() => {})
+        const corsAntes = await supabaseRest(`correcoes?submissao_id=eq.${s.id}&select=id`)
+        for (const c of corsAntes ?? []) {
+          await supabaseRest(`auditoria?entidade_id=eq.${c.id}`, { metodo: 'DELETE' }).catch(() => {})
+        }
+      }
+    }
+  }
 
   // 1. remove as contas de teste (o perfil cai junto e libera a FK da turma)
   const resposta = await fetch(`${urlSb}/auth/v1/admin/users?page=1&per_page=200`, {
@@ -131,7 +153,12 @@ async function limpar() {
       const submissoes = await supabaseRest(`submissoes?avaliacao_id=eq.${av.id}&select=id,aluno_id`)
       for (const s of submissoes ?? []) {
         await supabaseRest(`auditoria?entidade_id=eq.${s.id}`, { metodo: 'DELETE' }).catch(() => {})
+        const correcoes = await supabaseRest(`correcoes?submissao_id=eq.${s.id}&select=id`)
+        for (const c of correcoes ?? []) {
+          await supabaseRest(`auditoria?entidade_id=eq.${c.id}`, { metodo: 'DELETE' }).catch(() => {})
+        }
       }
+      await supabaseRest(`auditoria?entidade_id=eq.${av.id}`, { metodo: 'DELETE' }).catch(() => {})
     }
     await supabaseRest(`lancamentos_siga?turma_siga=eq.${encodeURIComponent(ALUNO.codigo)}`, { metodo: 'DELETE' }).catch(
       () => {},
@@ -799,6 +826,17 @@ async function main() {
     await page.getByText(/Prazo removido/).waitFor({ timeout: 20000 })
     if (await page.getByText('· fora do prazo').count()) {
       throw new Error('Sem prazo, a redação não deveria continuar marcada como fora do prazo.')
+    }
+
+    // ---- auditoria --------------------------------------------------------
+    const acoes = (
+      await supabaseRest(`auditoria?criado_em=gte.${encodeURIComponent(inicioDaRodada)}&select=acao`)
+    ).map((l) => l.acao)
+    const distintas = [...new Set(acoes)]
+    for (const esperada of ['corrigir_ia', 'revisar_correcao', 'mudar_prazo']) {
+      if (!distintas.includes(esperada)) {
+        throw new Error(`Auditoria sem registro de "${esperada}" (achei: ${distintas.join(', ') || 'nenhum'})`)
+      }
     }
 
     console.log('\n  ✓ Fluxo completo validado')
