@@ -760,6 +760,11 @@ export function criarDadosDemo(): Dados {
       return correcao
     },
 
+    async saude() {
+      // Sem servidor no modo demonstração: a tela não mostra o diagnóstico.
+      return null
+    },
+
     async avaliacoesDoSiga(turma: string, periodo: string) {
       // No modo demonstração não há SIGA: devolve o formato esperado pela tela.
       return {

@@ -15,6 +15,7 @@ import type {
   Submissao,
   SubmissaoDoProfessor,
   Turma,
+  Diagnostico,
 } from './types'
 
 export async function criarDadosSupabase(url: string, chave: string): Promise<Dados> {
@@ -426,6 +427,10 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
     async avaliacoesDoSiga(turma, periodo) {
       const q = new URLSearchParams({ turma, periodo })
       return api<QuadroSiga>(`/siga/avaliacoes?${q.toString()}`)
+    },
+
+    async saude() {
+      return api<Diagnostico>('/saude')
     },
   }
 

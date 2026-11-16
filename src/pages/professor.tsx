@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight, ClipboardCheck, Plus, RefreshCw, Users } from 'lucide-react'
+import { CheckCircle2, ChevronRight, Circle, ClipboardCheck, Plus, RefreshCw, Users } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
 import { CAPITULOS } from '../lib/livro'
-import type { AvaliacaoSiga, Criterio, ResumoAvaliacao, Turma } from '../lib/types'
+import type { AvaliacaoSiga, Criterio, Diagnostico, Esperado, ResumoAvaliacao, Turma } from '../lib/types'
 import { formatarNota } from '../lib/formato'
 
 // ---------------------------------------------------------------------------
@@ -14,12 +14,25 @@ export function ProfessorInicio() {
   const { navegar } = usarRota()
   const [lista, setLista] = useState<ResumoAvaliacao[] | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [turmas, setTurmas] = useState<Turma[] | null>(null)
+  const [esperados, setEsperados] = useState<Esperado[] | null>(null)
+  const [saude, setSaude] = useState<Diagnostico | null | undefined>(undefined)
 
   useEffect(() => {
     if (!d) return
     d.resumoAvaliacoes()
       .then(setLista)
       .catch((e) => setErro(e instanceof Error ? e.message : 'Falha ao carregar.'))
+    d.turmasTodas()
+      .then(async (t) => {
+        setTurmas(t)
+        if (t[0]) setEsperados(await d.alunosDaTurma(t[0].id))
+        else setEsperados([])
+      })
+      .catch(() => setTurmas([]))
+    d.saude()
+      .then(setSaude)
+      .catch(() => setSaude(null))
   }, [d])
 
   const pendentesRevisao = (lista ?? []).reduce((t, a) => t + (a.corrigidas - a.aprovadas), 0)
@@ -31,6 +44,15 @@ export function ProfessorInicio() {
       <AppBar titulo="Painel do professor" subtitulo="Análise de Dados para Biocientistas" />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-24">
         {erro ? <Alerta tom="vermelho" titulo="Não foi possível carregar">{erro}</Alerta> : null}
+
+        <PrimeirosPassos
+          turmas={turmas}
+          alunos={esperados}
+          avaliacoes={lista}
+          saude={saude}
+          demo={d?.modo === 'demo'}
+          navegar={navegar}
+        />
 
         <div className="grid grid-cols-3 gap-2.5">
           <Indicador rotulo="A corrigir" valor={aguardandoCorrecao} tom="azul" />
@@ -100,6 +122,136 @@ export function ProfessorInicio() {
         </Link>
       </main>
     </>
+  )
+}
+
+/**
+ * Lista de conferência do primeiro uso. Some sozinha quando tudo está pronto —
+ * a ideia é não virar mobília na tela do professor.
+ */
+function PrimeirosPassos({
+  turmas,
+  alunos,
+  avaliacoes,
+  saude,
+  demo,
+  navegar,
+}: {
+  turmas: Turma[] | null
+  alunos: Esperado[] | null
+  avaliacoes: ResumoAvaliacao[] | null
+  /** undefined = ainda perguntando ao servidor; null = não deu para saber. */
+  saude: Diagnostico | null | undefined
+  demo: boolean
+  navegar: (destino: string) => void
+}) {
+  if (!turmas || !alunos || !avaliacoes) return null
+
+  const itens: {
+    pronto: boolean
+    verificar?: boolean
+    titulo: string
+    detalhe: string
+    acao: { rotulo: string; destino: string } | null
+  }[] = [
+    {
+      pronto: turmas.length > 0,
+      titulo: 'Criar a turma',
+      detalhe: turmas.length > 0 ? turmas[0].nome : 'Nome, código no SIGA e período.',
+      acao: turmas.length > 0 ? null : { rotulo: 'Criar turma', destino: '/prof/alunos' },
+    },
+    {
+      pronto: alunos.length > 0,
+      titulo: 'Importar a lista de alunos',
+      detalhe:
+        alunos.length > 0
+          ? `${alunos.length} estudante(s) na lista`
+          : 'Matrícula, nome e e-mail — um por linha.',
+      acao: alunos.length > 0 ? null : { rotulo: 'Importar', destino: '/prof/alunos' },
+    },
+    {
+      pronto: avaliacoes.length > 0,
+      titulo: 'Publicar a primeira avaliação',
+      detalhe: avaliacoes.length > 0 ? `${avaliacoes.length} criada(s)` : 'Tema, instruções, valor e rubrica.',
+      acao: avaliacoes.length > 0 ? null : { rotulo: 'Criar', destino: '/prof/avaliacoes/nova' },
+    },
+  ]
+
+  // As três últimas dependem de GET /api/saude. Enquanto a resposta não chega,
+  // ficam como "verificando" — nunca como prontas, para não mentir na tela.
+  const doServidor = [
+    {
+      ok: saude?.siga.configurado,
+      titulo: 'Conectar o SIGA',
+      certo: 'Notas podem ser lançadas direto na turma.',
+      falta: 'Sem SIGA, as notas ficam só no app.',
+    },
+    {
+      ok: saude?.corretor.configurado,
+      titulo: 'Conectar a IA de correção (opcional)',
+      certo: `Modelo ${saude?.corretor.modelo ?? 'configurado'}`,
+      falta: 'Sem IA, você corrige à mão pela revisão.',
+    },
+    {
+      ok: saude?.ocr.configurado,
+      titulo: 'Conectar a leitura das fotos (opcional)',
+      certo: `Transcrição por ${saude?.ocr.modelo ?? saude?.ocr.provedor ?? 'serviço externo'}`,
+      falta: 'Sem OCR, o aluno digita o texto e a foto fica como comprovante.',
+    },
+  ]
+
+  if (!demo) {
+    for (const item of doServidor) {
+      itens.push({
+        pronto: item.ok === true,
+        verificar: item.ok === undefined,
+        titulo: item.titulo,
+        detalhe: item.ok === true ? item.certo : item.ok === undefined ? 'Verificando o servidor…' : item.falta,
+        acao: null,
+      })
+    }
+  }
+
+  const pendentes = itens.filter((i) => !i.pronto)
+  if (pendentes.length === 0) return null
+
+  return (
+    <Cartao className="border-verde/25 bg-verde-claro/40">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="font-serif text-[16px] text-tinta">Para começar</h2>
+        <span className="text-[12px] text-tinta-suave">
+          {itens.length - pendentes.length} de {itens.length} prontos
+        </span>
+      </div>
+      <ul className="mt-2.5 space-y-2">
+        {itens.map((i) => (
+          <li key={i.titulo} className="flex items-start gap-2.5">
+            {i.pronto ? (
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-verde" aria-hidden />
+            ) : i.verificar ? (
+              <span className="mt-[3px] size-4 shrink-0 animate-pulse rounded-full border border-tinta-fraca/40" />
+            ) : (
+              <Circle className="mt-0.5 size-4 shrink-0 text-tinta-fraca" aria-hidden />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className={`text-[13.5px] leading-snug ${i.pronto ? 'text-tinta-suave line-through' : 'font-medium text-tinta'}`}>
+                {i.titulo}
+              </p>
+              <p className="text-[12px] leading-snug text-tinta-suave">{i.detalhe}</p>
+            </div>
+            {i.acao ? (
+              <button
+                type="button"
+                onClick={() => navegar(i.acao!.destino)}
+                className="shrink-0 rounded-lg border border-verde/30 px-2.5 py-1 text-[12px] font-medium text-verde"
+              >
+                {i.acao.rotulo}
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </Cartao>
   )
 }
 

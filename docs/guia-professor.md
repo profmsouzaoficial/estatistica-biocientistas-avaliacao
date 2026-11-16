@@ -11,6 +11,10 @@ Tudo é feito pelo celular, mas a tela de revisão é mais confortável no compu
 Contas de professor não são criadas pela tela de cadastro: use `pnpm professor:criar` (script em
 `scripts/criar-professor.mjs`), que autoriza o e-mail e cria o usuário.
 
+Logo abaixo do título aparece **Para começar**: seis conferências do primeiro uso (turma, lista,
+primeira avaliação, SIGA, IA, leitura das fotos). Cada pendência tem um botão que leva ao lugar
+certo. A lista desaparece quando tudo estiver pronto — se ela sumiu, não falta nada.
+
 ## 2. Preparar a turma
 
 **Painel → Turmas e lista de alunos**

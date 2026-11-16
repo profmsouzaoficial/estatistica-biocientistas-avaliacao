@@ -12,6 +12,7 @@ import type {
   Submissao,
   SubmissaoDoProfessor,
   Turma,
+  Diagnostico,
 } from './types'
 
 export interface Cadastro {
@@ -103,6 +104,8 @@ export interface Dados {
   lancarNoSiga(correcaoId: string): Promise<LancamentoSiga>
   /** Avaliações que já existem no SIGA para a turma/período. */
   avaliacoesDoSiga(turma: string, periodo: string): Promise<QuadroSiga>
+  /** Diagnóstico do servidor (OCR, corretor, SIGA); null no modo demonstração. */
+  saude(): Promise<Diagnostico | null>
 }
 
 let instancia: Dados | null = null

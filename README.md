@@ -199,6 +199,13 @@ dar a nota sem sugestão automática: a tela de revisão abre editável e o flux
 
 ---
 
+### Painel "Para começar"
+
+Ao entrar, o professor vê uma lista de conferência com seis itens (turma, lista de alunos, primeira
+avaliação, SIGA, corretor de IA e leitura de fotos). Cada item pendente traz um botão que leva
+direto ao lugar certo, e o painel **desaparece sozinho** quando os seis estão prontos. Os três
+últimos vêm de `GET /api/saude`, então refletem o servidor de verdade — não uma suposição da tela.
+
 ## 7. Teste de ponta a ponta
 
 ```bash

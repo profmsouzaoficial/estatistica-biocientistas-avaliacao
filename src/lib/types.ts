@@ -178,3 +178,11 @@ export function notaParaSiga(notaBruta: number, valorTotal: number): number {
 export function notaComVirgula(nota: number): string {
   return nota.toFixed(1).replace('.', ',')
 }
+
+/** Resposta de /api/saude: só booleans, nenhum segredo. */
+export interface Diagnostico {
+  ocr: { configurado: boolean; provedor: string; modelo: string | null }
+  corretor: { configurado: boolean; modelo: string | null }
+  siga: { configurado: boolean }
+  supabase: { configurado: boolean }
+}
