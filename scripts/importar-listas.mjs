@@ -160,7 +160,7 @@ for (const arquivo of arquivos.sort()) {
   const alunos = linhas
     .map((l) => ({
       matricula: (l.MATRICULA ?? '').trim(),
-      nome: (l.NOME ?? '').trim(),
+      nome: (l.NOME ?? '').replace(/\s+/g, ' ').replace(/\.+$/, '').trim(),
       email: (l['E-MAIL CONTA GSUITE'] || l['E-MAIL DE CONTATO'] || '').trim().toLowerCase(),
       situacao: (l.SITUACAO ?? '').trim(),
     }))
