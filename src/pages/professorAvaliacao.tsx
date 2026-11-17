@@ -40,7 +40,7 @@ import type {
   SubmissaoDoProfessor,
   Turma,
 } from '../lib/types'
-import { api } from '../lib/servidor'
+import { api, ErroApi } from '../lib/servidor'
 import { acharAvaliacaoSiga, divergenciaDePeso } from '../lib/siga'
 
 /**
@@ -114,6 +114,9 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   const [lidoEm, setLidoEm] = useState<Date | null>(null)
   const [criandoSiga, setCriandoSiga] = useState(false)
   const [erroSiga, setErroSiga] = useState<string | null>(null)
+  // O SIGA não tem rota para apagar avaliação: criar de novo duplica. A tela
+  // pede confirmação explícita em vez de deixar o clique duplo decidir.
+  const [duplicarSiga, setDuplicarSiga] = useState(false)
   // Exclusão da avaliação (só quando ninguém enviou e nada foi ao SIGA)
   const [pedindoExclusao, setPedindoExclusao] = useState(false)
   const [tituloConfirmado, setTituloConfirmado] = useState('')
@@ -296,16 +299,23 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
     if (falhas.length) setErro(falhas.join(' · '))
   }
 
-  async function criarNoSiga() {
+  async function criarNoSiga(forcar = false) {
     if (!d || !avaliacao) return
     setCriandoSiga(true)
     setErroSiga(null)
     setResultado(null)
     try {
-      await api('/siga/avaliacao', { avaliacao_id: avaliacao.id })
+      const r = await api<{ repetido?: boolean }>('/siga/avaliacao', { avaliacao_id: avaliacao.id, forcar })
       setSigaTem(true)
-      setResultado('Avaliação criada no SIGA. Agora as notas podem ser lançadas.')
+      setDuplicarSiga(false)
+      setResultado(
+        r?.repetido
+          ? 'Esta avaliação já estava criada no SIGA com os mesmos dados — não criei de novo. As notas podem ser lançadas.'
+          : 'Avaliação criada no SIGA. Agora as notas podem ser lançadas.',
+      )
     } catch (e) {
+      const codigo = e instanceof ErroApi ? e.codigo : undefined
+      if (codigo === 'SIGA_JA_CRIADA') setDuplicarSiga(true)
       setErroSiga(e instanceof Error ? e.message : 'O SIGA não aceitou criar a avaliação.')
     } finally {
       setCriandoSiga(false)
@@ -790,11 +800,26 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                   <strong>{avaliacao.data_siga ? formatarData(avaliacao.data_siga) : 'de hoje'}</strong>.
                 </p>
                 <div className="mt-2">
-                  <Botao onClick={criarNoSiga} carregando={criandoSiga} icone={<UploadCloud className="size-4" />}>
+                  <Botao onClick={() => criarNoSiga()} carregando={criandoSiga} icone={<UploadCloud className="size-4" />}>
                     Criar no SIGA
                   </Botao>
                 </div>
                 {erroSiga ? <p className="mt-2 text-[13px] leading-snug">{erroSiga}</p> : null}
+                {duplicarSiga ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="text-[13px] leading-snug">
+                      Criar outra avaliação no SIGA com estes dados vai <strong>duplicar</strong> a que já existe lá.
+                    </p>
+                    <Botao
+                      variante="secundario"
+                      onClick={() => criarNoSiga(true)}
+                      carregando={criandoSiga}
+                      icone={<UploadCloud className="size-4" />}
+                    >
+                      Criar de novo mesmo assim
+                    </Botao>
+                  </div>
+                ) : null}
               </Alerta>
             ) : null}
           </div>

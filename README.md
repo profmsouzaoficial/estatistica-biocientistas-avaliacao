@@ -702,6 +702,31 @@ O prazo cobre **cabeçalho e corpo**: o corpo é lido dentro do prazo, porque um
 o defeito mais enganoso desta rodada — OCR lento devolvia `SEM_TEXTO`, ou seja, o aluno lia “não
 encontrei texto manuscrito legível na foto” quando o problema era fila no serviço, não a letra dele.
 
+### Criar a avaliação no SIGA — uma vez só
+
+Criar avaliação é a **única** escrita do app que muda estrutura no SIGA, e o SIGA não tem rota
+para apagar. Um clique duplo deixaria “Trabalho sobre Probabilidades” duplicado numa disciplina
+real, para sempre. A rota `POST /api/siga/avaliacao` agora decide assim:
+
+| O que já aconteceu | O que faz |
+|---|---|
+| nada | cria no SIGA e grava o pedido na auditoria |
+| criou com **os mesmos dados** | não chama o SIGA; responde `repetido: true` (“já estava criada”) |
+| criou com **dados diferentes** (peso, data, descrição) | `409 SIGA_JA_CRIADA` — a tela mostra o que existe lá e pede confirmação; só `forcar: true` cria de novo |
+| já existe uma requisição **em andamento** (até 2 min) | `409 SIGA_EM_ANDAMENTO` — o duplo clique não passa |
+| a última tentativa **falhou** | deixa tentar de novo (falha não bloqueia) |
+
+O “em andamento” é gravado **antes** de chamar o SIGA, e o registro é atualizado no fim com o
+resultado. É isso que fecha a janela entre dois cliques quase simultâneos.
+
+`pnpm test:siga:criar` (35 verificações) sobe um SIGA falso e um Supabase falso e conta quantas
+vezes o SIGA foi chamado em cada cenário — inclusive o pedido idêntico que **não** pode chamar de
+novo, o peso alterado que **precisa** de confirmação e a criação abandonada há 5 minutos, que não
+pode travar a avaliação para sempre.
+
+A auditoria desse fluxo fica em `auditoria`, com `acao = 'siga.criar-avaliacao'`, o professor em
+`ator`, o pedido enviado e a resposta do SIGA (ou o erro e o status HTTP, quando falha).
+
 ### O envio da foto no celular
 
 O upload sai do navegador direto para o Storage do Supabase, e o SDK **não aceita `AbortSignal`**.

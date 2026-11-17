@@ -159,6 +159,8 @@ que confundia "o SIGA recusou" com "não houve resposta".
 | A foto não abre na revisão | **"Tentar de novo"** (o link é temporário) | corrigir pela transcrição; pedir nova foto se necessário |
 | Transcrição ruim | comparar com a foto; ajustar o texto | pedir foto com mais luz / usar digitação |
 | “Serviço não respondeu” (`*_DEMOROU`) | banco, SIGA, OCR ou Storage passou do prazo: tentar de novo em instantes | se repetir, conferir `status.supabase.com` / o painel do SIGA / o provedor de visão |
+| “Já foi criada no SIGA” (`SIGA_JA_CRIADA`) | a avaliação existe lá com outros dados; criar de novo duplica. Confirme em “Criar de novo mesmo assim” só se a antiga estiver errada |
+| “Já estou criando” (`SIGA_EM_ANDAMENTO`) | outra requisição está no SIGA agora; espere alguns segundos e recarregue |
 | Correção automática falha | a própria mensagem diz o código: `LLM_INALCANCAVEL` (serviço fora do ar), `LLM_FALHOU` (status 401/500), `LLM_DEMOROU` (passou do prazo), `RESPOSTA_TRUNCADA` (aumente `LLM_MAX_TOKENS`), `RESPOSTA_INVALIDA` (modelo devolveu lixo) | `pnpm diagnostico` e `/api/saude`; se persistir, corrija à mão — a fila não trava |
 | Nota estranha no SIGA | conferir o **peso** da avaliação no app e no SIGA | "Peso no SIGA" na tela da avaliação alinha |
 | Conferir se a nota foi lançada | tela da avaliação → **Histórico de lançamentos** | mostra também as recusas, com a resposta do SIGA |
@@ -195,6 +197,7 @@ pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem mode
 pnpm test:a11y          # 16 telas no axe-core (leitor de tela, teclado, rótulos)
 pnpm test:rede          # prazo e mensagem quando banco, SIGA, OCR ou Storage não respondem
 pnpm test:envio         # envio da foto no celular: prazo, mensagem e chamadas /api
+pnpm test:siga:criar    # criar no SIGA: idempotência, confirmação de duplicata e auditoria
 ```
 
-Os nove últimos não precisam de credencial nenhuma: rodam contra a demonstração local.
+Os dez últimos não precisam de credencial nenhuma: rodam contra a demonstração local ou servidores falsos.

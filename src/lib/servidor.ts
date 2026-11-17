@@ -5,15 +5,19 @@
 export interface RespostaErro {
   erro: string
   detalhe?: string
+  codigo?: string
 }
 
 export class ErroApi extends Error {
   status: number
   detalhe?: string
-  constructor(mensagem: string, status: number, detalhe?: string) {
+  /** Código estável do servidor (`SIGA_JA_CRIADA`, `SIGA_EM_ANDAMENTO`…). */
+  codigo?: string
+  constructor(mensagem: string, status: number, detalhe?: string, codigo?: string) {
     super(mensagem)
     this.status = status
     this.detalhe = detalhe
+    this.codigo = codigo
   }
 }
 
@@ -95,7 +99,7 @@ export async function api<T>(
     // erro nosso vem sempre em JSON com `erro`; quando a plataforma corta a
     // requisição, o corpo é HTML e o status é 504/502 — vale explicar melhor
     const mensagem = obj.erro || MENSAGENS_DA_PLATAFORMA[resposta.status] || `Falha na comunicação (${resposta.status})`
-    throw new ErroApi(mensagem, resposta.status, obj.detalhe)
+    throw new ErroApi(mensagem, resposta.status, obj.detalhe, (json as { codigo?: string } | null)?.codigo)
   }
   return json as T
 }
