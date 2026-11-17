@@ -121,10 +121,11 @@ export function Entrar() {
       </form>
 
       <div className="mt-4 rounded-xl border border-azul/20 bg-azul-claro px-3.5 py-3 text-[13px] leading-snug text-azul">
-        <p className="font-medium">Primeiro acesso</p>
+        <p className="font-medium">Primeiro acesso do aluno</p>
         <p className="mt-0.5">
-          Use seu e-mail institucional nos dois campos: a senha inicial é o mesmo e-mail. Ao entrar,
-          o app pede a troca por uma senha só sua.
+          Alunos pré-cadastrados usam o e-mail institucional nos dois campos: a senha inicial é o
+          mesmo e-mail, e o app pede a troca por uma senha só sua. Professores usam a senha definida
+          no cadastro.
         </p>
       </div>
 
