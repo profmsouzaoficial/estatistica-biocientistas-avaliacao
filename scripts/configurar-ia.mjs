@@ -272,6 +272,10 @@ if (!pularDeploy) {
   }
 }
 
-console.log(`\n  ${VERDE}✓ IA configurada${FIM} — correção${foto ? ' e leitura de foto' : ''} publicada em produção.`)
+if (pularDeploy) {
+  console.log(`\n  ${VERDE}✓ IA configurada${FIM}${pularVercel ? ' no arquivo de segredos' : ' na Vercel'} — deploy pulado (--sem-deploy).`)
+} else {
+  console.log(`\n  ${VERDE}✓ IA configurada${FIM} — correção${foto ? ' e leitura de foto' : ''} publicada em produção.`)
+}
 if (!foto) console.log(`  ${FRACO}(sem --foto, a leitura da foto não foi testada)${FIM}`)
 console.log('\n  Guarde a chave em local seguro; ela não aparece de novo aqui.\n')

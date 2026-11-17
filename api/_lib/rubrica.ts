@@ -464,6 +464,14 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
 
     const dados = JSON.parse(bruto) as {
       choices?: { message?: { content?: string }; finish_reason?: string }[]
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+    }
+    // Custo é uma decisão do professor: com LLM_LOG_USAGE=1 cada correção diz
+    // quantos tokens gastou (o lote soma no fim). Fora isso, silêncio.
+    if (envOpcional('LLM_LOG_USAGE') === '1' && dados.usage) {
+      console.log(
+        `[llm] uso · prompt ${dados.usage.prompt_tokens ?? '?'} · resposta ${dados.usage.completion_tokens ?? '?'} · total ${dados.usage.total_tokens ?? '?'}`,
+      )
     }
     const escolha = dados.choices?.[0]
     const conteudo = escolha?.message?.content ?? ''
