@@ -337,6 +337,25 @@ function finalizar(bruto: string, modelo: string): ResultadoTranscricao {
       'Não encontrei texto manuscrito legível na foto. Tente outra foto, com mais luz e a folha inteira no enquadramento.',
     )
   }
+  // Modelo de OCR também entra em laço: numa foto densa, a DeepSeek já devolveu o
+  // mesmo parágrafo 17 vezes (31 mil caracteres para uma página). Sem esta guarda,
+  // o lixo entra na correção e a nota sai sobre um texto que o aluno não escreveu.
+  // Anda de 1 em 1 (e não de 20 em 20): o laço repete o parágrafo com um período
+  // que não é múltiplo do passo, e amostrar de 20 em 20 deixava o teste passar.
+  const janela = 80
+  const vistos = new Map<string, number>()
+  for (let i = 0; i + janela <= texto.length; i++) {
+    const bloco = texto.slice(i, i + janela)
+    const repeticoes = (vistos.get(bloco) ?? 0) + 1
+    vistos.set(bloco, repeticoes)
+    if (repeticoes >= 5) {
+      throw new ErroHttp(
+        422,
+        'OCR_REPETIDO',
+        'A leitura da foto se repetiu, como se o mesmo trecho tivesse sido escrito várias vezes. Tire outra foto com a folha inteira e bem iluminada — ou digite o texto, que vale como entrega.',
+      )
+    }
+  }
   if (texto.replace(/\s/g, '').length < 40) {
     throw new ErroHttp(
       422,

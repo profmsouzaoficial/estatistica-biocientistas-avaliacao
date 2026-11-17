@@ -84,6 +84,16 @@ const servidor = createServer((req, res) => {
           usage: { input_tokens: 1, output_tokens: 0, total_tokens: 1 },
         })
       }
+      if (estado.modo === 'repetida') {
+        // laço real: o mesmo parágrafo devolvido várias vezes, com finish "stop"
+        return json(200, {
+          id: 'ocr-5',
+          object: 'ocr.result',
+          purpose: 'text_recognition',
+          page_count: 1,
+          pages: [{ index: 0, text: Array(8).fill(TEXTO_LONGO).join('\n'), finish_reason: 'stop' }],
+        })
+      }
       if (estado.modo === 'curta') {
         return json(200, {
           id: 'ocr-3',
@@ -177,6 +187,15 @@ try {
   conferir('texto curto é recusado', false)
 } catch (e) {
   conferir('texto curto é recusado', ehErro(e, 'TEXTO_CURTO'), String(e?.codigo))
+}
+
+// 4b. laço do modelo (mesmo parágrafo repetido) não pode virar redação
+estado.modo = 'repetida'
+try {
+  await transcreverImagem(foto, 'image/jpeg')
+  conferir('leitura em laço é recusada', false)
+} catch (e) {
+  conferir('leitura em laço é recusada', ehErro(e, 'OCR_REPETIDO'), String(e?.codigo))
 }
 
 // 5. limites do serviço viram mensagens que o aluno entende
