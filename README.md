@@ -384,7 +384,33 @@ Três detalhes que a configuração não pode esquecer:
 - **página truncada não vira nota.** Se o OCR devolver `finish_reason: "length"`, o app recusa a
   transcrição (`OCR_INCOMPLETO`) e pede outra foto, em vez de corrigir metade da redação.
 
-`pnpm test:ocr:deepseek` (17 verificações) sobe um `/v1/tools/ocr` falso e confere o multipart enviado,
+#### O que a primeira prova real mostrou (17/11/2026)
+
+Teste com uma prova manuscrita de verdade (5 páginas, letra cursiva densa, foto de celular
+em A4 escaneado). O texto volta **fiel ao que está escrito** — nada de reescrever a redação —, mas
+a qualidade varia com a imagem, e o mesmo trecho pode sair diferente a cada chamada:
+
+| Entrada | Resultado |
+|---|---|
+| página a 170 dpi, 694 KB | 281 palavras, reconhecível, vários nomes trocados (`Haesbaert` → `Hausbacht`) |
+| página a 300 dpi, 1,5 MB | 281 palavras, praticamente igual |
+| página reduzida a 1800 px (o que o app envia) | 292 palavras, mesma qualidade |
+| recorte só da folha, cor | **laço**: o mesmo parágrafo 17 vezes, 31 mil caracteres, `finish_reason: length` |
+| recorte em cinza, autocontraste | 1.846 caracteres, sem laço, mesma qualidade |
+| recorte com nitidez extra | `SEM_TEXTO` — falso negativo |
+
+Conclusões que viraram código:
+
+- **resolução não é o gargalo** (1800 px rendeu como 300 dpi); não vale aumentar o peso da foto;
+- **`rich_layout_recognition` não serve para manuscrito** (devolveu texto vazio no mesmo arquivo);
+- **o modelo entra em laço** — daí a guarda `OCR_REPETIDO` (janela de 80 caracteres repetida 5×);
+- **`SEM_TEXTO` pode ser falso negativo** — a tela já oferece “digitar o texto”, que é a saída.
+
+Por isso o desenho mantém o aluno no circuito: a transcrição aparece para ele **conferir e corrigir**
+antes de enviar, e o professor vê a foto ao lado do texto na revisão. O OCR é ponto de partida, não
+a palavra final.
+
+`pnpm test:ocr:deepseek` (18 verificações) sobe um `/v1/tools/ocr` falso e confere o multipart enviado,
 a junção das páginas, os limites (429/400), o texto truncado, a foto sem texto e o prazo — sem gastar
 chamada. Para testar a leitura de verdade, `pnpm test:ocr:foto ~/redacao.jpg` (ou `--foto` no `configurar:ia`).
 
