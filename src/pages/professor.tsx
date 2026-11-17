@@ -655,6 +655,9 @@ export function ProfessorNovaAvaliacao() {
                   Buscar
                 </Botao>
               </div>
+              {buscandoSiga ? (
+                <p className="mt-1.5 text-[12.5px] leading-snug text-tinta-suave">Consultando o SIGA…</p>
+              ) : null}
               {erroSiga ? <p className="mt-1.5 text-[12.5px] leading-snug text-vermelho">{erroSiga}</p> : null}
               {opcoesSiga.length > 0 ? (
                 <ul className="mt-2 space-y-1.5">
