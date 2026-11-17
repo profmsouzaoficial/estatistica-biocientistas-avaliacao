@@ -173,6 +173,12 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       }
       const { error } = await sb.auth.updateUser({ password: novaSenha })
       if (error) throw new Error(error.message)
+      // Senha provisória (a inicial era o próprio e-mail) deixa de valer assim que
+      // a pessoa define uma senha só dela — o aviso some na próxima leitura do perfil.
+      const { data: atual } = await sb.auth.getUser()
+      if (atual.user) {
+        await sb.from('profiles').update({ precisa_trocar_senha: false }).eq('id', atual.user.id)
+      }
       // Quem trocou a senha por desconfiança precisa que os outros aparelhos saiam.
       await sb.auth.signOut({ scope: 'others' }).catch(() => undefined)
     },

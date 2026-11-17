@@ -52,6 +52,7 @@ export function Perfil() {
       setSenha('')
       setSenha2('')
       setMsgSenha({ tom: 'verde', texto: 'Senha alterada. Os outros aparelhos que estavam conectados saíram.' })
+      await recarregar()
     } catch (e) {
       setMsgSenha({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Falha ao alterar a senha.' })
     } finally {
@@ -65,6 +66,12 @@ export function Perfil() {
     <>
       <AppBar titulo="Meus dados" subtitulo={perfil.papel === 'professor' ? 'Professor' : 'Estudante'} />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-24">
+        {perfil.precisa_trocar_senha ? (
+          <Alerta tom="ambar" titulo="Sua senha ainda é a inicial">
+            Ela é igual ao seu e-mail. Escolha uma senha nova no cartão “Alterar senha”, abaixo.
+          </Alerta>
+        ) : null}
+
         <Cartao>
           <form onSubmit={salvarDados} className="space-y-3.5">
             <Campo rotulo="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} required />

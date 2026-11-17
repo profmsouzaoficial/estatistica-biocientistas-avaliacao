@@ -120,6 +120,14 @@ export function Entrar() {
         </Botao>
       </form>
 
+      <div className="mt-4 rounded-xl border border-azul/20 bg-azul-claro px-3.5 py-3 text-[13px] leading-snug text-azul">
+        <p className="font-medium">Primeiro acesso</p>
+        <p className="mt-0.5">
+          Use seu e-mail institucional nos dois campos: a senha inicial é o mesmo e-mail. Ao entrar,
+          o app pede que você defina uma senha só sua.
+        </p>
+      </div>
+
       {demo ? (
         <div className="mt-5 rounded-xl border border-borda bg-white p-3.5 text-[13px] leading-relaxed text-tinta-suave">
           <p className="font-medium text-tinta">Modo demonstração</p>

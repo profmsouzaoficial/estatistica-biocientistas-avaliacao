@@ -48,6 +48,16 @@ export function AlunoInicio() {
         subtitulo={nomeTurma || perfil?.curso || undefined}
       />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-24">
+        {perfil?.precisa_trocar_senha ? (
+          <Alerta tom="ambar" titulo="Defina uma senha só sua">
+            Sua senha inicial é o seu e-mail — quem souber o endereço consegue entrar. Troque agora em{' '}
+            <Link href="/perfil" className="font-medium underline">
+              Meus dados
+            </Link>
+            .
+          </Alerta>
+        ) : null}
+
         {erro ? <Alerta tom="vermelho" titulo="Não foi possível carregar">{erro}</Alerta> : null}
 
         {avaliacoes === null ? (

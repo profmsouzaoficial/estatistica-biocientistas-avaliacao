@@ -356,6 +356,34 @@ A trava saiu do `index.html` e quatro campos que ainda estavam em 13–14px na t
 `text-base` no celular e a fonte original a partir de `sm:`. No primeiro uso do novo teste, ele reprovou
 **4 das 16 telas** — todos eram campos de verdade, não falso positivo.
 
+### Pré-cadastro das turmas e alunos
+
+As listas do SIGA (CSV com matrícula, nome e e-mail institucional) alimentam as turmas, a lista de
+alunos esperados e as contas de acesso de uma vez:
+
+```bash
+# as listas ficam fora do repositório, em ~/.dsh/dados/2026-3/
+pnpm importar:listas -- --ensaio     # confere quantos alunos, sem gravar
+pnpm importar:listas                 # grava turmas, listas e contas
+```
+
+O nome do arquivo é o código do SIGA (`CBV018GV_A_2026_3.csv` → `CBV018GV-A`); a disciplina e o horário
+vêm do mapa `TURMAS`, dentro do script. Em 2026/3 são quatro turmas e 60 alunos:
+
+| Turma | Disciplina | Alunos |
+|---|---|---|
+| CBV018GV-A | Introdução à Bioestatística e à Ciência de Dados na Saúde | 7 |
+| CBV018GV-B | Introdução à Bioestatística e à Ciência de Dados na Saúde | 20 |
+| CBV044GV-A | Noções de Bioestatística | 31 |
+| EST006GV-A | Bioestatística | 2 |
+
+**Login e senha inicial são o mesmo e-mail institucional.** A conta já nasce com
+`profiles.precisa_trocar_senha = true`: ao entrar, o aluno vê o aviso “Defina uma senha só sua” na
+tela inicial e em *Meus dados*, e a marca desaparece quando ele troca a senha. A senha inicial fraca
+é uma decisão de operação — o aviso existe para que ninguém fique nela. O script é idempotente: quem
+já tem conta não é recriado; `--redefinir-senhas` devolve a senha inicial a todos (use só em caso de
+perda geral de acesso).
+
 ### Ligar a IA em um comando
 
 **Caminho recomendado: um provedor só, a API da DeepSeek.** Ela faz as duas etapas com a mesma chave:

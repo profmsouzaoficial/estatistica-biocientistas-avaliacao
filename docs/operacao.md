@@ -19,6 +19,20 @@ tempo leva. Os rótulos entre aspas são os textos que aparecem na tela.
 Sem o passo 6 o app funciona: o aluno digita o texto e você corrige à mão. Com ele, a IA sugere a nota e
 você aprova.
 
+### Quando as listas chegam em CSV do SIGA
+
+As turmas e os alunos podem ser pré-cadastrados de uma vez, sem passar tela por tela:
+
+```bash
+pnpm importar:listas -- --ensaio   # mostra quantos alunos por turma, sem gravar
+pnpm importar:listas               # grava turmas, listas e contas
+```
+
+A pasta padrão é `~/.dsh/dados/2026-3/`, com um arquivo por turma nomeado pelo código do SIGA
+(`CBV018GV_A_2026_3.csv`). O script cria a conta de cada aluno com **login = e-mail e senha inicial =
+e-mail** e liga `precisa_trocar_senha`; o app mostra o aviso até a troca. Rodar de novo não mexe em quem
+já tem conta.
+
 ---
 
 ### Publicar uma versão nova (quando o app muda)

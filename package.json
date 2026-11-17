@@ -12,6 +12,7 @@
     "test:e2e": "node e2e/smoke.mjs",
     "db:aplicar": "node scripts/aplicar-migrations.mjs",
     "professor:criar": "node scripts/criar-professor.mjs",
+    "importar:listas": "node scripts/importar-listas.mjs",
     "corrigir:lote": "node scripts/corrigir-pendentes.mjs",
     "diagnostico": "node scripts/diagnostico.mjs",
     "turma:planilha": "node scripts/importar-siga.mjs",
