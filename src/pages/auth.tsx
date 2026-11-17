@@ -124,7 +124,7 @@ export function Entrar() {
         <p className="font-medium">Primeiro acesso</p>
         <p className="mt-0.5">
           Use seu e-mail institucional nos dois campos: a senha inicial é o mesmo e-mail. Ao entrar,
-          o app pede que você defina uma senha só sua.
+          o app pede a troca por uma senha só sua.
         </p>
       </div>
 
