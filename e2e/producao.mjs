@@ -223,7 +223,7 @@ try {
   await page.getByText(new RegExp(`Teste de produção ${SUFIXO}`)).first().waitFor({ timeout: 40000 })
   await foto(page, 'prod-03-aluno-inicio')
 
-  passo('6/10 aluno fotografa e envia (OCR desligado → digita o texto)')
+  passo('6/10 aluno fotografa e envia')
   await page.getByText(new RegExp(`Teste de produção ${SUFIXO}`)).first().click()
   await page.getByRole('button', { name: /Fotografar minha redação/ }).click()
   await page.waitForURL(/\/enviar$/)
@@ -231,9 +231,19 @@ try {
   await writeFile(arquivo, await paginaEscaneada(navegador))
   await page.locator('input[type=file]').first().setInputFiles(arquivo)
   await page.getByRole('button', { name: 'Usar esta foto' }).click()
-  await page.getByText('Transcrição digitada').waitFor({ timeout: 40000 })
-  await page.getByText(/transcrição automática ainda não está configurada/).waitFor()
-  await page.getByLabel('Texto da sua redação').fill(TEXTO)
+  // A tela tem dois caminhos: com a IA ligada, mostra a transcrição lida; sem ela,
+  // pede o texto digitado. O teste aceita os dois — antes ele exigia o segundo e
+  // passou a falhar no dia em que a produção ganhou OCR de verdade.
+  await page.getByText(/Confira a transcrição|Transcrição digitada/).waitFor({ timeout: 90000 })
+  const caixaTexto = page.getByLabel('Texto da sua redação')
+  const lido = (await caixaTexto.inputValue()).trim()
+  const palavrasLidas = lido ? lido.split(/\s+/).length : 0
+  if (palavrasLidas < 20) {
+    await caixaTexto.fill(TEXTO)
+    console.log('     sem transcrição utilizável — texto digitado')
+  } else {
+    console.log(`     transcrição automática: ${palavrasLidas} palavras`)
+  }
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Enviar redação' }).click()
   await page.getByText('Redação enviada').waitFor({ timeout: 40000 })
