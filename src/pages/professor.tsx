@@ -355,6 +355,40 @@ export function ProfessorNovaAvaliacao() {
   }
 
   const turmaSelecionada = turmas.find((t) => t.id === turmaId) ?? null
+  const sigaConfere =
+    descricaoSiga.trim() !== '' &&
+    opcoesSiga.some((a) => a.descricao.trim().toLowerCase() === descricaoSiga.trim().toLowerCase())
+
+  // Ao escolher a turma, já consulta o SIGA: o professor vê as TVCs existentes
+  // sem precisar descobrir o botão. O botão continua lá para atualizar.
+  useEffect(() => {
+    if (!turmaId || !d) return
+    let vivo = true
+    const turma = turmas.find((t) => t.id === turmaId)
+    if (!turma) return
+    setErroSiga(null)
+    setBuscandoSiga(true)
+    setOpcoesSiga([])
+    d.avaliacoesDoSiga(turma.codigo_siga, turma.periodo)
+      .then((quadro) => {
+        if (!vivo) return
+        setOpcoesSiga(quadro.avaliacoes)
+        if (quadro.avaliacoes.length === 0) {
+          setErroSiga('Nenhuma avaliação no SIGA para esta turma. Crie a TVC no SIGA ou salve como rascunho.')
+        }
+      })
+      .catch((e) => {
+        if (vivo) setErroSiga(e instanceof Error ? e.message : 'Não foi possível consultar o SIGA.')
+      })
+      .finally(() => {
+        if (vivo) setBuscandoSiga(false)
+      })
+    return () => {
+      vivo = false
+    }
+    // buscarSiga usa o estado atual da turma; o efeito roda quando a turma muda
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turmaId, d, turmas])
 
   async function buscarSiga() {
     if (!d || !turmaSelecionada) return
@@ -395,6 +429,11 @@ export function ProfessorNovaAvaliacao() {
     if (total <= 0) return setErro('O valor total precisa ser maior que zero.')
     if (rubrica.some((c) => !c.nome.trim())) return setErro('Todo critério precisa de um nome.')
     if (!somaOk) return setErro(`A rubrica soma ${soma} mas o valor total é ${total}.`)
+    if (publicar && !descricaoSiga.trim()) {
+      return setErro(
+        'Para publicar, informe a descrição da avaliação no SIGA (ex.: TVC 1). Sem ela o lançamento de notas não tem para onde ir. Se a TVC ainda não existe, salve como rascunho.',
+      )
+    }
     // O banco também recusa prazo antes da abertura, mas a mensagem dele não
     // explica o que fazer — esta explica.
     const prazoOk = validarPrazoCriacao(prazo)
@@ -646,7 +685,14 @@ export function ProfessorNovaAvaliacao() {
               value={descricaoSiga}
               onChange={(e) => setDescricaoSiga(e.target.value)}
               placeholder="TVC 1"
+              dica="É o campo descricao_avaliacao da API do SIGA; precisa ser idêntico ao nome da TVC."
             />
+            {descricaoSiga.trim() && opcoesSiga.length > 0 && !sigaConfere ? (
+              <p className="text-[12.5px] leading-snug text-ambar">
+                Essa descrição não aparece na lista do SIGA. Confira maiúsculas, acentos e o número da TVC — ou crie a
+                avaliação no SIGA antes de publicar.
+              </p>
+            ) : null}
             <div className="grid grid-cols-2 gap-3">
               <Campo
                 rotulo="Peso no SIGA"
@@ -661,6 +707,15 @@ export function ProfessorNovaAvaliacao() {
                 dica="O padrão acompanha o valor total. Se o SIGA usar outro peso, a nota é convertida proporcionalmente."
               />
               <Campo rotulo="Data no SIGA" type="date" value={dataSiga} onChange={(e) => setDataSiga(e.target.value)} />
+            </div>
+            <div className="rounded-lg bg-papel-fundo px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-tinta-suave">
+              <p className="mb-1 font-sans text-[11px] font-medium uppercase tracking-wide text-tinta-fraca">
+                O que será enviado ao SIGA
+              </p>
+              <div>turma: {turmaSelecionada?.codigo_siga ?? '—'}</div>
+              <div>periodo: {turmaSelecionada?.periodo ?? '—'}</div>
+              <div>descricao_avaliacao: {descricaoSiga.trim() || '—'}</div>
+              <div>notas_json: {'{'} matrícula: nota {'}'} (montado na revisão)</div>
             </div>
           </Cartao>
 
