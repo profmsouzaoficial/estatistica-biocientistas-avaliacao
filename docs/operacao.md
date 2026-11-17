@@ -198,6 +198,7 @@ pnpm test:a11y          # 16 telas no axe-core (leitor de tela, teclado, rótulo
 pnpm test:rede          # prazo e mensagem quando banco, SIGA, OCR ou Storage não respondem
 pnpm test:envio         # envio da foto no celular: prazo, mensagem e chamadas /api
 pnpm test:siga:criar    # criar no SIGA: idempotência, confirmação de duplicata e auditoria
+pnpm test:ocr:deepseek  # leitura da foto pela DeepSeek: multipart, páginas, limites e prazo
 ```
 
 Os dez últimos não precisam de credencial nenhuma: rodam contra a demonstração local ou servidores falsos.

@@ -5,6 +5,8 @@
  *   pnpm configurar:ia --ensaio \
  *     --base https://llm.sualoja.coolify.app/v1 --modelo Qwen2.5-7B-Instruct --chave sk-...
  *
+ *   pnpm configurar:ia --deepseek --chave sk-...                      (um provedor só)
+ *
  *   pnpm configurar:ia --base ... --modelo ... --chave ...            (grava e publica)
  *   pnpm configurar:ia ... --visao-modelo Qwen2.5-VL-7B-Instruct      (modelo que enxerga)
  *   pnpm configurar:ia ... --visao-base URL --visao-chave K           (visão em outro serviço)
@@ -19,9 +21,10 @@
  *
  * `--ensaio` mostra tudo isso sem escrever nada — nem arquivo, nem Vercel.
  *
- * Sobre a visão: o app aceita qualquer endpoint compatível com OpenAI. Se o
- * modelo do Coolify enxerga imagem (Qwen2.5-VL, MiniCPM-V, Llama 3.2 Vision),
- * basta `--visao-modelo` e a MESMA chave/base — não precisa de Google Cloud.
+ * Sobre a visão: com `--deepseek`, a leitura da foto usa o `/v1/tools/ocr` da
+ * própria DeepSeek com a MESMA chave — um provedor, uma fatura. Os outros
+ * caminhos continuam aceitos: modelo compatível com OpenAI que enxerga imagem
+ * (`--visao-modelo`) ou Cloud Vision (VISION_PROVIDER=google-cloud).
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
@@ -35,8 +38,9 @@ const ler = (nome) => {
 }
 const ensaio = args.includes('--ensaio')
 
-const base = ler('--base')?.replace(/\/+$/, '')
-const modelo = ler('--modelo')
+const deepseek = args.includes('--deepseek')
+const base = (ler('--base') ?? (deepseek ? 'https://api.deepseek.com' : undefined))?.replace(/\/+$/, '')
+const modelo = ler('--modelo') ?? (deepseek ? 'deepseek-v4-pro' : undefined)
 const chave = ler('--chave')
 const visaoBase = (ler('--visao-base') ?? base)?.replace(/\/+$/, '')
 const visaoModelo = ler('--visao-modelo')
@@ -64,6 +68,7 @@ console.log(`\n  Configurar a IA · Análise de Dados para Biocientistas${ensaio
 if (!base || !modelo || !chave) {
   falhar(
     'faltam dados. Uso:\n' +
+      '    pnpm configurar:ia --deepseek --chave sk-...                       (DeepSeek para ler e corrigir)\n' +
       '    pnpm configurar:ia --ensaio --base https://SEU-SERVICO/v1 --modelo NOME --chave sk-...\n' +
       '    (--visao-modelo NOME se o mesmo modelo lê imagem; --visao-base/--visao-chave se a visão é outro serviço)',
   )
@@ -76,6 +81,13 @@ const planejado = [
   ['LLM_MAX_TOKENS', ler('--max-tokens') ?? '2000'],
   ['LLM_TIMEOUT_MS', ler('--timeout') ?? '55000'],
 ]
+if (deepseek) {
+  planejado.push(['VISION_PROVIDER', 'deepseek'])
+  planejado.push(['VISION_BASE_URL', 'https://api.deepseek.com'])
+  planejado.push(['VISION_API_KEY', chave])
+  planejado.push(['LLM_JSON_MODE', '1'])
+  planejado.push(['LLM_SEM_PENSAMENTO', '1'])
+}
 if (visaoModelo) {
   planejado.push(['VISION_PROVIDER', 'openai'])
   planejado.push(['VISION_BASE_URL', visaoBase])

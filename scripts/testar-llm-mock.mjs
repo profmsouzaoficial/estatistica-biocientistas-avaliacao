@@ -157,6 +157,7 @@ function configurar(extra = {}) {
   delete process.env.LLM_MAX_TOKENS
   delete process.env.LLM_MAX_PALAVRAS
   delete process.env.LLM_JSON_MODE
+  delete process.env.LLM_SEM_PENSAMENTO
   Object.assign(process.env, extra)
 }
 
@@ -265,6 +266,21 @@ conferir(
   'LLM_JSON_MODE pede JSON estrito ao servidor',
   estado.corpo?.response_format?.type === 'json_object',
   JSON.stringify(estado.corpo?.response_format),
+)
+
+// A DeepSeek liga o "pensamento" por padrão; para corrigir queremos JSON fechado
+// e o mesmo resultado para o mesmo texto, sem rascunho de raciocínio antes.
+await caso('ok', { LLM_SEM_PENSAMENTO: '1' })
+conferir(
+  'LLM_SEM_PENSAMENTO desliga o raciocínio',
+  estado.corpo?.thinking?.type === 'disabled',
+  JSON.stringify(estado.corpo?.thinking),
+)
+await caso('ok')
+conferir(
+  'sem o ajuste, nenhum campo “thinking” vai ao servidor',
+  estado.corpo?.thinking === undefined,
+  JSON.stringify(estado.corpo?.thinking ?? null),
 )
 
 // limpeza

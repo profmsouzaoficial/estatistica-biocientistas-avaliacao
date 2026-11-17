@@ -5,7 +5,7 @@ import { AppBar, Cartao } from '../components/ui'
 /**
  * Aviso de privacidade em linguagem direta.
  * Regra desta página: só afirmar o que o código realmente faz. Onde o dado sai do
- * Brasil (Supabase em us-west-2 e o OCR de nuvem), isso está escrito com todas as
+ * Brasil (Supabase em us-west-2 e a leitura da foto em nuvem), isso está escrito com todas as
  * letras — é o ponto que a LGPD (arts. 33–36) exige deixar claro.
  */
 export function Privacidade() {
@@ -74,13 +74,15 @@ export function Privacidade() {
             </li>
             <li>
               <strong className="font-medium text-tinta">Leitura da foto (OCR):</strong> quando a correção automática
-              está ligada, a imagem é processada pelo <strong>Google Cloud Vision</strong>, contratado para essa função
-              (o processamento acontece nos servidores do Google, fora do Brasil). A imagem vai sem nome, matrícula
-              ou e-mail. Sem esse serviço, o próprio aluno digita o texto e a foto fica só como comprovante.
+              está ligada, a imagem é processada pela <strong>API da DeepSeek</strong>, contratada para essa função
+              (o processamento acontece nos servidores da DeepSeek, fora do Brasil). A imagem vai sem nome, matrícula
+              ou e-mail — só a folha da redação. Sem esse serviço, o próprio aluno digita o texto e a foto fica só
+              como comprovante.
             </li>
             <li>
-              <strong className="font-medium text-tinta">Modelo de correção:</strong> é um Llama hospedado em
-              servidor do próprio professor, e recebe o texto da redação sem o seu nome, a matrícula ou o e-mail.
+              <strong className="font-medium text-tinta">Modelo de correção:</strong> também é a API da DeepSeek. Ela
+              recebe o texto da redação, os critérios da avaliação e a matrícula apenas como número de controle —
+              sem nome, e-mail, telefone ou foto do aluno.
             </li>
           </ul>
         </Cartao>

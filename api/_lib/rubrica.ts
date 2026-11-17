@@ -403,6 +403,14 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
   // Alguns servidores (llama.cpp, vLLM, OpenRouter) aceitam modo JSON estrito.
   if (envOpcional('LLM_JSON_MODE') === '1') corpo.response_format = { type: 'json_object' }
 
+  // A DeepSeek liga o "pensamento" por padrão (reasoning_effort alto). Para
+  // corrigir queremos: resposta curta, JSON fechado e a mesma nota para o mesmo
+  // texto — não um rascunho de raciocínio antes do JSON. Desligar também evita
+  // gastar segundos e tokens que o prazo de 55 s não tem. Só mandamos o campo para
+  // a própria DeepSeek: outros servidores podem recusar parâmetro desconhecido.
+  const semPensamento = envOpcional('LLM_SEM_PENSAMENTO') === '1' || /(^|\.)deepseek\.com/i.test(base)
+  if (semPensamento) corpo.thinking = { type: 'disabled' }
+
   const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`
 
   // Sem prazo, um modelo travado fica até a hospedagem matar a função — e aí o

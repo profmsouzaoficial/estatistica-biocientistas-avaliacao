@@ -358,16 +358,38 @@ A trava saiu do `index.html` e quatro campos que ainda estavam em 13–14px na t
 
 ### Ligar a IA em um comando
 
-A correção precisa de um LLM compatível com OpenAI (o Llama no Coolify, por exemplo) e a leitura da foto
-precisa de um modelo que enxergue imagem. **Podem ser o mesmo serviço:** se o modelo for multimodal
-(Qwen2.5-VL, MiniCPM-V, Llama 3.2 Vision), o mesmo endpoint e a mesma chave servem para as duas etapas —
-não é obrigatório ter Google Cloud.
+**Caminho recomendado: um provedor só, a API da DeepSeek.** Ela faz as duas etapas com a mesma chave:
+
+| Etapa | Endpoint | O que volta |
+|---|---|---|
+| ler a foto | `POST https://api.deepseek.com/v1/tools/ocr` (multipart, `purpose=text_recognition`) | `pages[].text` — texto da página, sem passar por modelo de chat |
+| corrigir | `POST https://api.deepseek.com/chat/completions` (`deepseek-v4-pro`) | JSON da rubrica: nota por critério, pontos fortes e a desenvolver |
 
 ```bash
-pnpm configurar:ia --ensaio \
-  --base https://SEU-SERVICO.coolify.app/v1 --modelo Qwen2.5-7B-Instruct --chave sk-... \
-  --visao-modelo Qwen2.5-VL-7B-Instruct --foto ~/redacao.jpg
+pnpm configurar:ia --deepseek --chave sk-... --foto ~/redacao.jpg
 ```
+
+O `--deepseek` preenche `LLM_BASE_URL=https://api.deepseek.com`, `LLM_MODEL=deepseek-v4-pro`,
+`VISION_PROVIDER=deepseek`, `LLM_JSON_MODE=1` e `LLM_SEM_PENSAMENTO=1` — e usa `LLM_API_KEY` também na
+leitura, porque exigir duas chaves do mesmo fornecedor só cria chance de errar uma.
+
+Três detalhes que a configuração não pode esquecer:
+
+- **desligar o “pensamento”.** A DeepSeek liga `reasoning_effort: high` por padrão; sem
+  `thinking: {type: "disabled"}` a resposta vem com raciocínio antes do JSON e demora o que o prazo de
+  55 s não tem. O app manda o campo só quando `LLM_SEM_PENSAMENTO=1` ou quando o endereço é
+  `api.deepseek.com` — servidores locais podem recusar parâmetro desconhecido.
+- **modo JSON.** `LLM_JSON_MODE=1` pede `response_format: json_object`; sem ele o modelo às vezes
+  devolve o JSON dentro de um bloco de código e a correção falha na leitura.
+- **página truncada não vira nota.** Se o OCR devolver `finish_reason: "length"`, o app recusa a
+  transcrição (`OCR_INCOMPLETO`) e pede outra foto, em vez de corrigir metade da redação.
+
+`pnpm test:ocr:deepseek` (17 verificações) sobe um `/v1/tools/ocr` falso e confere o multipart enviado,
+a junção das páginas, os limites (429/400), o texto truncado, a foto sem texto e o prazo — sem gastar
+chamada. Para testar a leitura de verdade, `pnpm test:ocr:foto ~/redacao.jpg` (ou `--foto` no `configurar:ia`).
+
+Os caminhos antigos continuam valendo — modelo multimodal em `/v1` compatível com OpenAI
+(`--visao-modelo Qwen2.5-VL-7B-Instruct`) ou Cloud Vision (`VISION_PROVIDER=google-cloud`):
 
 Sem `--ensaio` (que só mostra o plano), o script: grava as variáveis em `~/.dsh/secrets/avaliacoes.env`
 sem apagar as que já existem, publica as mesmas na Vercel (Production, `encrypted`), refaz o deploy, roda

@@ -6,10 +6,15 @@
  * visão em nuvem, e o resultado vira texto para o corretor.
  *
  * Provedores aceitos em VISION_PROVIDER:
+ *   - deepseek             → /v1/tools/ocr da DeepSeek (recomendado: devolve o texto
+ *     da página sem passar por um modelo de chat, então não "arruma" a escrita)
  *   - openrouter / openai  → qualquer endpoint compatível com /chat/completions
  *   - google               → Gemini (generativelanguage.googleapis.com)
- *   - google-cloud         → Cloud Vision, DOCUMENT_TEXT_DETECTION (melhor em letra
- *     manuscrita; aceita chave de API simples ou o JSON da conta de serviço)
+ *   - google-cloud         → Cloud Vision, DOCUMENT_TEXT_DETECTION (aceita chave de
+ *     API simples ou o JSON da conta de serviço)
+ *
+ * Com VISION_PROVIDER=deepseek, a mesma LLM_API_KEY serve para ler e para corrigir:
+ * um provedor só, uma fatura só.
  */
 import { createSign } from 'node:crypto'
 import { ErroHttp, buscar, envOpcional } from './http.js'
@@ -35,11 +40,14 @@ export function provedorDeVisao(): string {
 }
 
 export function ocrConfigurado(): boolean {
-  return Boolean(envOpcional('VISION_API_KEY'))
+  if (envOpcional('VISION_API_KEY')) return true
+  // DeepSeek usa a chave da correção para ler a foto: não faz sentido exigir duas.
+  return provedorDeVisao() === 'deepseek' && Boolean(envOpcional('LLM_API_KEY'))
 }
 
 export async function transcreverImagem(bytes: ArrayBuffer, mimetype: string): Promise<ResultadoTranscricao> {
-  const chave = envOpcional('VISION_API_KEY')
+  const provedor = provedorDeVisao()
+  const chave = envOpcional('VISION_API_KEY') ?? (provedor === 'deepseek' ? envOpcional('LLM_API_KEY') : undefined)
   if (!chave) {
     throw new ErroHttp(
       503,
@@ -48,7 +56,10 @@ export async function transcreverImagem(bytes: ArrayBuffer, mimetype: string): P
     )
   }
 
-  const provedor = provedorDeVisao()
+  if (provedor === 'deepseek') {
+    return transcricaoDeepSeek(chave, bytes, mimetype)
+  }
+
   const base64 = Buffer.from(bytes).toString('base64')
 
   if (provedor === 'google' || provedor === 'gemini') {
@@ -72,13 +83,77 @@ export async function transcreverImagem(bytes: ArrayBuffer, mimetype: string): P
  * ambiente não muda, mas em teste (e no lote) muda. Foi assim que o OCR do teste
  * esperou 25 s e devolveu "sem texto legível" quando o serviço só estava lento.
  */
-const configOcr = (servico = 'serviço de leitura da foto (OCR)') => ({
+const configOcr = (servico = 'serviço de leitura da foto (OCR)', prazoPadrao = 25_000) => ({
   servico,
   dica: 'A redação não foi transcrita. Tente de novo; se persistir, digite o texto — ele vale como entrega.',
-  prazoMs: Number(envOpcional('OCR_TIMEOUT_MS') ?? 25_000),
+  prazoMs: Number(envOpcional('OCR_TIMEOUT_MS') ?? prazoPadrao),
   codigoRede: 'OCR_INALCANCAVEL',
   codigoTempo: 'OCR_DEMOROU',
 })
+
+/**
+ * OCR da DeepSeek — `POST /v1/tools/ocr` (multipart).
+ *
+ * O texto vem da página, não de um modelo de chat: ele não reescreve a redação do
+ * aluno "para melhorar". Uma redação tem uma página; se vier mais de uma, juntamos
+ * em ordem. Se alguma página vier truncada (`finish_reason: "length"`), preferimos
+ * recusar a entregar meia redação para correção — a nota sairia injusta.
+ */
+const EXTENSAO_POR_TIPO: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+}
+
+async function transcricaoDeepSeek(chave: string, bytes: ArrayBuffer, mimetype: string): Promise<ResultadoTranscricao> {
+  const base = (envOpcional('VISION_BASE_URL') ?? 'https://api.deepseek.com').replace(/\/+$/, '')
+  const tipo = mimetype || 'image/jpeg'
+  const arquivo = new Blob([bytes], { type: tipo })
+  const formulario = new FormData()
+  formulario.append('purpose', 'text_recognition')
+  formulario.append('file', arquivo, `redacao.${EXTENSAO_POR_TIPO[tipo] ?? 'jpg'}`)
+
+  const resposta = await buscar(
+    `${base}/v1/tools/ocr`,
+    { method: 'POST', headers: { Authorization: `Bearer ${chave}` }, body: formulario },
+    // A DeepSeek aceita até 180 s no total; 35 s é o que uma página leva com folga
+    // e ainda cabe no orçamento da função e no prazo que o navegador espera.
+    configOcr('leitura da foto (OCR da DeepSeek)', 35_000),
+  )
+
+  const bruto = await resposta.text()
+  if (!resposta.ok) {
+    const dica =
+      resposta.status === 413
+        ? 'A foto é grande demais para a leitura. Tire outra em resolução menor.'
+        : resposta.status === 429
+          ? 'A leitura está ocupada agora. Tente de novo em alguns segundos.'
+          : resposta.status === 400
+            ? 'A leitura não aceitou o arquivo. Tire outra foto (JPEG ou PNG).'
+            : 'A leitura da foto falhou. Tente de novo; se persistir, digite o texto.'
+    throw new ErroHttp(502, 'OCR_FALHOU', `A DeepSeek respondeu ${resposta.status}. ${dica}`, bruto.slice(0, 600))
+  }
+
+  let dados: { pages?: { index?: number; text?: string; finish_reason?: string }[] }
+  try {
+    dados = JSON.parse(bruto) as typeof dados
+  } catch {
+    throw new ErroHttp(502, 'OCR_FALHOU', 'A leitura da foto respondeu algo que não é JSON.', bruto.slice(0, 600))
+  }
+
+  const paginas = dados.pages ?? []
+  if (paginas.some((p) => p.finish_reason === 'length')) {
+    throw new ErroHttp(
+      422,
+      'OCR_INCOMPLETO',
+      'A leitura parou no meio da página — a foto tem texto demais ou pouco contraste. Tire outra, com a folha inteira e boa luz.',
+    )
+  }
+  const conteudo = paginas.map((p) => p.text ?? '').join('\n\n')
+  return finalizar(conteudo, 'deepseek:ocr')
+}
 
 async function transcricaoCompativel(chave: string, base64: string, mimetype: string): Promise<ResultadoTranscricao> {
   const base = (envOpcional('VISION_BASE_URL') ?? 'https://openrouter.ai/api/v1').replace(/\/+$/, '')

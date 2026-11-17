@@ -50,7 +50,8 @@
     "test:a11y": "node e2e/acessibilidade.mjs",
     "test:rede": "node scripts/testar-rede.mjs",
     "test:envio": "node scripts/testar-envio.mjs",
-    "test:siga:criar": "node scripts/testar-siga-criar.mjs"
+    "test:siga:criar": "node scripts/testar-siga-criar.mjs",
+    "test:ocr:deepseek": "node scripts/testar-ocr-deepseek.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
