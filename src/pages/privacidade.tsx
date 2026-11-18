@@ -54,8 +54,9 @@ export function Privacidade() {
               opcionais.
             </li>
             <li>
-              <strong className="font-medium text-tinta">Frequência:</strong> a presença registrada pelo professor
-              em cada aula. É um registro do app, separado da frequência oficial do SIGA.
+              <strong className="font-medium text-tinta">Frequência:</strong> a presença ou ausência registrada pelo
+              professor em cada aula e a contagem de faltas que o app calcula a partir dela. É um registro do app,
+              separado da frequência oficial do SIGA.
             </li>
             <li>
               <strong className="font-medium text-tinta">Registro técnico:</strong> data e hora do envio, do

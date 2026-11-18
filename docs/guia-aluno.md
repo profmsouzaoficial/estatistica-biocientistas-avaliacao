@@ -40,7 +40,7 @@ abaixo” — e a tela já traz o campo para pedir um novo. Você não precisa a
 
 ![Tela inicial do aluno com as avaliações](img/aluno-inicio.png)
 
-Cada cartão é uma avaliação. O selo à direita diz em que pé você está:
+Abaixo do cartão **Sua frequência**, cada cartão é uma avaliação. O selo à direita diz em que pé você está:
 
 | Selo | Significado |
 |---|---|
@@ -175,6 +175,13 @@ diagnóstico psicológico, não vale nota e não deve ser usado para rotular col
 A chamada é feita pelo professor, no painel dele, por turma e data. O aluno não marca a própria
 presença. A frequência do app é **independente da frequência oficial do SIGA**: se houver
 diferença, vale a que está no SIGA.
+
+Na **tela inicial**, o cartão **Sua frequência** mostra quantas faltas você tem na turma, quantas
+horas isso representa, quantas aulas já tiveram chamada e a sua situação. No critério da
+disciplina, **5 faltas equivalem a 15 horas** (3 h por aula) e levam à reprovação por falta. Ao
+chegar a 5, o cartão fica com o aviso em vermelho. A conta soma todas as chamadas que o professor
+já salvou nesta turma; uma data sem chamada não vira falta. Se você discordar de uma marcação,
+fale com o professor — o app não corrige a chamada sozinho.
 
 O que o app guarda, por quê e por quanto tempo está em **Privacidade**, no rodapé. Em resumo:
 nome, matrícula, e-mail, curso, a foto do perfil, o resultado do teste, a foto e o texto da

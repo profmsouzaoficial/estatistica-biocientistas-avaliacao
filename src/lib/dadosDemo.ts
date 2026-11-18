@@ -24,6 +24,7 @@ import type {
   Criterio,
   Esperado,
   LancamentoSiga,
+  MinhaFrequencia,
   Perfil,
   ResumoAvaliacao,
   StatusAvaliacao,
@@ -33,6 +34,7 @@ import type {
 } from './types'
 
 import { estrategiaDoResultado, papelDoTipoBase } from './personalidade'
+import { LIMITE_FALTAS, HORAS_POR_FALTA, faltasPorMatricula, resumirFrequencia } from './frequencia'
 
 const CHAVE = 'eba.demo.v2'
 const SENHA_DEMO = 'demo12345'
@@ -57,6 +59,11 @@ interface Base {
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2))
 const agora = () => new Date().toISOString()
 const dias = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString()
+const dataDias = (n: number) => {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 /** Avatar ilustrativo do modo demo, sem depender de rede. */
 function avatarDemo(iniciais: string, cor: string): string {
@@ -364,6 +371,36 @@ Em populações de baixa prevalência, um teste muito sensível pode gerar muito
     },
   ]
 
+  // Chamadas já encerradas, para o aluno e o professor verem a contagem de
+  // faltas no modo demonstração. Hoje fica de fora de propósito: o teste da
+  // chamada começa numa data ainda sem registro.
+  const datasDeAula = [-28, -21, -14, -7, -2].map(dataDias)
+  const ausenciasDemo: Record<string, number[]> = {
+    '2026301001': [2], // Ana: 1 falta
+    '2026301002': [1, 4], // Carlos: 2 faltas
+    '2026301004': [0, 2, 3, 4], // Diego: 4 faltas, perto do limite
+    '2026301003': [0, 1, 2, 3, 4], // Juliana: 5 faltas, no limite
+  }
+  const frequenciasDemo: Frequencia[] = []
+  datasDeAula.forEach((data, indice) => {
+    for (const aluno of alunos.filter((a) => a.papel === 'aluno')) {
+      const matricula = aluno.matricula!
+      const ausente = (ausenciasDemo[matricula] ?? []).includes(indice)
+      frequenciasDemo.push({
+        id: `freq-demo-${indice}-${matricula}`,
+        turma_id: turmaId,
+        aluno_id: aluno.id,
+        matricula,
+        nome_completo: aluno.nome_completo,
+        data_aula: data,
+        presente: !ausente,
+        registrado_por: 'prof-demo',
+        criado_em: `${data}T18:00:00-03:00`,
+        atualizado_em: `${data}T18:00:00-03:00`,
+      })
+    }
+  })
+
   return {
     turmas: [
       {
@@ -420,7 +457,7 @@ Em populações de baixa prevalência, um teste muito sensível pode gerar muito
         criado_em: dias(-1).replace(/T\d/, 'T1'),
       },
     ],
-    frequencias: [],
+    frequencias: frequenciasDemo,
     fotos: {},
     sessaoId: null,
   }
@@ -858,6 +895,21 @@ export function criarDadosDemo(): Dados {
 
     async frequenciaDaTurma(turmaId, dataAula) {
       return (base.frequencias ?? []).filter((f) => f.turma_id === turmaId && f.data_aula === dataAula)
+    },
+
+    async faltasDaTurma(turmaId) {
+      return faltasPorMatricula(
+        (base.frequencias ?? []).filter((f) => f.turma_id === turmaId),
+      )
+    },
+
+    async minhaFrequencia(): Promise<MinhaFrequencia> {
+      const perfil = exigir()
+      const registros = (base.frequencias ?? []).filter(
+        (f) => f.turma_id === perfil.turma_id && f.matricula === perfil.matricula,
+      )
+      const resumo = resumirFrequencia(registros)
+      return { ...resumo, limite: LIMITE_FALTAS, horas_por_falta: HORAS_POR_FALTA }
     },
 
     async salvarFrequencia(turmaId, dataAula, registros: RegistroFrequencia[]) {

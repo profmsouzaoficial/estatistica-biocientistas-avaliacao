@@ -3,7 +3,7 @@ import { CheckCircle2, FileUp, Plus, Trash2, UserPlus } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
-import { plural } from '../lib/formato'
+import { plural, rotuloDaTurma } from '../lib/formato'
 import type { Esperado, Turma } from '../lib/types'
 import type { ResumoTurma } from '../lib/dados'
 import { decodificarArquivo, interpretarCsv } from '../lib/csv'
@@ -210,7 +210,7 @@ export function ProfessorAlunos() {
                   <option value="">Selecione…</option>
                   {turmas.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.curso} · {t.codigo_siga} · {t.periodo} — {t.nome}
+                      {rotuloDaTurma(t)}
                     </option>
                   ))}
                 </select>

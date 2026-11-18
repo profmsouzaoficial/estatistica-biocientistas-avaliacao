@@ -147,10 +147,16 @@ export function Ajuda() {
             <Brain className="size-4 text-marinho" aria-hidden /> 7. Frequência
           </h2>
           <p className="texto-corrido">
-            A frequência é registrada pelo professor, aula a aula, no painel dele. O app não altera sozinho a
-            frequência oficial do SIGA; se houver diferença, vale o que estiver no SIGA. Sua foto e seu
-            resultado de personalidade ajudam o professor a identificar a turma na chamada, mas não são usados
-            para calcular presença.
+            A frequência é registrada pelo professor, aula a aula, no painel dele. Na sua tela inicial, o cartão{' '}
+            <strong>Sua frequência</strong> mostra quantas faltas você tem na turma, quantas horas isso representa e
+            quantas aulas já tiveram chamada. No critério da disciplina, <strong>5 faltas (15 h)</strong> levam à
+            reprovação por falta; ao chegar a 5, o cartão fica com o aviso em vermelho. A conta soma as chamadas
+            salvas nesta turma — uma data sem chamada não vira falta.
+          </p>
+          <p className="texto-corrido">
+            O app não altera sozinho a frequência oficial do SIGA; se houver diferença, vale o que estiver no SIGA.
+            Se você discordar de uma marcação, fale com o professor. Sua foto e seu resultado de personalidade
+            ajudam o professor a identificar a turma na chamada, mas não são usados para calcular presença.
           </p>
         </Cartao>
 

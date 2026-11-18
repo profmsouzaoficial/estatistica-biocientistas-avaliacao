@@ -1,4 +1,5 @@
 /** Utilitários de formatação em pt-BR. */
+import type { Turma } from './types'
 
 const dataHoraLonga = new Intl.DateTimeFormat('pt-BR', {
   weekday: 'long',
@@ -50,6 +51,12 @@ export function atrasoDeEntrega(
   const prazo = new Date(prazoEm).getTime()
   if (Number.isNaN(envio) || Number.isNaN(prazo)) return null
   return envio > prazo
+}
+
+/** Rótulo completo usado nos seletores de turma do professor. */
+export function rotuloDaTurma(t: Pick<Turma, 'curso' | 'codigo_siga' | 'periodo' | 'nome'>): string {
+  const curso = t.curso?.trim() || 'Curso não informado'
+  return `${curso} · ${t.codigo_siga} · ${t.periodo} — ${t.nome}`
 }
 
 /** "há 3 minutos", "em 2 dias" — ajuda a leitura rápida do prazo. */

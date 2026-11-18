@@ -25,6 +25,7 @@ import { resultadoValido } from './personalidade'
 import type {
   AlunoNaFrequencia,
   Avaliacao,
+  MinhaFrequencia,
   AvaliacaoDoAluno,
   Correcao,
   Frequencia,
@@ -551,6 +552,37 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
         .order('nome_completo')
       if (error) throw new Error(error.message)
       return (data ?? []) as Frequencia[]
+    },
+
+    async faltasDaTurma(turmaId) {
+      const { data, error } = await sb
+        .from('frequencias')
+        .select('matricula,presente')
+        .eq('turma_id', turmaId)
+        .eq('presente', false)
+      if (error) throw new Error(error.message)
+      const mapa: Record<string, number> = {}
+      for (const linha of (data ?? []) as { matricula: string }[]) {
+        mapa[linha.matricula] = (mapa[linha.matricula] ?? 0) + 1
+      }
+      return mapa
+    },
+
+    async minhaFrequencia() {
+      const { data, error } = await sb.rpc('minha_frequencia')
+      if (error) throw new Error(error.message)
+      const bruto = (data ?? {}) as Partial<Record<keyof MinhaFrequencia, unknown>>
+      const numero = (valor: unknown) => {
+        const n = Number(valor)
+        return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0
+      }
+      return {
+        faltas: numero(bruto.faltas),
+        presencas: numero(bruto.presencas),
+        aulas: numero(bruto.aulas),
+        limite: numero(bruto.limite) || 5,
+        horas_por_falta: numero(bruto.horas_por_falta) || 3,
+      }
     },
 
     async salvarFrequencia(turmaId, dataAula, registros: RegistroFrequencia[]) {

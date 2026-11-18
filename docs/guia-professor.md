@@ -73,14 +73,26 @@ lista, mantenha o número exatamente como veio do SIGA; o app normaliza para mai
 
 **Painel → Controle de frequência** (ou a aba **Frequência** na barra de baixo)
 
-1. Escolha a **turma** e a **data da aula**. A data já vem com o dia de hoje.
+1. Escolha a **turma** e a **data da aula**. A data já vem com o dia de hoje. Cada opção do
+   seletor segue o mesmo formato de **Turmas e alunos**: curso · código do SIGA · período — nome
+   (ex.: `Farmácia · CBV018GV-B · 2026/3 — Introdução à Bioestatística`). No celular, o nome
+   completo da turma escolhida aparece também logo abaixo do seletor.
 2. A lista mostra, para cada estudante: **foto** (ou as iniciais, quando ele ainda não enviou),
-   **nome**, **matrícula**, e-mail e a **personalidade** — código do tipo e a cor do grupo.
+   **nome**, **matrícula**, e-mail, a **personalidade** — código do tipo e a cor do grupo — e as
+   **faltas acumuladas no semestre**.
 3. Toque no botão **Presente/Ausente** de cada linha. Para começar com a turma toda, use
    **Todos presentes** ou **Todos ausentes**.
-4. Confira o resumo (`N presentes · N ausentes`) e toque em **Salvar chamada**.
+4. Confira o resumo da data (`N presentes · N ausentes`) e o total de faltas do semestre; depois
+   toque em **Salvar chamada**.
 5. Para corrigir uma chamada anterior, volte à mesma data: o app carrega o que já foi gravado.
    Alterações não salvas aparecem como **alterações não salvas** no topo.
+
+**Contagem de faltas.** Cada linha mostra quantas faltas aquele aluno já acumula nas chamadas
+salvas da turma; o topo mostra o total da turma e quantos alunos estão no limite. A conta é
+semestral e independente da data que está aberta: salvar uma falta hoje soma à contagem do aluno.
+No critério da disciplina, **5 faltas equivalem a 15 horas** (3 h por aula) e levam à reprovação
+por falta. Ao chegar a 5, o selo fica vermelho e o aluno vê o aviso no cartão **Sua frequência**.
+Datas sem chamada não contam como falta: o app só soma o que foi salvo.
 
 Cores dos grupos (também na legenda da tela):
 
@@ -95,7 +107,8 @@ Quem ainda não fez o teste aparece em cinza, com **Teste não feito**; quem nã
 com as iniciais. Nada disso impede a chamada.
 
 > **A frequência do app não é a frequência do SIGA.** Ela é um registro pedagógico próprio,
-> por aula, e não altera automaticamente o campo de frequência do SIGA. Se houver divergência,
+> por aula, e não altera automaticamente o campo de frequência do SIGA. O app **informa** a
+> contagem e o limite; o registro e a decisão oficiais continuam no SIGA. Se houver divergência,
 > vale o que estiver no SIGA. Use a lista também para conhecer a turma e planejar dinâmicas —
 > a personalidade não deve virar critério de nota, presença ou avaliação.
 

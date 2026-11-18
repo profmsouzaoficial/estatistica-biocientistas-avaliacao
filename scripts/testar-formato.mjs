@@ -87,6 +87,16 @@ igual('saudação usa os dois primeiros nomes', f.primeiroNome('Ana Clara Souza 
 igual('saudação com nome curto', f.primeiroNome('Ana Souza'), 'Ana')
 igual('singular e plural', `${f.plural(1, 'aluno', 'alunos')} / ${f.plural(3, 'aluno', 'alunos')}`, '1 aluno / 3 alunos')
 igual('data e hora legíveis', typeof f.formatarDataHora(prazo), 'string')
+igual(
+  'rótulo da turma segue curso · código · período — nome',
+  f.rotuloDaTurma({ curso: 'Farmácia', codigo_siga: 'CBV018GV-B', periodo: '2026/3', nome: 'Introdução à Bioestatística' }),
+  'Farmácia · CBV018GV-B · 2026/3 — Introdução à Bioestatística',
+)
+igual(
+  'turma sem curso não fica com separador solto',
+  f.rotuloDaTurma({ curso: '  ', codigo_siga: 'EST006GV-A', periodo: '2026/3', nome: 'Bioestatística' }),
+  'Curso não informado · EST006GV-A · 2026/3 — Bioestatística',
+)
 
 console.log('')
 if (falhas > 0) {

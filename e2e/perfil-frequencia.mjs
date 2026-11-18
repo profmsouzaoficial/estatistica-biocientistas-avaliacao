@@ -70,6 +70,17 @@ function conferir(nome, condicao, detalhe) {
 console.log('\n  Perfil e frequência · modo demonstração\n')
 
 await entrar(aluno)
+await pagina.goto(`${WEB}/`, { waitUntil: 'networkidle' })
+await pagina.getByText('Sua frequência').waitFor({ timeout: 15000 })
+const cartaoFrequencia = pagina.locator('.cartao').filter({ hasText: 'Sua frequência' })
+await cartaoFrequencia.getByText('aulas registradas').waitFor({ timeout: 15000 })
+conferir(
+  'o aluno vê quantas faltas tem e quantas aulas já tiveram chamada',
+  (await cartaoFrequencia.innerText()).includes('1 falta') &&
+    (await cartaoFrequencia.innerText()).includes('5 aulas registradas'),
+  await cartaoFrequencia.innerText(),
+)
+
 await pagina.goto(`${WEB}/perfil`, { waitUntil: 'networkidle' })
 await pagina.getByText('Foto do perfil', { exact: true }).waitFor({ timeout: 15000 })
 conferir('o perfil mostra a foto e o resultado que vieram da demonstração', await pagina.getByText('ENFJ-A').first().isVisible())
@@ -128,8 +139,19 @@ await pagina.goto(`${WEB}/prof/frequencia`, { waitUntil: 'networkidle' })
 await pagina.getByText('Lista de chamada').waitFor({ timeout: 15000 })
 conferir('a chamada lista os alunos', (await pagina.getByText('Ana Beatriz Lima Ferreira').count()) > 0)
 conferir('a chamada mostra a personalidade que o aluno acabou de salvar', (await pagina.getByText('ISTP-T').count()) > 0)
-
+conferir(
+  'a turma aparece com curso, código, período e nome',
+  /Ciências Biológicas · CBV018GV-A · 2026\/3 — Biociências — Turma A/.test(
+    await pagina.locator('select').first().locator('option:checked').innerText(),
+  ),
+)
+conferir(
+  'o topo mostra o total de faltas e quem está no limite',
+  (await pagina.getByText(/falta\(s\) no semestre/).first().innerText()).includes('12') &&
+    (await pagina.getByText(/aluno\(s\) no limite/).count()) > 0,
+)
 const linhaDaAna = pagina.locator('li').filter({ hasText: 'Ana Beatriz Lima Ferreira' })
+conferir('a linha da Ana mostra a falta acumulada', (await linhaDaAna.innerText()).includes('1 falta'))
 await linhaDaAna.locator('label').click()
 await pagina.getByText(/3 presente\(s\) · 1 ausente\(s\)/).waitFor({ timeout: 15000 })
 conferir('marcar falta atualiza o resumo antes de salvar', await pagina.getByText(/ainda não salva/).isVisible())
@@ -142,6 +164,11 @@ await pagina.reload({ waitUntil: 'networkidle' })
 await pagina.getByText(/chamada registrada nesta data/).waitFor({ timeout: 15000 })
 conferir('a falta continua depois de recarregar', await pagina.getByText(/3 presente\(s\) · 1 ausente\(s\)/).isVisible())
 conferir('a linha da Ana mostra Ausente', (await linhaDaAna.locator('label').innerText()).includes('Ausente'))
+conferir(
+  'salvar a falta de hoje também atualiza o total do semestre',
+  (await linhaDaAna.innerText()).includes('2 faltas'),
+  await linhaDaAna.innerText(),
+)
 conferir('o checkbox da Ana está desmarcado', !(await pagina.getByLabel('Presença de Ana Beatriz Lima Ferreira').isChecked()))
 
 await navegador.close()

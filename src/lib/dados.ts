@@ -8,6 +8,7 @@ import type {
   Esperado,
   LancamentoAuditado,
   ResultadoLancamento,
+  MinhaFrequencia,
   Perfil,
   ResultadoPersonalidade,
   ResumoAvaliacao,
@@ -189,6 +190,10 @@ export interface Dados {
   alunosDaTurmaFrequencia(turmaId: string): Promise<AlunoNaFrequencia[]>
   /** Chamada já registrada para uma data (vazia se ainda não houve chamada). */
   frequenciaDaTurma(turmaId: string, dataAula: string): Promise<Frequencia[]>
+  /** Faltas acumuladas por matrícula em todas as chamadas da turma. */
+  faltasDaTurma(turmaId: string): Promise<Record<string, number>>
+  /** Resumo de faltas do aluno logado na própria turma (RPC security definer). */
+  minhaFrequencia(): Promise<MinhaFrequencia>
   /** Grava/atualiza a chamada inteira da turma naquela data. */
   salvarFrequencia(turmaId: string, dataAula: string, registros: RegistroFrequencia[]): Promise<void>
   importarAlunos(turmaId: string, linhas: LinhaImportacao[]): Promise<{ inseridos: number; atualizados: number }>

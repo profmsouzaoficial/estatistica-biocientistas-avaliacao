@@ -3,9 +3,12 @@ import { CalendarCheck, Check, CheckCheck, Mail, Users, X } from 'lucide-react'
 import { Link } from '../lib/router'
 import { usarSessao } from '../lib/sessao'
 import type { AlunoNaFrequencia, Frequencia, Turma } from '../lib/types'
+import { HORAS_LIMITE, LIMITE_FALTAS } from '../lib/frequencia'
+import { rotuloDaTurma } from '../lib/formato'
 import { PAPEIS, resultadoValido } from '../lib/personalidade'
 import { Avatar } from '../components/Avatar'
 import { LegendaPersonalidades, SeloPersonalidade } from '../components/Personalidade'
+import { SeloFaltas } from '../components/Faltas'
 import { Alerta, AppBar, Botao, Carregando, Cartao, Selecao, Selo } from '../components/ui'
 
 const isoHoje = () => {
@@ -38,6 +41,7 @@ export function ProfessorFrequencia() {
   const [alunos, setAlunos] = useState<AlunoNaFrequencia[] | null>(null)
   const [salvos, setSalvos] = useState<Frequencia[]>([])
   const [presentes, setPresentes] = useState<Record<string, boolean>>({})
+  const [faltas, setFaltas] = useState<Record<string, number> | null>(null)
   const [carregando, setCarregando] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -50,7 +54,7 @@ export function ProfessorFrequencia() {
     d.turmasTodas()
       .then((lista) => {
         setTurmas(lista)
-        setTurmaId((atual) => atual || lista[0]?.id || '')
+        setTurmaId((atual) => atual || (lista.length === 1 ? lista[0].id : ''))
       })
       .catch((e) => {
         setTurmas([])
@@ -59,16 +63,30 @@ export function ProfessorFrequencia() {
   }, [d, versao])
 
   useEffect(() => {
-    if (!d || !turmaId || !dataAula) return
+    if (!d) return
+    if (!turmaId || !dataAula) {
+      setAlunos(null)
+      setSalvos([])
+      setFaltas({})
+      setPresentes({})
+      setCarregando(false)
+      return
+    }
     let ativo = true
     setCarregando(true)
     setErro(null)
     setAviso(null)
-    Promise.all([d.alunosDaTurmaFrequencia(turmaId), d.frequenciaDaTurma(turmaId, dataAula)])
-      .then(([lista, chamada]) => {
+    setFaltas(null)
+    Promise.all([
+      d.alunosDaTurmaFrequencia(turmaId),
+      d.frequenciaDaTurma(turmaId, dataAula),
+      d.faltasDaTurma(turmaId),
+    ])
+      .then(([lista, chamada, contagem]) => {
         if (!ativo) return
         setAlunos(lista)
         setSalvos(chamada)
+        setFaltas(contagem)
         const mapa: Record<string, boolean> = {}
         for (const aluno of lista) {
           const registro = chamada.find((c) => c.matricula === aluno.matricula)
@@ -100,6 +118,14 @@ export function ProfessorFrequencia() {
     () => (alunos ?? []).some((a) => (presentes[a.matricula] ?? true) !== (salvosPorMatricula.get(a.matricula) ?? true)),
     [alunos, presentes, salvosPorMatricula],
   )
+  const totalFaltas = useMemo(
+    () => (faltas ? (alunos ?? []).reduce((soma, a) => soma + (faltas[a.matricula] ?? 0), 0) : null),
+    [alunos, faltas],
+  )
+  const alunosNoLimite = useMemo(
+    () => (alunos ?? []).filter((a) => (faltas?.[a.matricula] ?? 0) >= LIMITE_FALTAS).length,
+    [alunos, faltas],
+  )
 
   function todos(presente: boolean) {
     if (!alunos) return
@@ -127,6 +153,7 @@ export function ProfessorFrequencia() {
       )
       const chamada = await d.frequenciaDaTurma(turmaId, dataAula)
       setSalvos(chamada)
+      setFaltas(await d.faltasDaTurma(turmaId))
       setAviso(`Chamada de ${formatarData(dataAula)} salva: ${totalPresentes} presente(s), ${totalAusentes} ausente(s).`)
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Falha ao salvar a chamada.')
@@ -162,9 +189,10 @@ export function ProfessorFrequencia() {
                 <h2 className="text-[15px] font-medium text-tinta">Escolha a aula</h2>
               </div>
               <Selecao rotulo="Turma" value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>
+                <option value="">Selecione…</option>
                 {turmas.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.nome} · {t.periodo}
+                    {rotuloDaTurma(t)}
                   </option>
                 ))}
               </Selecao>
@@ -182,11 +210,31 @@ export function ProfessorFrequencia() {
                 <p className="dica">A chamada é salva por data: voltar a uma data já registrada carrega o que foi marcado.</p>
               </div>
               {turma ? (
-                <p className="flex items-center gap-1.5 text-[12px] text-tinta-suave">
-                  <Users className="size-3.5" aria-hidden />
-                  {total} estudante(s) na lista · {formatarData(dataAula)}
+                <div className="space-y-1.5">
+                  <p className="text-[12px] leading-snug text-tinta-suave sm:hidden">{rotuloDaTurma(turma)}</p>
+                  <p className="flex items-center gap-1.5 text-[12px] text-tinta-suave">
+                    <Users className="size-3.5" aria-hidden />
+                    {total} estudante(s) na lista · {formatarData(dataAula)}
+                  </p>
+                  {totalFaltas !== null ? (
+                    <p className="rounded-xl bg-papel-fundo px-3 py-2 text-[12.5px] leading-relaxed text-tinta-suave">
+                      <strong className="font-medium text-tinta">{totalFaltas} falta(s)</strong> no semestre
+                      {alunosNoLimite > 0 ? (
+                        <>
+                          {' '}· <strong className="font-medium text-vermelho">{alunosNoLimite} aluno(s) no limite</strong>{' '}
+                          de {LIMITE_FALTAS} faltas ({HORAS_LIMITE} h) — reprovação por falta
+                        </>
+                      ) : (
+                        <> · limite de {LIMITE_FALTAS} faltas ({HORAS_LIMITE} h)</>
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-[12.5px] text-tinta-suave">
+                  Escolha a turma para carregar os alunos, as fotos e as faltas acumuladas.
                 </p>
-              ) : null}
+              )}
             </Cartao>
 
             {carregando ? (
@@ -282,8 +330,9 @@ export function ProfessorFrequencia() {
                                 <span className="truncate">{aluno.email}</span>
                               </span>
                             </p>
-                            <div className="mt-1">
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <SeloPersonalidade resultado={personalidade} compacto />
+                              <SeloFaltas faltas={faltas?.[aluno.matricula] ?? 0} compacto />
                             </div>
                           </div>
                           <label
@@ -312,7 +361,9 @@ export function ProfessorFrequencia() {
                   <div className="space-y-2 border-t border-borda bg-papel-fundo/50 p-3">
                     <p className="text-[11.5px] leading-relaxed text-tinta-fraca">
                       A cor da borda e do selo indica o grupo de personalidade. Quem ainda não fez o teste aparece em
-                      cinza. A presença é registrada no app; ela não altera sozinha a frequência oficial do SIGA.
+                      cinza. A contagem de faltas soma todas as chamadas salvas nesta turma, não só a data escolhida:
+                      o limite do semestre é {LIMITE_FALTAS} faltas ({HORAS_LIMITE} h), que levam à reprovação por
+                      falta. A presença é registrada no app; ela não altera sozinha a frequência oficial do SIGA.
                     </p>
                     <Botao
                       type="button"

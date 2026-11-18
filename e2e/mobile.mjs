@@ -213,6 +213,8 @@ async function main() {
   await foto(page, 'mobile-01-entrar')
 
   await entrar(page, ALUNO)
+  await page.getByText('Sua frequência').waitFor({ timeout: 15000 })
+  await page.getByText(/aulas registradas/).waitFor({ timeout: 15000 })
   ok = (await medir(page, 'aluno · início')) && ok
   await foto(page, 'mobile-02-aluno-inicio')
   await fotoDoGuia(page, 'aluno-inicio')
@@ -352,6 +354,7 @@ async function main() {
   await page.goto(`${WEB}/prof/frequencia`, { waitUntil: 'networkidle' })
   await page.getByText('Lista de chamada').waitFor({ timeout: 15000 })
   await page.getByText('Ana Beatriz Lima Ferreira').waitFor({ timeout: 15000 })
+  await page.getByText(/falta\(s\) no semestre/).first().waitFor({ timeout: 15000 })
   await page.getByText('ENFJ-A').first().waitFor({ timeout: 15000 })
   await page.getByText('Teste não feito').first().waitFor({ timeout: 15000 })
   ok = (await medir(page, 'professor · frequência')) && ok

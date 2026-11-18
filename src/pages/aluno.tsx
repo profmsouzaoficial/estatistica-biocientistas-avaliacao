@@ -3,9 +3,10 @@ import { CalendarClock, CheckCircle2, ClipboardList, Clock3, Star } from 'lucide
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Carregando, Cartao, Selo, Vazio } from '../components/ui'
+import { CartaoMinhaFrequencia } from '../components/Faltas'
 import { atrasoDeEntrega, formatarDataHora, formatarNota, tempoRelativo, plural, primeiroNome } from '../lib/formato'
 import { podeEnviarRedacao } from '../lib/prazos'
-import type { Avaliacao, AvaliacaoDoAluno } from '../lib/types'
+import type { Avaliacao, AvaliacaoDoAluno, MinhaFrequencia } from '../lib/types'
 
 export function rotuloEstado(a: AvaliacaoDoAluno): { texto: string; tom: 'neutro' | 'marinho' | 'dourado' | 'vermelho' | 'azul' } {
   const s = a.submissao
@@ -28,6 +29,23 @@ export function AlunoInicio() {
   const [avaliacoes, setAvaliacoes] = useState<AvaliacaoDoAluno[] | null>(null)
   const [nomeTurma, setNomeTurma] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [frequencia, setFrequencia] = useState<MinhaFrequencia | null>(null)
+  const [erroFrequencia, setErroFrequencia] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!d) return
+    let ativo = true
+    d.minhaFrequencia()
+      .then((resumo) => {
+        if (ativo) setFrequencia(resumo)
+      })
+      .catch((e) => {
+        if (ativo) setErroFrequencia(e instanceof Error ? e.message : 'Falha ao carregar sua frequência.')
+      })
+    return () => {
+      ativo = false
+    }
+  }, [d])
 
   useEffect(() => {
     if (!d) return
@@ -61,6 +79,8 @@ export function AlunoInicio() {
         ) : null}
 
         {erro ? <Alerta tom="vermelho" titulo="Não foi possível carregar">{erro}</Alerta> : null}
+
+        <CartaoMinhaFrequencia resumo={frequencia} erro={erroFrequencia} />
 
         {avaliacoes === null ? (
           <Carregando />

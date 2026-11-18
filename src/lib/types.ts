@@ -269,6 +269,17 @@ export interface Frequencia {
   atualizado_em: string
 }
 
+/** Resumo que o aluno vê na página inicial, calculado só para a própria turma. */
+export interface MinhaFrequencia {
+  faltas: number
+  presencas: number
+  /** Quantidade de datas de aula com chamada registrada. */
+  aulas: number
+  /** Limite de faltas do semestre (5 faltas = 15 h). */
+  limite: number
+  horas_por_falta: number
+}
+
 export interface ResumoAvaliacao extends Avaliacao {
   total_alunos: number
   enviadas: number

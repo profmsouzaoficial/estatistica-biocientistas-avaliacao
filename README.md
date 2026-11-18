@@ -4,7 +4,8 @@ Aplicativo web (mobile-first) para receber redações manuscritas dos estudantes
 corrigi-las com uma rubrica definida pelo professor e lançar a nota no SIGA — com a devolutiva
 (nota + pontos fortes + pontos a desenvolver) publicada para cada aluno. O perfil do aluno também
 guarda **foto** (bucket privado) e o resultado de um **teste de personalidade** educativo; o
-professor usa os dois no **controle de frequência** por turma e data.
+professor usa os dois no **controle de frequência** por turma e data. A chamada acumula as faltas
+do semestre e avisa quando o aluno chega ao limite de **5 faltas (15 h)**.
 
 Livro-base: <https://estatistica-biocientistas.vercel.app/> · DOI
 [10.5281/zenodo.23858966](https://doi.org/10.5281/zenodo.23858966) · UFJF/GV.
@@ -84,9 +85,10 @@ Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutur
 `0002_encerrada.sql` (avaliação encerrada continua visível ao aluno, mas não aceita entrega nova) e
 `0003_email_opcional.sql` (turma sem e-mails na lista, com o e-mail informado no cadastro),
 `0004_consentimento.sql` (data do aceite do aviso de privacidade em `profiles.consentimento_em`) e
-`0020_perfil_foto_personalidade_frequencia.sql` (foto, personalidade e chamada):
+`0020_perfil_foto_personalidade_frequencia.sql` (foto, personalidade e chamada) e
+`0021_minha_frequencia.sql` (resumo de faltas do aluno, sem expor a chamada da turma):
 
-| Tabela | Papel |
+| Tabela / função | Papel |
 |---|---|
 | `turmas` | código no SIGA (`CBV018GV-A`), período (`2026/3`), curso |
 | `alunos_esperados` | lista importada pelo professor (matrícula, nome, e-mail) |
@@ -97,6 +99,7 @@ Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutur
 | `correcoes` | notas por critério, nota bruta, nota final, pontos fortes/desenvolver, decisão |
 | `lancamentos_siga` | trilha de auditoria de cada envio (sucesso, HTTP, erro, payload) |
 | `frequencias` | chamada do professor por turma, matrícula e data (`presente` + autor + timestamps) |
+| `minha_frequencia()` | RPC `security definer` que devolve ao aluno só o resumo agregado da própria matrícula/turma |
 | `auditoria` | log de ações sensíveis |
 
 Garantias no banco: RLS em todas as tabelas, buckets privados, gatilho `handle_new_user` que recusa
@@ -104,7 +107,8 @@ cadastro fora da lista (`MATRICULA_NAO_LISTADA`, `EMAIL_NAO_CONFERE`) e gatilho 
 `Σ rubrica = valor_total`. A política de `submissoes` só aceita **insert** quando a avaliação está
 `publicada` — encerrar entrega não depende da boa vontade da tela. Foto e personalidade não têm
 `UPDATE` direto do aluno: passam por `salvar_foto_perfil` e `salvar_personalidade`, que validam o
-caminho e derivam o grupo no servidor.
+caminho e derivam o grupo no servidor. A chamada é visível só ao professor; o aluno recebe apenas
+a contagem agregada por `minha_frequencia()`.
 
 ```bash
 pnpm db:aplicar          # aplica as migrações via Management API
@@ -971,8 +975,9 @@ Chromium em viewport de celular e valida o banco ao final:
 O perfil e a chamada têm um teste próprio, mais rápido e sem Supabase:
 
 ```bash
-pnpm e2e:perfil           # foto (remover, subir, recarregar), teste de 30 itens e chamada
+pnpm e2e:perfil           # foto (remover, subir, recarregar), teste de 30 itens e chamada com faltas
 pnpm test:personalidade   # cálculo dos eixos, 16 tipos, grupos, validação
+pnpm test:frequencia      # faltas por aluno, horas, limite de 5 faltas (15 h)
 ```
 
 Capturas em `e2e/resultados/`. Nada é enviado ao SIGA de verdade: `SIGA_API_BASE` aponta para o mock.
@@ -1073,11 +1078,19 @@ nome do grupo aparecem por escrito.
 ### Chamada do professor
 
 Em **Painel → Controle de frequência** o professor escolhe a turma e a data, vê foto/iniciais,
-nome, matrícula, e-mail e personalidade de cada aluno, marca presente/ausente e salva. A chave é
-`(turma_id, matricula, data_aula)`: salvar de novo na mesma data atualiza em vez de duplicar.
-A chamada é **independente do SIGA** e não altera a frequência oficial.
+nome, matrícula, e-mail, personalidade e **faltas acumuladas** de cada aluno, marca
+presente/ausente e salva. O seletor usa o mesmo rótulo de **Turmas e alunos**
+(`curso · codigo_siga · periodo — nome`) e começa em **Selecione…** quando há mais de uma turma.
+A chave é `(turma_id, matricula, data_aula)`: salvar de novo na mesma data atualiza em vez de
+duplicar.
+
+A contagem é semestral e soma as ausências de todas as chamadas da turma; datas sem chamada não
+contam. **5 faltas = 15 h** (3 h por aula) é o limite de reprovação por falta informado na
+disciplina. O aluno vê o mesmo número no cartão **Sua frequência** da tela inicial. O app apenas
+informa: a chamada é **independente do SIGA** e não altera a frequência oficial.
 
 ```bash
+pnpm test:frequencia      # faltas por aluno, horas, limite e fronteiras de situação
 pnpm test:personalidade   # 30 afirmações, cálculo, 16 tipos, grupos e validação
 ```
 
@@ -1104,7 +1117,7 @@ api/               funções serverless (transcrever, corrigir, saude, siga/*)
 src/
   lib/             tipos, dados (contrato), dadosSupabase, dadosDemo, sessão, router
   components/      ui (Campo, Botao, Cartao…), Camera, Avatar, FotoPerfil,
-                   TestePersonalidade, Personalidade
+                   TestePersonalidade, Personalidade, Faltas
   pages/           auth, aluno, alunoEnvio, devolutiva, perfil, professor*,
                    professorFrequencia
   lib/             personalidade (banco de afirmações e cálculo), imagem (recorte/redução)

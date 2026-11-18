@@ -87,17 +87,22 @@ saber exatamente qual código gerou aquilo.
 
 **Painel → Controle de frequência** (aba **Frequência** na barra de baixo)
 
-1. Escolha a **turma**; confira se a **data da aula** é a de hoje.
-2. A lista traz foto (ou iniciais), nome, matrícula, e-mail e o tipo de personalidade com a cor
-   do grupo.
+1. Escolha a **turma** — o seletor mostra curso · código do SIGA · período — nome, igual ao de
+   **Turmas e alunos** — e confira se a **data da aula** é a de hoje.
+2. A lista traz foto (ou iniciais), nome, matrícula, e-mail, o tipo de personalidade com a cor
+   do grupo e as **faltas acumuladas no semestre**.
 3. Marque **Presente/Ausente** linha a linha, ou use **Todos presentes/ausentes**.
-4. Toque em **Salvar chamada**. O resumo confirma quantos presentes e ausentes ficaram gravados.
+4. Toque em **Salvar chamada**. O resumo confirma quantos presentes e ausentes ficaram gravados;
+   o topo mostra o total de faltas da turma e quem chegou ao limite.
 5. Se precisar corrigir depois, volte à mesma data e salve de novo — o app atualiza o registro
    existente em vez de duplicar.
 
-> A chamada do app é um registro próprio, **separada da frequência do SIGA**. Ela não altera
-> automaticamente o campo do SIGA; em caso de divergência, vale o SIGA. A personalidade é apoio
-> visual e pedagógico: não entra no cálculo de presença nem de nota.
+> **Limite de faltas.** A contagem soma as ausências de todas as chamadas salvas da turma. No
+> critério da disciplina, **5 faltas = 15 h** (3 h por aula) e indicam reprovação por falta; o
+> aluno vê o mesmo contador na tela inicial. Datas sem chamada não contam. O app **informa** a
+> situação, mas não altera o SIGA: a frequência oficial continua sendo a do SIGA, e em caso de
+> divergência vale o SIGA. A personalidade é apoio visual e pedagógico: não entra no cálculo de
+> presença nem de nota.
 
 ## A cada avaliação
 
@@ -244,8 +249,9 @@ pnpm verificar          # dados: rubricas, notas, vínculos
 pnpm test:e2e           # fluxo completo pelas telas, em modo demonstração
 pnpm test:producao      # o app publicado, ponta a ponta (não lança nota no SIGA)
 pnpm e2e:mobile         # layout e alvos de toque em 360×740
-pnpm e2e:perfil         # foto, teste de personalidade e chamada (demo)
+pnpm e2e:perfil         # foto, teste de personalidade e chamada com faltas (demo)
 pnpm test:personalidade # cálculo dos 16 tipos e grupos
+pnpm test:frequencia    # contagem de faltas, horas e limite de 5 faltas (15 h)
 pnpm test:contraste     # legibilidade dos textos
 pnpm test:documentacao  # este guia não ficou para trás
 pnpm test:prazos        # regras de data (retroativo, encurtar, remover) e recebimento por status
