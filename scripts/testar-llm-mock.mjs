@@ -201,6 +201,24 @@ conferir(
 )
 conferir('a chave vai no cabeçalho Authorization', estado.cabecalhos?.authorization === 'Bearer chave-teste')
 
+// Instruções adicionais do professor entram no prompt do sistema, não no texto
+// do aluno. É o que permite ajustar o julgamento sem quebrar o contrato JSON.
+estado.modo = 'ok'
+estado.pedidos = 0
+configurar()
+const comInstrucoes = await corrigirRedacao({
+  ...entrada,
+  instrucoes_correcao: 'Valorize exemplos numéricos e não desconte por desvios leves de norma padrão.',
+})
+const sistema = estado.corpo?.messages?.[0]?.content ?? ''
+const usuario = estado.corpo?.messages?.[1]?.content ?? ''
+conferir(
+  'instruções de correção entram no prompt do sistema',
+  sistema.includes('Valorize exemplos numéricos e não desconte por desvios leves de norma padrão.'),
+)
+conferir('instruções de correção não viram texto do aluno', !usuario.includes('Valorize exemplos numéricos'))
+conferir('a versão do prompt sobe com a mudança', comInstrucoes.prompt_versao === 'rubrica-v4', comInstrucoes.prompt_versao)
+
 // 3. JSON entre cercas de markdown — modelo adora
 erro = await caso('cercas')
 conferir('JSON entre ```json``` é aceito', erro === null, erro?.message ?? '')

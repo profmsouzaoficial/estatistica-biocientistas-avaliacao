@@ -516,6 +516,18 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           )}
         </Cartao>
 
+        {avaliacao.instrucoes_correcao ? (
+          <Cartao className="space-y-1.5">
+            <h2 className="text-[14px] font-medium text-tinta">Instruções de correção da LLM</h2>
+            <p className="whitespace-pre-wrap text-[13px] leading-snug text-tinta-suave">
+              {avaliacao.instrucoes_correcao}
+            </p>
+            <p className="text-[11.5px] leading-snug text-tinta-fraca">
+              Entram no prompt do sistema das próximas correções automáticas; não aparecem para o aluno.
+            </p>
+          </Cartao>
+        ) : null}
+
         <Cartao className="space-y-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">

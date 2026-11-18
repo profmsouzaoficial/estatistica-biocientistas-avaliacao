@@ -89,13 +89,14 @@ Em **Nova avaliação**:
 
 | Campo | Cuidado |
 |---|---|
-| Turmas | marque uma ou mais; o seletor mostra o `codigo_siga` e cria uma avaliação em cada turma |
+| Turmas | marque uma ou mais; o seletor mostra curso, `codigo_siga` e período e cria uma avaliação em cada turma |
 | Tema e instruções | é o que o aluno lê no celular; diga o número de linhas e se é à mão |
-| Valor total | a rubrica precisa somar exatamente isso — o app recusa salvar se não fechar |
-| Rubrica | 3 a 6 critérios; cada um com valor e descrição do que conta |
-| Descrição no SIGA | escolha na lista que o app busca para as turmas marcadas; precisa ser **idêntica** ao nome da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Se a TVC ainda não existir em alguma turma, marque **“Criar esta avaliação no SIGA agora”**: ao publicar, o app cria uma vez em cada turma que ainda não a tem e mostra o resultado por turma |
-| Peso no SIGA | o peso que o SIGA usa para aquela avaliação; a nota é convertida proporcionalmente |
-| Prazo | opcional; depois dele o aluno não abre entrega nova. Data no passado é recusada (a avaliação nasceria fechada) |
+| Instruções de correção pela LLM | opcional; entra no prompt do sistema da correção automática, sem aparecer para o aluno |
+| Valor total | padrão de 100 pontos; a rubrica precisa somar exatamente isso — o app recusa salvar se não fechar |
+| Rubrica | 3 a 6 critérios; já vem com 4 critérios de 25 pontos, editáveis |
+| Descrição no SIGA | começa igual ao título; use a lista que o app busca para as turmas marcadas e ajuste para o nome **idêntico** ao da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Se a TVC ainda não existir em alguma turma, marque **“Criar esta avaliação no SIGA agora”**: ao publicar, o app cria uma vez em cada turma que ainda não a tem e mostra o resultado por turma |
+| Peso no SIGA | o peso que o SIGA usa para aquela avaliação; acompanha o valor total até você escolher uma TVC ou editar, e a nota é convertida proporcionalmente |
+| Prazo / Data no SIGA | opcionais e espelhados: mudar um ajusta o outro. Datas passadas são aceitas para lançamento retroativo; a abertura recua para um dia antes do prazo |
 
 Com mais de uma turma marcada, a publicação roda um laço: cria a avaliação local em cada turma e, quando
 preciso, chama o SIGA uma vez por turma. O laço **não para no primeiro erro**; o cartão **Última
@@ -222,7 +223,7 @@ pnpm test:producao      # o app publicado, ponta a ponta (não lança nota no SI
 pnpm e2e:mobile         # layout e alvos de toque em 360×740
 pnpm test:contraste     # legibilidade dos textos
 pnpm test:documentacao  # este guia não ficou para trás
-pnpm test:prazos        # regras de prazo (data no passado, encurtar, remover)
+pnpm test:prazos        # regras de prazo (retroativo, encurtar, remover)
 pnpm e2e:foto           # foto de 12 MP, HEIC do iPhone e arquivo corrompido
 pnpm test:imagem        # mensagem certa para cada tipo de falha na foto
 pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem modelo)

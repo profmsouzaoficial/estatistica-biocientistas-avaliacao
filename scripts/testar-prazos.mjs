@@ -20,7 +20,7 @@ const entrada = join(pasta, 'entrada.ts')
 writeFileSync(
   entrada,
   [
-    `export { validarPrazoCriacao, efeitoDaMudanca, avisoDaMudanca, lerData } from '../../src/lib/prazos'`,
+    `export { validarPrazoCriacao, aberturaDaAvaliacao, efeitoDaMudanca, avisoDaMudanca, lerData } from '../../src/lib/prazos'`,
   ].join('\n'),
 )
 
@@ -33,12 +33,14 @@ await build({
   logLevel: 'error',
 })
 
-const { validarPrazoCriacao, efeitoDaMudanca, avisoDaMudanca, lerData } = await import(
+const { validarPrazoCriacao, aberturaDaAvaliacao, efeitoDaMudanca, avisoDaMudanca, lerData } = await import(
   `file://${join(pasta, 'prazos.mjs')}`
 )
 
 let falhas = 0
+let verificacoes = 0
 function conferir(nome, condicao, detalhe) {
+  verificacoes++
   if (condicao) {
     console.log(`  \x1b[32m✓\x1b[0m ${nome}`)
   } else {
@@ -56,15 +58,18 @@ console.log('\n  Prazos\n')
 // ---- criação ---------------------------------------------------------------
 conferir('sem prazo é permitido', validarPrazoCriacao('', agora).ok === true)
 conferir('prazo futuro é aceito', validarPrazoCriacao(futuro, agora).ok === true)
-const recusa = validarPrazoCriacao(passado, agora)
-conferir('prazo no passado é recusado', recusa.ok === false)
-conferir(
-  'a mensagem diz por que e como corrigir',
-  /já passou/.test(recusa.mensagem ?? '') && /data futura/.test(recusa.mensagem ?? ''),
-  recusa.mensagem,
-)
+conferir('prazo no passado é aceito para lançamento retroativo', validarPrazoCriacao(passado, agora).ok === true)
+conferir('data de hoje mais cedo também é aceita', validarPrazoCriacao('2026-11-16T20:00:00.000Z', agora).ok === true)
 conferir('data inválida é recusada', validarPrazoCriacao('2026-13-45T99:99', agora).ok === false)
-conferir('data de hoje mais cedo é passado', validarPrazoCriacao('2026-11-16T20:00:00.000Z', agora).ok === false)
+conferir(
+  'prazo futuro abre agora',
+  aberturaDaAvaliacao(futuro, agora).getTime() === agora.getTime(),
+)
+conferir(
+  'prazo passado recua a abertura para um dia antes',
+  aberturaDaAvaliacao(passado, agora).getTime() === new Date(passado).getTime() - 24 * 60 * 60 * 1000,
+)
+conferir('sem prazo abre agora', aberturaDaAvaliacao('', agora).getTime() === agora.getTime())
 
 // ---- efeito da mudança -----------------------------------------------------
 const enviados = [
@@ -117,4 +122,4 @@ if (falhas) {
   console.log(`  \x1b[31m${falhas} verificação(ões) de prazo falharam\x1b[0m\n`)
   process.exit(1)
 }
-console.log('  \x1b[32m✓ 16 verificações de prazo passaram\x1b[0m\n')
+console.log(`  \x1b[32m✓ ${verificacoes} verificações de prazo passaram\x1b[0m\n`)

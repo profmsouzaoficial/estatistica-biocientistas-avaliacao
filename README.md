@@ -87,7 +87,7 @@ Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutur
 | `alunos_esperados` | lista importada pelo professor (matrícula, nome, e-mail) |
 | `professores_autorizados` | e-mails que podem ter papel de professor |
 | `profiles` | dados do usuário autenticado + papel (`aluno`/`professor`); professor tem `departamento`/`instituto` |
-| `avaliacoes` | tema, instruções, valor total, rubrica (JSONB), descrição/peso/data no SIGA |
+| `avaliacoes` | tema, instruções do aluno, instruções de correção da LLM, valor total, rubrica (JSONB), descrição/peso/data no SIGA |
 | `submissoes` | foto, transcrição, texto final, status |
 | `correcoes` | notas por critério, nota bruta, nota final, pontos fortes/desenvolver, decisão |
 | `lancamentos_siga` | trilha de auditoria de cada envio (sucesso, HTTP, erro, payload) |
@@ -642,13 +642,14 @@ Duas coisas dão errado com data digitada à mão, e as duas agora são tratadas
 
 | Situação | Antes | Agora |
 |---|---|---|
-| Prazo no passado ao criar | salvava; a avaliação nascia “encerrada” e o aluno não entendia | o formulário recusa com o motivo e o banco também (`trg_avaliacao_prazo`, migration 0012 — só na criação; mudar para uma data passada depois é legítimo e pede confirmação) |
+| Prazo no passado ao criar | o trigger `trg_avaliacao_prazo` recusava o INSERT se a abertura fosse posterior ao prazo | é aceito para lançamento retroativo: o app recua `abre_em` para um dia antes do prazo e o mesmo trigger continua garantindo a coerência |
 | Encurtar o prazo de quem já entregou | gravava calado; o aluno que entregou no prazo passava a aparecer como atrasado | a tela diz quantas entregas mudam de estado e só grava depois do **Confirmar nova data** |
 
-A conta do aviso fica em `src/lib/prazos.ts` (funções puras, sem relógio dentro) e o `pnpm test:prazos`
-cobre 16 casos: prazo vazio, data inválida, prazo no passado, encurtar, estender, remover e o caso de
-quem já estava atrasado não contar duas vezes. O passo 3 do `pnpm test:e2e` tenta publicar com data no
-passado e confere a recusa; o passo 24 confirma o aviso de encurtamento.
+A conta do aviso e da abertura retroativa fica em `src/lib/prazos.ts` (funções puras, sem relógio
+dentro) e o `pnpm test:prazos` cobre 20 casos: prazo vazio, data inválida, prazo no passado (aceito,
+com abertura um dia antes), encurtar, estender, remover e o caso de quem já estava atrasado não
+contar duas vezes. O passo 3 do `pnpm test:e2e` confere o espelho entre prazo e data do SIGA e que o
+campo não bloqueia data passada; o passo 24 confirma o aviso de encurtamento.
 
 ### A lista de alunos
 
@@ -880,9 +881,11 @@ LLM_REAL=1 LLM_MODEL=llama3:latest SENHA_PROFESSOR='...' node e2e/smoke.mjs --ma
 ```
 
 `--manter` deixa os dados no banco para inspecionar `correcoes`; sem a flag, o teste limpa tudo.
-O prompt está em `api/_lib/rubrica.ts` (versão `rubrica-v3`, gravada em `correcoes.prompt_versao`): itens de devolutiva precisam citar um
+O prompt está em `api/_lib/rubrica.ts` (versão `rubrica-v4`, gravada em `correcoes.prompt_versao`): itens de devolutiva precisam citar um
 trecho concreto da redação, frases genéricas são proibidas e "pontos a desenvolver" começam com
-verbo de ação.
+verbo de ação. Cada avaliação pode acrescentar **instruções de correção pela LLM** (campo
+`instrucoes_correcao`, migration 0018); elas entram no prompt do **sistema**, depois das regras
+fixas, e valem para as correções seguintes daquela avaliação.
 
 ### Correção sem IA
 

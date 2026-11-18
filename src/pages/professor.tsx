@@ -7,10 +7,10 @@ import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../compo
 import { SelecaoTurmas } from '../components/selecaoTurmas'
 import { CAPITULOS } from '../lib/livro'
 import type { Avaliacao, AvaliacaoSiga, Criterio, Diagnostico, Esperado, ResumoAvaliacao, Turma } from '../lib/types'
-import { agoraParaInput, formatarNota } from '../lib/formato'
+import { formatarNota } from '../lib/formato'
 import { numeroDaTvc } from '../lib/siga'
 import { api } from '../lib/servidor'
-import { validarPrazoCriacao } from '../lib/prazos'
+import { aberturaDaAvaliacao, validarPrazoCriacao } from '../lib/prazos'
 import type { Dados } from '../lib/dados'
 
 // ---------------------------------------------------------------------------
@@ -339,18 +339,19 @@ export function ProfessorNovaAvaliacao() {
   const [titulo, setTitulo] = useState('')
   const [tema, setTema] = useState('')
   const [instrucoes, setInstrucoes] = useState('')
+  const [instrucoesCorrecao, setInstrucoesCorrecao] = useState('')
   const [capitulo, setCapitulo] = useState('')
-  const [valorTotal, setValorTotal] = useState('20')
+  const [valorTotal, setValorTotal] = useState('100')
   const [rubrica, setRubrica] = useState<Criterio[]>([
-    { ...novoCriterio(1), nome: 'Precisão conceitual', descricao: 'Usa corretamente os conceitos do capítulo.', valor: 6 },
-    { ...novoCriterio(2), nome: 'Interpretação e aplicação', descricao: 'Aplica o conceito a uma situação concreta.', valor: 6 },
-    { ...novoCriterio(3), nome: 'Argumentação e evidências', descricao: 'Sustenta a resposta com dados ou exemplos.', valor: 4 },
-    { ...novoCriterio(4), nome: 'Clareza e norma padrão', descricao: 'Texto organizado, coeso e em português padrão.', valor: 4 },
+    { ...novoCriterio(1), nome: 'Precisão conceitual', descricao: 'Usa corretamente os conceitos do capítulo.', valor: 25 },
+    { ...novoCriterio(2), nome: 'Interpretação e aplicação', descricao: 'Aplica o conceito a uma situação concreta.', valor: 25 },
+    { ...novoCriterio(3), nome: 'Argumentação e evidências', descricao: 'Sustenta a resposta com dados ou exemplos.', valor: 25 },
+    { ...novoCriterio(4), nome: 'Clareza e norma padrão', descricao: 'Texto organizado, coeso e em português padrão.', valor: 25 },
   ])
   const [descricaoSiga, setDescricaoSiga] = useState('')
   // O peso no SIGA é, quase sempre, igual ao valor total da rubrica. Começa
   // acompanhando o total e para de acompanhar quando o professor edita o campo.
-  const [pesoSiga, setPesoSiga] = useState('20')
+  const [pesoSiga, setPesoSiga] = useState('100')
   const [pesoEditado, setPesoEditado] = useState(false)
   const [dataSiga, setDataSiga] = useState('')
   const [prazo, setPrazo] = useState('')
@@ -383,6 +384,31 @@ export function ProfessorNovaAvaliacao() {
   useEffect(() => {
     if (!pesoEditado) setPesoSiga(valorTotal)
   }, [valorTotal, pesoEditado])
+
+  /** O título é a fonte da descrição no SIGA; a descrição continua editável
+   * para casar com uma TVC que já existe ou para incluir o número exigido. */
+  function mudarTitulo(valor: string) {
+    setTitulo(valor)
+    setDescricaoSiga(valor)
+  }
+
+  /** Data do SIGA e prazo de entrega são espelhos: uma alteração atualiza a outra. */
+  function mudarDataSiga(valor: string) {
+    setDataSiga(valor)
+    if (!valor) {
+      setPrazo('')
+      return
+    }
+    setPrazo((atual) => {
+      const hora = atual.slice(0, 10) === valor ? atual.slice(11, 16) : '23:59'
+      return `${valor}T${hora || '23:59'}`
+    })
+  }
+
+  function mudarPrazo(valor: string) {
+    setPrazo(valor)
+    setDataSiga(valor ? valor.slice(0, 10) : '')
+  }
 
   const total = Number(valorTotal) || 0
   const soma = rubrica.reduce((t, c) => t + (Number(c.valor) || 0), 0)
@@ -487,7 +513,7 @@ export function ProfessorNovaAvaliacao() {
       setPesoSiga(String(a.peso))
     }
     const br = a.data?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
-    if (br) setDataSiga(`${br[3]}-${br[2]}-${br[1]}`)
+    if (br) mudarDataSiga(`${br[3]}-${br[2]}-${br[1]}`)
   }
 
   async function salvar(e: React.FormEvent) {
@@ -574,13 +600,14 @@ export function ProfessorNovaAvaliacao() {
             titulo: titulo.trim(),
             tema: tema.trim(),
             instrucoes: instrucoes.trim(),
+            instrucoes_correcao: instrucoesCorrecao.trim() || null,
             capitulo: capitulo || null,
             valor_total: total,
             rubrica: rubrica.map((c) => ({ ...c, valor: Number(c.valor) })),
             descricao_siga: descricaoSiga.trim() || null,
             peso_siga: Number(pesoSiga) || 10,
             data_siga: dataSiga || null,
-            abre_em: new Date().toISOString(),
+            abre_em: aberturaDaAvaliacao(prazo).toISOString(),
             prazo_em: prazo ? new Date(prazo).toISOString() : null,
             status: publicar ? 'publicada' : 'rascunho',
           })
@@ -647,7 +674,14 @@ export function ProfessorNovaAvaliacao() {
         <form onSubmit={salvar} className="space-y-4" noValidate>
           <Cartao className="space-y-3.5">
             <SelecaoTurmas turmas={turmas} selecionadas={turmaIds} onChange={setTurmaIds} />
-            <Campo rotulo="Título" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Redação 1 — Testes diagnósticos" required />
+            <Campo
+              rotulo="Título"
+              value={titulo}
+              onChange={(e) => mudarTitulo(e.target.value)}
+              placeholder="Redação 1 — Testes diagnósticos"
+              dica="O título preenche a descrição no SIGA; a descrição continua editável para casar com uma TVC existente."
+              required
+            />
             <div>
               <label className="rotulo" htmlFor="tema">Tema (o que o aluno deve responder)</label>
               <textarea
@@ -670,6 +704,24 @@ export function ProfessorNovaAvaliacao() {
                 required
               />
             </div>
+            <div>
+              <label className="rotulo" htmlFor="instrucoes-correcao">
+                Instruções de correção pela LLM (prompt do sistema)
+              </label>
+              <textarea
+                id="instrucoes-correcao"
+                className="campo min-h-24"
+                value={instrucoesCorrecao}
+                onChange={(e) => setInstrucoesCorrecao(e.target.value)}
+                maxLength={6000}
+                placeholder="Ex.: valorize o uso de exemplos numéricos; não desconte pontos por desvios leves de norma padrão; dê atenção especial à interpretação da prevalência."
+                aria-describedby="dica-instrucoes-correcao"
+              />
+              <p id="dica-instrucoes-correcao" className="dica">
+                Opcional. Entra no prompt do sistema da correção automática, além das regras fixas de formato,
+                segurança e fidelidade ao texto. Vale para as próximas correções desta avaliação.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="rotulo" htmlFor="cap">Capítulo do livro</label>
@@ -689,16 +741,15 @@ export function ProfessorNovaAvaliacao() {
                 step="0.5"
                 value={valorTotal}
                 onChange={(e) => setValorTotal(e.target.value)}
+                dica="O padrão é 100 pontos; a rubrica abaixo vem com 4 critérios de 25 e pode ser editada."
               />
             </div>
             <Campo
               rotulo="Prazo de entrega (opcional)"
               type="datetime-local"
               value={prazo}
-              // `min` impede o seletor de oferecer datas que já passaram; o
-              // validador no envio cobre quem digita à mão.
-              min={agoraParaInput()}
-              onChange={(e) => setPrazo(e.target.value)}
+              onChange={(e) => mudarPrazo(e.target.value)}
+              dica="Aceita datas passadas para lançamento retroativo. A data no SIGA acompanha o dia escolhido aqui."
             />
           </Cartao>
 
@@ -848,7 +899,7 @@ export function ProfessorNovaAvaliacao() {
               value={descricaoSiga}
               onChange={(e) => setDescricaoSiga(e.target.value)}
               placeholder="TVC 1"
-              dica="É o campo descricao_avaliacao da API do SIGA; precisa ser idêntico ao nome da TVC."
+              dica="Começa igual ao título. É o campo descricao_avaliacao da API do SIGA: ajuste para o nome exato da TVC (com o número) quando for criar uma nova."
             />
             {descricaoSiga.trim() && sigaConfere ? (
               <p className="text-[12.5px] leading-snug text-marinho">
@@ -905,8 +956,18 @@ export function ProfessorNovaAvaliacao() {
                 }}
                 dica="O padrão acompanha o valor total. Se o SIGA usar outro peso, a nota é convertida proporcionalmente."
               />
-              <Campo rotulo="Data no SIGA" type="date" value={dataSiga} onChange={(e) => setDataSiga(e.target.value)} />
+              <Campo
+                rotulo="Data no SIGA"
+                type="date"
+                value={dataSiga}
+                onChange={(e) => mudarDataSiga(e.target.value)}
+                dica="Também aceita data passada. Mudar esta data ajusta o prazo para o mesmo dia, às 23:59."
+              />
             </div>
+            <p className="text-[12.5px] leading-snug text-tinta-suave">
+              As duas datas andam juntas: alterar uma atualiza a outra. Se o prazo for anterior a hoje, a avaliação
+              abre um dia antes dele — assim o lançamento retroativo fica coerente e o aluno ainda vê a avaliação.
+            </p>
             <div className="rounded-lg bg-papel-fundo px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-tinta-suave">
               <p className="mb-1 font-sans text-[11px] font-medium uppercase tracking-wide text-tinta-fraca">
                 O que será enviado ao SIGA

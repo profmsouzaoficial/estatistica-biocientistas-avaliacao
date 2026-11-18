@@ -75,19 +75,27 @@ lista, mantenha o número exatamente como veio do SIGA; o app normaliza para mai
 
 | Campo | Dica |
 |---|---|
-| Turmas | marque **uma ou mais**; cada opção mostra o `codigo_siga` (ex.: `CBV018GV-A`) e o nome da turma |
-| Título | aparece para o aluno (`Redação 1 — Testes diagnósticos`) |
+| Turmas | marque **uma ou mais**; cada opção mostra o curso, o `codigo_siga` e o período (ex.: `Fisioterapia · CBV018GV-A · 2026/3`), com o nome da turma como apoio |
+| Título | aparece para o aluno (`Redação 1 — Testes diagnósticos`) e **espelha** a descrição no SIGA |
 | Tema | uma frase; é o que o aluno lê na hora de escrever |
-| Instruções | número de linhas, se pode consultar, critérios de formatação |
+| Instruções | número de linhas, se pode consultar, critérios de formatação; é o texto do aluno |
+| Instruções de correção pela LLM | opcional; entra no prompt do **sistema** da correção automática (tom, ênfases, o que valorizar ou não descontar) |
 | Capítulo do livro | liga a redação ao capítulo 1–10 |
-| Valor total | a nota máxima em pontos (ex.: 20) |
-| Rubrica | 3–5 critérios; **a soma tem de fechar com o valor total** |
-| Descrição no SIGA | idêntica à do SIGA — use **Buscar** para escolher da lista real |
-| Peso / Data | usados ao criar a avaliação no SIGA |
+| Valor total | a nota máxima em pontos; o padrão é **100** e pode ser editado |
+| Rubrica | 3–6 critérios; **a soma tem de fechar com o valor total** |
+| Descrição no SIGA | começa igual ao título; ajuste para o nome exato da TVC ou use **Buscar** para escolher da lista real |
+| Peso / Data | usados ao criar a avaliação no SIGA; o peso acompanha o valor total até você escolher uma TVC ou editar à mão |
+| Prazo | opcional; pode ser uma data passada (lançamento retroativo) e anda junto com a **Data no SIGA** |
 
 A rubrica é o coração da correção: cada critério tem nome, descrição (o que se espera) e valor
-máximo. O modelo só pode pontuar dentro desse máximo. O botão **Distribuir 20 pts** preenche
-30%/30%/20%/20% como ponto de partida.
+máximo. O formulário já abre com **4 critérios de 25 pontos** (100 no total); ajuste valores, nomes
+ou acrescente/remova critérios. O modelo só pode pontuar dentro do máximo de cada um. O botão
+**Distribuir 100 pts** redistribui 30%/30%/20%/20% como atalho, não como regra.
+
+As **Instruções de correção pela LLM** são separadas das instruções do aluno e não aparecem na tela
+de envio. Elas são anexadas ao prompt do sistema, depois das regras fixas de formato JSON,
+segurança e fidelidade ao texto; servem para orientar o julgamento sem quebrar o contrato da
+correção. A versão do prompt fica registrada em cada correção para auditoria.
 
 A seleção de **Turmas** é múltipla: ao marcar duas ou três, o mesmo conteúdo (título, tema, rubrica,
 prazo) é criado em cada uma, com uma avaliação independente por turma. O código do SIGA é a chave —
@@ -201,9 +209,10 @@ de gravar**: “2 entregas já feitas passariam a ser marcadas como fora do praz
 data** e **Cancelar**. Não é proibição — é para a marca não aparecer sem você saber. Para simplesmente
 fechar o envio sem recategorizar ninguém, use **Encerrar entregas**.
 
-Ao criar a avaliação, uma data no passado é recusada de saída (a avaliação nasceria fechada e o aluno
-leria “Prazo encerrado” em algo recém-publicado). Corrija a data e, se precisar mudá-la depois, use o
-próprio cartão do prazo.
+Ao criar a avaliação, uma data no passado é **aceita**: serve para lançar uma avaliação retroativa.
+O app recua a abertura para um dia antes do prazo, então o aluno ainda vê a avaliação e o banco não
+recebe uma linha com abertura posterior ao prazo. Se precisar mudar a data depois, use o próprio
+cartão do prazo — a mudança continua avisando quando encurta o prazo de quem já entregou.
 
 ### Conferir se a nota chegou ao SIGA
 

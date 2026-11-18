@@ -357,6 +357,10 @@ async function main() {
     await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(page)
     await page.getByLabel('Título').fill('Redação 1 — Testes diagnósticos')
+    const descricaoInicial = await page.getByLabel('Descrição da avaliação no SIGA').inputValue()
+    if (descricaoInicial !== 'Redação 1 — Testes diagnósticos') {
+      throw new Error(`O título deveria espelhar a descrição do SIGA; veio "${descricaoInicial}".`)
+    }
     await page
       .locator('#tema')
       .fill(
@@ -365,6 +369,9 @@ async function main() {
     await page
       .locator('#instrucoes')
       .fill('Escreva de 20 a 30 linhas, à mão, em folha A4. Use exemplos concretos e justifique o raciocínio.')
+    await page
+      .locator('#instrucoes-correcao')
+      .fill('Priorize a distinção entre sensibilidade e especificidade; não penalize desvios leves de norma padrão.')
     await page.getByLabel('Capítulo do livro').selectOption({ index: 8 })
     // seletor das avaliações reais do SIGA (aqui, do mock)
     await page.getByRole('button', { name: 'Buscar' }).click()
@@ -372,22 +379,50 @@ async function main() {
     const descricaoEscolhida = await page.getByLabel('Descrição da avaliação no SIGA').inputValue()
     if (descricaoEscolhida !== 'TVC 1') throw new Error(`seletor do SIGA preencheu "${descricaoEscolhida}"`)
     await page.getByLabel('Data no SIGA').fill('2026-11-20')
-
-    // Prazo no passado: a avaliação nasceria fechada. O formulário precisa
-    // recusar com uma frase que diga o que fazer (o banco também recusa, mas a
-    // mensagem dele é técnica).
-    await page.getByLabel('Prazo de entrega (opcional)').fill('2020-03-10T19:00')
-    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.getByText(/Esse prazo já passou/).waitFor({ timeout: 15000 })
-    if (!/\/prof\/avaliacoes\/nova$/.test(new URL(page.url()).pathname)) {
-      throw new Error('O formulário aceitou prazo no passado e saiu da tela de criação.')
+    if ((await page.getByLabel('Prazo de entrega (opcional)').inputValue()) !== '2026-11-20T23:59') {
+      throw new Error('A data no SIGA deveria espelhar o prazo de entrega.')
     }
-    await foto(page, '02b-prazo-no-passado')
-    await page.getByLabel('Prazo de entrega (opcional)').fill('')
-    console.log('      prazo no passado recusado, com o motivo na tela')
 
+    // Datas passadas são permitidas (lançamento retroativo). O campo não tem
+    // `min`; o teste puro em scripts/testar-prazos.mjs cobre a regra e a
+    // abertura recuada. Aqui conferimos também o espelho inverso.
+    const minPrazo = await page.getByLabel('Prazo de entrega (opcional)').getAttribute('min')
+    if (minPrazo) throw new Error(`O prazo ainda tem min="${minPrazo}"; datas passadas ficam bloqueadas.`)
+    await page.getByLabel('Prazo de entrega (opcional)').fill('2020-03-10T19:00')
+    if ((await page.getByLabel('Data no SIGA').inputValue()) !== '2020-03-10') {
+      throw new Error('Alterar o prazo deveria espelhar a data no SIGA.')
+    }
+    await foto(page, '02b-datas-espelhadas')
+    console.log('      datas espelhadas; publicando de verdade com prazo em 2020')
+
+    // Publica com o prazo no passado: o INSERT precisa passar pelo trigger do
+    // banco com `abre_em` recuado para um dia antes do prazo. Depois o teste
+    // estende o prazo para o fluxo normal de entrega.
     const idAvaliacao = await publicarEAbrir(page)
-    console.log(`     avaliação ${idAvaliacao}`)
+    console.log(`     avaliação ${idAvaliacao} criada com prazo retroativo`)
+    const [avaliacaoCriada] = await supabaseRest(
+      `avaliacoes?id=eq.${idAvaliacao}&select=valor_total,instrucoes_correcao,abre_em,prazo_em`,
+    )
+    if (Number(avaliacaoCriada?.valor_total) !== 100) {
+      throw new Error(`O padrão deveria ser 100 pontos; veio ${avaliacaoCriada?.valor_total}.`)
+    }
+    if (!String(avaliacaoCriada?.instrucoes_correcao ?? '').includes('sensibilidade')) {
+      throw new Error('As instruções de correção da LLM não foram gravadas.')
+    }
+    if (!(new Date(avaliacaoCriada.abre_em) < new Date(avaliacaoCriada.prazo_em))) {
+      throw new Error(
+        `O prazo retroativo ficou incoerente: abre em ${avaliacaoCriada.abre_em} e fecha em ${avaliacaoCriada.prazo_em}.`,
+      )
+    }
+    await page.getByRole('button', { name: 'Estender ou mudar o prazo' }).click()
+    const prazoSalvo = await page.locator('input[type="datetime-local"]').inputValue()
+    if (prazoSalvo !== '2020-03-10T19:00') {
+      throw new Error(`O prazo retroativo não foi gravado; o campo abriu com "${prazoSalvo}".`)
+    }
+    await page.locator('input[type="datetime-local"]').fill('2026-11-20T23:59')
+    await page.getByRole('button', { name: 'Salvar prazo' }).click()
+    await page.getByText(/Prazo atualizado/).waitFor({ timeout: 20000 })
+    console.log('      prazo retroativo gravado e estendido para a entrega')
     await page.getByText('Nenhuma redação enviada ainda').waitFor()
     await foto(page, '03-avaliacao-criada')
 
@@ -968,7 +1003,9 @@ async function main() {
     console.log('  ▸ 24/26 muda o prazo e confere a marca de atraso')
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}`, { waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'Definir um prazo' }).click()
+    // A avaliação nasceu com prazo porque a data do SIGA é espelhada no prazo;
+    // por isso o botão é o de mudança, não o de definir do zero.
+    await page.getByRole('button', { name: /Definir um prazo|Estender ou mudar o prazo/ }).click()
     await page.locator('input[type="datetime-local"]').fill('2026-11-01T18:00')
     await page.getByRole('button', { name: 'Salvar prazo' }).click()
     // Encurtar o prazo de quem já entregou muda o aviso de atraso: a tela pede

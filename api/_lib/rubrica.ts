@@ -47,6 +47,8 @@ export interface EntradaCorrecao {
   titulo: string
   tema: string
   instrucoes: string
+  /** Orientações adicionais do professor, anexadas ao prompt do sistema. */
+  instrucoes_correcao?: string | null
   valor_total: number
   rubrica: CriterioRubrica[]
   texto: string
@@ -65,8 +67,10 @@ export interface EntradaCorrecao {
  * - v2: devolutiva presa ao texto da redação (proíbe elogio genérico).
  * - v3: nível categórico ancorando a nota numa faixa (FAIXAS) e conferência
  *   das citações do modelo contra o texto do aluno (`citacao_conferida`).
+ * - v4: instruções de correção do professor entram no prompt do sistema, sem
+ *   substituir as regras de formato, segurança e fidelidade ao texto.
  */
-const VERSAO_PROMPT = 'rubrica-v3'
+const VERSAO_PROMPT = 'rubrica-v4'
 
 const SISTEMA = `Você é um professor universitário de bioestatística corrigindo redações de estudantes de graduação da UFJF.
 
@@ -113,6 +117,17 @@ Regras obrigatórias:
 - Em cada justificativa, cite entre aspas um trecho literal da redação que comprove a nota (12 a 100
   caracteres). Se não houver trecho que comprove, abaixe a nota até o nível que o texto sustenta.
 - Antes de dar nota máxima, localize o trecho da redação que comprova; sem trecho, reduza a nota.`
+
+function montarSistema(instrucoesCorrecao?: string | null): string {
+  const extra = (instrucoesCorrecao ?? '').trim().slice(0, 6000)
+  if (!extra) return SISTEMA
+  return `${SISTEMA}
+
+## Orientações adicionais do professor para esta avaliação
+${extra}
+
+Estas orientações ajustam o julgamento dos critérios, mas não substituem o formato JSON nem as regras de segurança e fidelidade ao texto acima.`
+}
 
 function montarUsuario(entrada: EntradaCorrecao, texto: string): string {
   const rubrica = entrada.rubrica
@@ -396,7 +411,7 @@ export async function corrigirRedacao(entrada: EntradaCorrecao): Promise<SaidaCo
     temperature: 0.1,
     max_tokens: Number(envOpcional('LLM_MAX_TOKENS') ?? 1400),
     messages: [
-      { role: 'system', content: SISTEMA },
+      { role: 'system', content: montarSistema(entrada.instrucoes_correcao) },
       { role: 'user', content: montarUsuario(entrada, texto) },
     ],
   }

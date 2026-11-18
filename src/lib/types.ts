@@ -43,6 +43,8 @@ export interface Avaliacao {
   titulo: string
   tema: string
   instrucoes: string
+  /** Orientações adicionais do professor para o prompt do sistema da LLM. */
+  instrucoes_correcao?: string | null
   capitulo: string | null
   valor_total: number
   rubrica: Criterio[]

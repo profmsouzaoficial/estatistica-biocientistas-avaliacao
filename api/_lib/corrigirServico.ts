@@ -18,6 +18,7 @@ export interface AvaliacaoServidor {
   titulo: string
   tema: string
   instrucoes: string
+  instrucoes_correcao: string | null
   valor_total: number
   rubrica: CriterioRubrica[]
 }
@@ -50,7 +51,7 @@ export async function carregarSubmissao(submissaoId: string): Promise<SubmissaoS
 export async function carregarAvaliacao(avaliacaoId: string): Promise<AvaliacaoServidor> {
   const avaliacao = await selecionarUm<AvaliacaoServidor>(
     'avaliacoes',
-    `id=eq.${encodeURIComponent(avaliacaoId)}&select=id,turma_id,titulo,tema,instrucoes,valor_total,rubrica`,
+    `id=eq.${encodeURIComponent(avaliacaoId)}&select=id,turma_id,titulo,tema,instrucoes,instrucoes_correcao,valor_total,rubrica`,
   )
   if (!avaliacao) throw new ErroHttp(404, 'AVALIACAO', 'Avaliação não encontrada.')
   if (!Array.isArray(avaliacao.rubrica) || avaliacao.rubrica.length === 0) {
@@ -76,6 +77,7 @@ export async function corrigirSubmissao(submissaoId: string): Promise<ResultadoC
     titulo: avaliacao.titulo,
     tema: avaliacao.tema,
     instrucoes: avaliacao.instrucoes,
+    instrucoes_correcao: avaliacao.instrucoes_correcao,
     valor_total: Number(avaliacao.valor_total),
     rubrica: avaliacao.rubrica.map((c) => ({ ...c, valor: Number(c.valor) })),
     texto: submissao.transcrito,

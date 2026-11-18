@@ -56,6 +56,8 @@ export interface NovaAvaliacao {
   titulo: string
   tema: string
   instrucoes: string
+  /** Orientações adicionais para o prompt do sistema da LLM (opcional). */
+  instrucoes_correcao?: string | null
   capitulo: string | null
   valor_total: number
   rubrica: Criterio[]

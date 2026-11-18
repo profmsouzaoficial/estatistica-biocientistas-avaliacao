@@ -6,10 +6,11 @@
  * `datetime-local` que aceita qualquer data. Duas coisas dão errado com
  * facilidade:
  *
- *   1. data no passado por engano (ninguém consegue enviar e o professor não
- *      entende por quê);
- *   2. encurtar o prazo de uma avaliação que já recebeu entregas — quem entregou
- *      no prazo passa a aparecer como atrasado, retroativamente.
+ *   1. encurtar o prazo de uma avaliação que já recebeu entregas — quem entregou
+ *      no prazo passa a aparecer como atrasado, retroativamente;
+ *   2. datas passadas digitadas por engano ou de propósito (lançamento
+ *      retroativo), que precisam ser aceitas sem criar uma avaliação impossível
+ *      de abrir.
  *
  * As funções aqui são puras (recebem as datas e o "agora", não leem relógio nem
  * banco) para que o teste cubra os casos sem esperar o tempo passar.
@@ -30,27 +31,36 @@ export function lerData(valor: string | null | undefined): Date | null {
 /**
  * Valida o prazo no momento de **criar** a avaliação.
  *
- * Prazo vazio é permitido (entrega sem data limite). Prazo no passado não é: o
- * formulário grava `abre_em = agora`, então um prazo anterior à abertura é uma
- * avaliação que nasce fechada — e o banco recusa (trigger `trg_avaliacao_prazo`,
- * só no INSERT). Melhor explicar antes de tentar.
+ * Prazo vazio é permitido (entrega sem data limite). Datas no passado também
+ * são aceitas de propósito: servem para lançar avaliações retroativas. A
+ * abertura é recuada para antes do prazo em `aberturaDaAvaliacao`, então o
+ * banco (trigger `trg_avaliacao_prazo`, só no INSERT) continua satisfeito.
+ * A data só precisa ser interpretável.
  */
 export function validarPrazoCriacao(
   prazo: string | null | undefined,
-  agora: Date = new Date(),
+  _agora: Date = new Date(),
 ): ResultadoValidacaoPrazo {
   if (!prazo) return { ok: true }
   const data = lerData(prazo)
   if (!data) return { ok: false, mensagem: 'A data do prazo não é válida. Confira dia, mês, hora e minuto.' }
-  if (data.getTime() <= agora.getTime()) {
-    return {
-      ok: false,
-      mensagem:
-        'Esse prazo já passou — a avaliação nasceria fechada e ninguém conseguiria enviar. ' +
-        'Escolha uma data futura; depois de criada, o prazo pode ser mudado no painel da avaliação.',
-    }
-  }
   return { ok: true }
+}
+
+/**
+ * Quando a avaliação deve constar como aberta.
+ *
+ * Para prazo futuro, abre agora. Para prazo passado (retroativo), abre um dia
+ * antes dele: a avaliação nasce coerente com o prazo e o trigger do banco não
+ * recusa o INSERT. Se o prazo não existir ou for inválido, abre agora.
+ */
+export function aberturaDaAvaliacao(
+  prazo: string | null | undefined,
+  agora: Date = new Date(),
+): Date {
+  const data = lerData(prazo)
+  if (!data || data.getTime() > agora.getTime()) return agora
+  return new Date(data.getTime() - 24 * 60 * 60 * 1000)
 }
 
 export interface EfeitoDoPrazo {

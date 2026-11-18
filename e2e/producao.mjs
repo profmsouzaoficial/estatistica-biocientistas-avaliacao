@@ -93,7 +93,7 @@ async function escolherTurma(pagina, trecho) {
   await botao.waitFor({ state: 'visible', timeout: 15000 })
   await botao.click()
   const grupo = pagina.getByRole('group', { name: 'Turmas disponíveis' })
-  const caixa = grupo.getByRole('checkbox', { name: trecho }).first()
+  const caixa = grupo.getByRole('checkbox', { name: new RegExp(trecho) }).first()
   if (!(await caixa.count())) throw new Error(`A turma "${trecho}" não apareceu no seletor de turmas.`)
   await caixa.check()
   await pagina.getByRole('button', { name: 'Fechar', exact: true }).click()

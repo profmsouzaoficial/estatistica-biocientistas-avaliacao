@@ -5,8 +5,8 @@ import type { Turma } from '../lib/types'
 /**
  * Seleção de várias turmas sem `select multiple` (que no celular vira uma
  * lista cinza em que ninguém acerta o toque). O botão abre um painel de
- * caixas de seleção; cada opção mostra o `codigo_siga` — a mesma chave que o
- * SIGA usa — e o nome da turma como apoio.
+ * caixas de seleção; cada opção mostra o curso, o `codigo_siga` — a mesma chave
+ * que o SIGA usa —, o período e o nome da turma como apoio.
  */
 export function SelecaoTurmas({
   turmas,
@@ -52,6 +52,7 @@ export function SelecaoTurmas({
   }, [aberto])
 
   const escolhidas = turmas.filter((t) => selecionadas.includes(t.id))
+  const rotuloCurso = (t: Turma) => t.curso?.trim() || 'Curso não informado'
 
   function alternar(id: string) {
     onChange(selecionadas.includes(id) ? selecionadas.filter((x) => x !== id) : [...selecionadas, id])
@@ -65,7 +66,7 @@ export function SelecaoTurmas({
       <span id={resumoId} className="sr-only">
         {escolhidas.length === 0
           ? 'Nenhuma turma selecionada.'
-          : `Selecionadas: ${escolhidas.map((t) => t.codigo_siga).join(', ')}.`}
+          : `Selecionadas: ${escolhidas.map((t) => `${rotuloCurso(t)}, ${t.codigo_siga}, ${t.periodo}`).join('; ')}.`}
       </span>
       <button
         ref={botao}
@@ -81,7 +82,7 @@ export function SelecaoTurmas({
           {escolhidas.length === 0
             ? 'Escolha uma ou mais turmas…'
             : escolhidas.length === 1
-              ? `1 turma: ${escolhidas[0].codigo_siga}`
+              ? `1 turma: ${rotuloCurso(escolhidas[0])} · ${escolhidas[0].codigo_siga} · ${escolhidas[0].periodo}`
               : `${escolhidas.length} turmas selecionadas`}
         </span>
         <ChevronDown
@@ -131,7 +132,7 @@ export function SelecaoTurmas({
               />
               <span className="min-w-0">
                 <span className="block text-[14px] font-medium text-tinta">
-                  {t.codigo_siga} · {t.periodo}
+                  {rotuloCurso(t)} · {t.codigo_siga} · {t.periodo}
                 </span>
                 <span className="block truncate text-[12px] text-tinta-suave">{t.nome}</span>
               </span>
@@ -156,7 +157,7 @@ export function SelecaoTurmas({
               key={t.id}
               className="rounded-full border border-borda bg-white px-2.5 py-1 text-[12px] text-tinta-suave"
             >
-              {t.codigo_siga}
+              {rotuloCurso(t)} · {t.codigo_siga} · {t.periodo}
             </span>
           ))}
         </div>
