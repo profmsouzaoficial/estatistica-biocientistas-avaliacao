@@ -78,19 +78,25 @@ async function sair(pagina) {
 }
 
 async function escolherTurma(pagina, trecho) {
-  // A lista de turmas chega depois do formulário: esperar pelo rótulo e pela
-  // opção evita pegar o <select> errado (o de capítulo) no meio do carregamento.
-  const porRotulo = pagina.getByLabel('Turma').first()
-  const temRotulo = await porRotulo
-    .waitFor({ state: 'visible', timeout: 15000 })
-    .then(() => true)
-    .catch(() => false)
-  const select = temRotulo ? porRotulo : pagina.locator('select').first()
-  const opcao = select.locator('option', { hasText: trecho }).first()
-  await opcao.waitFor({ state: 'attached', timeout: 20000 }).catch(() => {})
-  const valor = await opcao.getAttribute('value').catch(() => null)
-  if (!valor) throw new Error(`A turma "${trecho}" não apareceu na lista.`)
-  await select.selectOption(valor)
+  // Cadastro e /prof/alunos usam <select>; a criação de avaliação usa o
+  // seletor múltiplo (botão + caixas). Procura primeiro um <select> cuja opção
+  // contenha o trecho — sem escolher o <select> de capítulo por engano.
+  const select = pagina.locator('select').filter({ has: pagina.locator('option', { hasText: trecho }) }).first()
+  if (await select.count()) {
+    const valor = await select.locator('option', { hasText: trecho }).first().getAttribute('value')
+    if (!valor) throw new Error(`A turma "${trecho}" não apareceu na lista.`)
+    await select.selectOption(valor)
+    return
+  }
+
+  const botao = pagina.getByRole('button', { name: /^Turmas\b/ })
+  await botao.waitFor({ state: 'visible', timeout: 15000 })
+  await botao.click()
+  const grupo = pagina.getByRole('group', { name: 'Turmas disponíveis' })
+  const caixa = grupo.getByRole('checkbox', { name: trecho }).first()
+  if (!(await caixa.count())) throw new Error(`A turma "${trecho}" não apareceu no seletor de turmas.`)
+  await caixa.check()
+  await pagina.getByRole('button', { name: 'Fechar', exact: true }).click()
 }
 
 async function foto(pagina, nome) {
@@ -172,7 +178,7 @@ try {
   await page.getByText('Turma criada').waitFor()
 
   passo('3/10 importa a lista sem e-mail')
-  await escolherTurma(page, TURMA.nome)
+  await escolherTurma(page, TURMA.codigo)
   const caixaEmail = page.getByRole('checkbox', { name: /Exigir o e-mail na lista/ })
   if (await caixaEmail.isChecked()) {
     await caixaEmail.uncheck()
@@ -186,7 +192,7 @@ try {
 
   passo('4/10 publica avaliação')
   await page.goto(`${WEB}/prof/avaliacoes/nova`, { waitUntil: 'networkidle' })
-  await escolherTurma(page, TURMA.nome)
+  await escolherTurma(page, TURMA.codigo)
   await page.getByLabel('Título').fill(`Teste de produção ${SUFIXO}`)
   await page.locator('#tema').fill('Explique o que é sensibilidade, especificidade e valor preditivo positivo.')
   await page
@@ -197,25 +203,35 @@ try {
   await page.getByRole('button', { name: /Distribuir 10 pts/ }).click()
   // sem descrição do SIGA o botão de lançar fica desligado (e com razão): aqui
   // usamos um nome de avaliação que não existe no SIGA só para abrir a
-  // confirmação — o lançamento é cancelado logo depois.
+  // confirmação — o lançamento é cancelado logo depois. Para não chamar a API
+  // do SIGA com a turma descartável, salva como RASCUNHO e publica na tela da
+  // avaliação: a troca de status é local e não cria TVC.
   await page.getByLabel('Descrição da avaliação no SIGA').fill(`TVC 9 ${SUFIXO}`)
-  await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-  await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
-  idAvaliacao = page.url().split('/').pop()
+  await page.getByRole('checkbox', { name: /Publicar agora para os alunos/ }).uncheck()
+  await page.getByRole('button', { name: 'Salvar rascunho', exact: true }).click()
+  const linkRascunho = page.getByRole('link', { name: 'Abrir avaliação' }).first()
+  await linkRascunho.waitFor({ timeout: 60000 })
+  await linkRascunho.click()
+  await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}/)
+  idAvaliacao = new URL(page.url()).pathname.split('/').pop()
   avaliacaoDaTurma = true
   const urlTurma = new URL(page.url())
   turmaId = urlTurma.searchParams.get('turma')
+  await page.getByRole('button', { name: 'Publicar para os alunos' }).click()
+  await page.getByText('O aluno vê o tema e pode enviar.').waitFor({ timeout: 20000 })
   await page.getByText('Nenhuma redação enviada ainda').waitFor()
   await foto(page, 'prod-02-avaliacao')
 
   passo('5/10 aluno se cadastra')
   await sair(page)
   await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
-  await escolherTurma(page, TURMA.nome)
-  await page.getByLabel('Nome completo').fill(ALUNO.nome)
+  await escolherTurma(page, TURMA.codigo)
+  // O cadastro é guiado pela matrícula: ao digitá-la, o app confere a lista e
+  // preenche (e trava) o nome. A lista de teste foi importada sem e-mail, então
+  // o campo de e-mail continua editável e precisa ser digitado.
   await page.getByLabel('Matrícula', { exact: true }).fill(ALUNO.matricula)
   await page.getByLabel('E-mail institucional').fill(ALUNO.email)
-  await page.getByLabel('Curso').fill('Ciências Biológicas')
+  // O curso também vem da turma e fica somente leitura.
   await page.getByLabel('Senha', { exact: true }).fill(ALUNO.senha)
   await page.getByLabel('Repita a senha').fill(ALUNO.senha)
   await page.getByRole('checkbox').check()
@@ -299,7 +315,7 @@ try {
 
   passo('10/10 professor remove a turma pela tela')
   await page.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
-  await escolherTurma(page, TURMA.nome)
+  await escolherTurma(page, TURMA.codigo)
   await page.getByRole('button', { name: /Remover esta turma/ }).click()
   await page.getByText('Isto não pode ser desfeito').waitFor()
   await page.getByLabel(`Digite ${TURMA.codigo} para confirmar`).fill(TURMA.codigo)
