@@ -218,7 +218,7 @@ try {
   const urlTurma = new URL(page.url())
   turmaId = urlTurma.searchParams.get('turma')
   await page.getByRole('button', { name: 'Publicar para os alunos' }).click()
-  await page.getByText('O aluno vê o tema e pode enviar.').waitFor({ timeout: 20000 })
+  await page.getByText('O aluno vê o tema e pode enviar a redação.').waitFor({ timeout: 20000 })
   await page.getByText('Nenhuma redação enviada ainda').waitFor()
   await foto(page, 'prod-02-avaliacao')
 
