@@ -26,6 +26,44 @@ export interface Perfil {
   telefone: string | null
   turma_id: string | null
   precisa_trocar_senha?: boolean
+  /** Caminho no bucket privado `perfis`, no formato `<uid>/avatar.jpg`. */
+  foto_path?: string | null
+  /** Resultado do teste de personalidade; nulo enquanto o aluno não responde. */
+  personalidade?: ResultadoPersonalidade | null
+  /** Quando o resultado foi gravado (ISO). */
+  personalidade_em?: string | null
+}
+
+// ---- teste de personalidade (inspirado no modelo dos 16 tipos) --------------
+
+/** Grandes grupos do modelo: Analistas (NT), Diplomatas (NF), Sentinelas (SJ) e Exploradores (SP). */
+export type PapelPersonalidade = 'analistas' | 'diplomatas' | 'sentinelas' | 'exploradores'
+
+/** Estratégias combinam a direção da energia (E/I) com a identidade (A/T). */
+export type EstrategiaPersonalidade =
+  | 'individualismo-confiante'
+  | 'dominio-social'
+  | 'aprimoramento-constante'
+  | 'engajamento-social'
+
+export interface DimensoesPersonalidade {
+  /** 0–100: quanto mais alto, mais perto do polo esquerdo (E, N, F, J, A). */
+  energia: number
+  percepcao: number
+  decisao: number
+  organizacao: number
+  identidade: number
+}
+
+export interface ResultadoPersonalidade {
+  /** Código de cinco letras, como `INFJ-A` ou `ESTP-T`. */
+  tipo: string
+  papel: PapelPersonalidade
+  estrategia: EstrategiaPersonalidade
+  identidade: 'A' | 'T'
+  dimensoes: DimensoesPersonalidade
+  /** Versão do questionário; permite reinterpretar resultados antigos. */
+  versao: number
 }
 
 export interface Criterio {
@@ -208,6 +246,27 @@ export interface Esperado {
   nome_completo: string
   email: string
   user_id: string | null
+}
+
+/** Linha da lista de presença: o esperado + o que o perfil acrescenta. */
+export interface AlunoNaFrequencia extends Esperado {
+  foto_url: string | null
+  personalidade: ResultadoPersonalidade | null
+  personalidade_em: string | null
+}
+
+/** Uma marcação de presença por aluno e por data de aula. */
+export interface Frequencia {
+  id: string
+  turma_id: string
+  aluno_id: string | null
+  matricula: string
+  nome_completo: string
+  data_aula: string
+  presente: boolean
+  registrado_por: string | null
+  criado_em: string
+  atualizado_em: string
 }
 
 export interface ResumoAvaliacao extends Avaliacao {

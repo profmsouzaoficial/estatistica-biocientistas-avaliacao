@@ -127,6 +127,8 @@ await pagina.goto(`${WEB}/avaliacoes/av-demo-1/devolutiva`, { waitUntil: 'networ
 await medir('aluno · devolutiva')
 await pagina.goto(`${WEB}/perfil`, { waitUntil: 'networkidle' })
 await medir('aluno · perfil')
+await pagina.getByRole('button', { name: /Refazer o teste/ }).click()
+await medir('aluno · questionário de personalidade')
 
 await entrar('professor@demo.local')
 await medir('professor · painel')
@@ -138,6 +140,8 @@ await pagina.goto(`${WEB}/prof/avaliacoes/av-demo-1/revisao/sub-demo-1`, { waitU
 await medir('professor · revisão')
 await pagina.goto(`${WEB}/prof/alunos`, { waitUntil: 'networkidle' })
 await medir('professor · alunos')
+await pagina.goto(`${WEB}/prof/frequencia`, { waitUntil: 'networkidle' })
+await medir('professor · frequência')
 await pagina.goto(`${WEB}/prof/avaliacoes/av-demo-1/historico`, { waitUntil: 'networkidle' })
 await medir('professor · histórico')
 

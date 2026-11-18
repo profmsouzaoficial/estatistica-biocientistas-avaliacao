@@ -8,14 +8,18 @@ import type {
   ConsultaMatricula,
   Dados,
   LinhaImportacao,
+  RegistroFrequencia,
   MotivoValidacao,
   NovaAvaliacao,
   Revisao,
 } from './dados'
 import { notaParaSiga } from './types'
 import type {
+  AlunoNaFrequencia,
   Avaliacao,
   AvaliacaoDoAluno,
+  Frequencia,
+  ResultadoPersonalidade,
   Correcao,
   Criterio,
   Esperado,
@@ -27,6 +31,8 @@ import type {
   SubmissaoDoProfessor,
   Turma,
 } from './types'
+
+import { estrategiaDoResultado, papelDoTipoBase } from './personalidade'
 
 const CHAVE = 'eba.demo.v2'
 const SENHA_DEMO = 'demo12345'
@@ -43,6 +49,7 @@ interface Base {
   submissoes: Submissao[]
   correcoes: Correcao[]
   lancamentos: LancamentoSiga[]
+  frequencias: Frequencia[]
   fotos: Record<string, string>
   sessaoId: string | null
 }
@@ -50,6 +57,36 @@ interface Base {
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2))
 const agora = () => new Date().toISOString()
 const dias = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString()
+
+/** Avatar ilustrativo do modo demo, sem depender de rede. */
+function avatarDemo(iniciais: string, cor: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">` +
+    `<rect width="128" height="128" rx="64" fill="${cor}"/>` +
+    `<text x="64" y="72" text-anchor="middle" font-family="sans-serif" font-size="42" font-weight="600" fill="#ffffff">${iniciais}</text>` +
+    `</svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+/** Resultado coerente para os perfis de exemplo do modo demo. */
+function personalidadeDemo(tipo: string, dimensoes: [number, number, number, number, number]): ResultadoPersonalidade {
+  const base = tipo.slice(0, 4)
+  const identidade = tipo.endsWith('-A') ? 'A' : 'T'
+  return {
+    tipo,
+    papel: papelDoTipoBase(base),
+    estrategia: estrategiaDoResultado(base, identidade),
+    identidade,
+    dimensoes: {
+      energia: dimensoes[0],
+      percepcao: dimensoes[1],
+      decisao: dimensoes[2],
+      organizacao: dimensoes[3],
+      identidade: dimensoes[4],
+    },
+    versao: 1,
+  }
+}
 
 function rubricaExemplo(total: number): Criterio[] {
   const base: Criterio[] = [
@@ -108,6 +145,9 @@ function baseInicial(): Base {
       telefone: null,
       turma_id: turmaId,
       senha: SENHA_DEMO,
+      foto_path: avatarDemo('AL', '#1D6541'),
+      personalidade: personalidadeDemo('ENFJ-A', [72, 68, 78, 64, 58]),
+      personalidade_em: dias(-4),
     },
     {
       id: 'aluno-demo-2',
@@ -119,6 +159,9 @@ function baseInicial(): Base {
       telefone: null,
       turma_id: turmaId,
       senha: SENHA_DEMO,
+      foto_path: avatarDemo('CN', '#1D4696'),
+      personalidade: personalidadeDemo('ISTP-T', [32, 38, 28, 34, 42]),
+      personalidade_em: dias(-7),
     },
     // Aluno que existe na lista e ainda não entregou: é assim que o professor vê
     // "faltam N" antes de fechar o prazo. Sem alguém faltando, esse caso nunca
@@ -133,6 +176,9 @@ function baseInicial(): Base {
       telefone: null,
       turma_id: turmaId,
       senha: SENHA_DEMO,
+      // Sem foto de propósito: a chamada mostra as iniciais e a cor do grupo.
+      personalidade: personalidadeDemo('INTJ-A', [61, 74, 34, 69, 66]),
+      personalidade_em: dias(-10),
     },
     {
       id: 'aluno-demo-3',
@@ -374,6 +420,7 @@ Em populações de baixa prevalência, um teste muito sensível pode gerar muito
         criado_em: dias(-1).replace(/T\d/, 'T1'),
       },
     ],
+    frequencias: [],
     fotos: {},
     sessaoId: null,
   }
@@ -453,7 +500,10 @@ function carregar(): Base {
     const cru = localStorage.getItem(CHAVE)
     if (cru) {
       const b = JSON.parse(cru) as Base
-      if (b?.turmas?.length) return b
+      if (b?.turmas?.length) {
+        b.frequencias ??= []
+        return b
+      }
     }
   } catch {
     /* armazenamento indisponível: segue com a base inicial */
@@ -592,6 +642,37 @@ export function criarDadosDemo(): Dados {
         if (p.instituto !== undefined) alvo.instituto = p.instituto
         gravar()
       }
+    },
+
+    async enviarFotoPerfil(arquivo) {
+      const atual = exigir()
+      const alvo = base.perfis.find((x) => x.id === atual.id)
+      if (!alvo) throw new Error('Sessão expirada. Entre novamente.')
+      const dataUrl = await blobParaDataUrl(arquivo)
+      alvo.foto_path = dataUrl
+      gravar()
+      return dataUrl
+    },
+
+    async removerFotoPerfil() {
+      const atual = exigir()
+      const alvo = base.perfis.find((x) => x.id === atual.id)
+      if (!alvo) return
+      alvo.foto_path = null
+      gravar()
+    },
+
+    async urlDaFotoPerfil(path) {
+      return path && path.startsWith('data:') ? path : null
+    },
+
+    async salvarPersonalidade(resultado) {
+      const atual = exigir()
+      const alvo = base.perfis.find((x) => x.id === atual.id)
+      if (!alvo) throw new Error('Sessão expirada. Entre novamente.')
+      alvo.personalidade = resultado
+      alvo.personalidade_em = agora()
+      gravar()
     },
 
     async alterarSenha(novaSenha, senhaAtual) {
@@ -758,6 +839,54 @@ export function criarDadosDemo(): Dados {
 
     async alunosDaTurma(turmaId) {
       return base.esperados.filter((e) => e.turma_id === turmaId).sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'))
+    },
+
+    async alunosDaTurmaFrequencia(turmaId) {
+      return base.esperados
+        .filter((e) => e.turma_id === turmaId)
+        .map<AlunoNaFrequencia>((e) => {
+          const p = base.perfis.find((x) => x.id === e.user_id)
+          return {
+            ...e,
+            foto_url: p?.foto_path?.startsWith('data:') ? p.foto_path : null,
+            personalidade: p?.personalidade ?? null,
+            personalidade_em: p?.personalidade_em ?? null,
+          }
+        })
+        .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'))
+    },
+
+    async frequenciaDaTurma(turmaId, dataAula) {
+      return (base.frequencias ?? []).filter((f) => f.turma_id === turmaId && f.data_aula === dataAula)
+    },
+
+    async salvarFrequencia(turmaId, dataAula, registros: RegistroFrequencia[]) {
+      base.frequencias ??= []
+      for (const registro of registros) {
+        const existente = base.frequencias.find(
+          (f) => f.turma_id === turmaId && f.matricula === registro.matricula && f.data_aula === dataAula,
+        )
+        if (existente) {
+          existente.presente = registro.presente
+          existente.aluno_id = registro.aluno_id
+          existente.nome_completo = registro.nome_completo
+          existente.atualizado_em = agora()
+        } else {
+          base.frequencias.push({
+            id: uid(),
+            turma_id: turmaId,
+            aluno_id: registro.aluno_id,
+            matricula: registro.matricula,
+            nome_completo: registro.nome_completo,
+            data_aula: dataAula,
+            presente: registro.presente,
+            registrado_por: base.sessaoId,
+            criado_em: agora(),
+            atualizado_em: agora(),
+          })
+        }
+      }
+      gravar()
     },
 
     async importarAlunos(turmaId, linhas: LinhaImportacao[]) {

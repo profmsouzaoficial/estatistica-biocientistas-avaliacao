@@ -81,6 +81,24 @@ saber exatamente qual código gerou aquilo.
 
 ---
 
+## A cada aula
+
+### Chamada (2 min)
+
+**Painel → Controle de frequência** (aba **Frequência** na barra de baixo)
+
+1. Escolha a **turma**; confira se a **data da aula** é a de hoje.
+2. A lista traz foto (ou iniciais), nome, matrícula, e-mail e o tipo de personalidade com a cor
+   do grupo.
+3. Marque **Presente/Ausente** linha a linha, ou use **Todos presentes/ausentes**.
+4. Toque em **Salvar chamada**. O resumo confirma quantos presentes e ausentes ficaram gravados.
+5. Se precisar corrigir depois, volte à mesma data e salve de novo — o app atualiza o registro
+   existente em vez de duplicar.
+
+> A chamada do app é um registro próprio, **separada da frequência do SIGA**. Ela não altera
+> automaticamente o campo do SIGA; em caso de divergência, vale o SIGA. A personalidade é apoio
+> visual e pedagógico: não entra no cálculo de presença nem de nota.
+
 ## A cada avaliação
 
 ### 1. Criar (5 min)
@@ -167,7 +185,7 @@ que confundia "o SIGA recusou" com "não houve resposta".
 |---|---|---|
 | 1 | conferir as notas no diário do SIGA | o SIGA é a fonte oficial |
 | 2 | baixar o **CSV** da avaliação | planilha independente: nome, matrícula, nota bruta, nota final, decisão |
-| 3 | `pnpm backup` | cópia do banco fora do Supabase |
+| 3 | `pnpm backup` | cópia do banco fora do Supabase (inclui frequências) |
 | 4 | `pnpm verificar` | confere rubricas, notas e vínculos |
 | 5 | `pnpm fotos:limpar` depois de tudo lançado | apaga do bucket as fotos que não estão em uso |
 
@@ -226,6 +244,8 @@ pnpm verificar          # dados: rubricas, notas, vínculos
 pnpm test:e2e           # fluxo completo pelas telas, em modo demonstração
 pnpm test:producao      # o app publicado, ponta a ponta (não lança nota no SIGA)
 pnpm e2e:mobile         # layout e alvos de toque em 360×740
+pnpm e2e:perfil         # foto, teste de personalidade e chamada (demo)
+pnpm test:personalidade # cálculo dos 16 tipos e grupos
 pnpm test:contraste     # legibilidade dos textos
 pnpm test:documentacao  # este guia não ficou para trás
 pnpm test:prazos        # regras de data (retroativo, encurtar, remover) e recebimento por status
@@ -233,7 +253,7 @@ pnpm test:recebimento   # banco: encerrada recusa até rascunho; publicada com d
 pnpm e2e:foto           # foto de 12 MP, HEIC do iPhone e arquivo corrompido
 pnpm test:imagem        # mensagem certa para cada tipo de falha na foto
 pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem modelo)
-pnpm test:a11y          # 16 telas no axe-core (leitor de tela, teclado, rótulos)
+pnpm test:a11y          # 18 telas no axe-core (leitor de tela, teclado, rótulos)
 pnpm test:rede          # prazo e mensagem quando banco, SIGA, OCR ou Storage não respondem
 pnpm test:envio         # envio da foto no celular: prazo, mensagem e chamadas /api
 pnpm test:siga:criar    # criar no SIGA: num_tvc incremental, idempotência, duplicata e auditoria

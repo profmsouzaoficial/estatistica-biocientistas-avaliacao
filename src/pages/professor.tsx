@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, ChevronRight, Circle, ClipboardCheck, Plus, RefreshCw, Users } from 'lucide-react'
+import { CalendarCheck, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Plus, RefreshCw, Users } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { COMPILADO_EM, VERSAO, quandoFoiCompilado } from '../lib/versao'
 import { Link, usarRota } from '../lib/router'
@@ -114,6 +114,17 @@ export function ProfessorInicio() {
             ))}
           </div>
         )}
+
+        <Link href="/prof/frequencia" className="block">
+          <Cartao className="flex items-center gap-3">
+            <CalendarCheck className="size-5 text-tinta-suave" aria-hidden />
+            <div className="flex-1">
+              <p className="text-[14.5px] font-medium text-tinta">Controle de frequência</p>
+              <p className="text-[12.5px] text-tinta-suave">Chamada por turma, com foto e personalidade dos alunos</p>
+            </div>
+            <ChevronRight className="size-4 text-tinta-fraca" aria-hidden />
+          </Cartao>
+        </Link>
 
         <Link href="/prof/alunos" className="block">
           <Cartao className="flex items-center gap-3">

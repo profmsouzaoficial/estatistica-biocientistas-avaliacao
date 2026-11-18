@@ -137,9 +137,49 @@ e tomar a conta. Depois da troca, os **outros aparelhos** que estavam conectados
 
 O e-mail é o da lista da turma e não muda pelo app — se precisar trocar, fale com o professor.
 
-O que o app guarda, por quê e por quanto tempo está em **Privacidade**, no rodapé. Em resumo: nome,
-matrícula, e-mail, curso, a foto e o texto da redação, a correção e a nota. Nada é usado para outro
-fim, e a foto fica em área privada.
+### 7.1 Foto do perfil
+
+No topo do perfil há o cartão **Foto do perfil**:
+
+1. Toque em **Escolher foto** e escolha uma imagem da galeria ou tire uma na hora.
+2. O app recorta em quadrado, reduz para 640 px e envia em JPG. Formatos aceitos: JPG, PNG e WEBP.
+3. A foto fica no bucket **privado** `perfis`; você e o professor a veem por um link temporário.
+4. Para trocar, use **Trocar foto**; para voltar às iniciais, use **Remover**.
+
+A foto aparece na chamada do professor. Ela **não** é usada para nota, reconhecimento facial ou
+qualquer avaliação automática.
+
+### 7.2 Teste de personalidade
+
+O bloco **Personalidade** traz 30 afirmações e uma escala de sete pontos, de “Discordo
+totalmente” a “Concordo totalmente”. Não há resposta certa; responda pensando no seu jeito
+habitual, não no que parece mais bonito.
+
+Ao concluir, o cartão mostra:
+
+| Campo | Exemplo |
+|---|---|
+| **Categoria** (grupo) | Diplomatas |
+| **Subcategoria** (estratégia + identidade) | Domínio social · Assertivo |
+| **Tipo** | ENFJ-A · Protagonista |
+| Descrição e características | um parágrafo curto e três palavras-chave |
+| Percentuais por eixo | Extroversão 72% · Introversão 28%, etc. |
+
+Você pode **refazer o teste** quando quiser; o perfil guarda o último resultado e a data. O
+resultado é **educativo e não oficial**: inspirado no modelo do
+[16Personalities](https://www.16personalities.com/br), com perguntas e textos próprios. Não é
+diagnóstico psicológico, não vale nota e não deve ser usado para rotular colegas.
+
+### 7.3 Frequência
+
+A chamada é feita pelo professor, no painel dele, por turma e data. O aluno não marca a própria
+presença. A frequência do app é **independente da frequência oficial do SIGA**: se houver
+diferença, vale a que está no SIGA.
+
+O que o app guarda, por quê e por quanto tempo está em **Privacidade**, no rodapé. Em resumo:
+nome, matrícula, e-mail, curso, a foto do perfil, o resultado do teste, a foto e o texto da
+redação, a correção e a nota. Nada é usado para outro fim; foto e personalidade ficam em área
+privada e são visíveis apenas para você e para o professor.
 
 ## 8. Problemas comuns
 
@@ -156,6 +196,8 @@ fim, e a foto fica em área privada.
 | A foto não carrega | tente de novo com sinal melhor; se persistir, use **Galeria** com uma foto tirada antes |
 | “Esta foto está em HEIC…” | é foto de iPhone num navegador que não abre HEIC: use **Tirar foto** ou mude o formato no iPhone (veja “Foto do iPhone”) |
 | O texto lido está muito errado | **Trocar a foto** e refazer com mais luz; ou corrija o texto à mão antes de enviar |
+| A foto do perfil não sobe | confira se é JPG, PNG ou WEBP; se vier do iPhone em HEIC, escolha outra ou use a câmera; tente com sinal melhor |
+| Não aparece resultado de personalidade | o teste é opcional; toque em **Começar o teste** no perfil. Se você já fez, o cartão mostra o último resultado e a data |
 
 Em qualquer caso, o caminho mais rápido é falar com o professor — ele vê a sua entrega na tela dele.
 

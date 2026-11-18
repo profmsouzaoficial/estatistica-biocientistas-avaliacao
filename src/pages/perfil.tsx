@@ -3,6 +3,8 @@ import { LogOut, ShieldCheck } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Cartao } from '../components/ui'
+import { FotoPerfil } from '../components/FotoPerfil'
+import { TestePersonalidade } from '../components/TestePersonalidade'
 
 export function Perfil() {
   const { d, perfil, sair, recarregar } = usarSessao()
@@ -80,6 +82,13 @@ export function Perfil() {
           <Alerta tom="dourado" titulo="Sua senha ainda é a inicial">
             Ela é igual ao seu e-mail. Escolha uma senha nova no cartão “Alterar senha”, abaixo.
           </Alerta>
+        ) : null}
+
+        {!ehProfessor ? (
+          <>
+            <FotoPerfil />
+            <TestePersonalidade />
+          </>
         ) : null}
 
         <Cartao>
@@ -179,7 +188,7 @@ export function Perfil() {
 
         <p className="px-1 text-center text-[11.5px] leading-relaxed text-tinta-fraca">
           Seus dados são usados para identificar sua redação e lançar a nota no SIGA. A foto fica em armazenamento
-          privado e é acessível apenas por você e pelo professor.
+          privado e é acessível apenas por você e pelo professor, inclusive na lista de frequência.
         </p>
       </main>
     </>

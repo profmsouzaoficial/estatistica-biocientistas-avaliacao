@@ -25,8 +25,9 @@ export function Privacidade() {
             desenvolver. A nota final é lançada no sistema acadêmico (SIGA) da UFJF.
           </p>
           <p className="texto-corrido">
-            O tratamento serve a esse procedimento de avaliação e ao registro acadêmico — não há uso publicitário,
-            perfilamento comercial nem venda de dados.
+            O perfil também guarda uma foto e um resultado de teste de personalidade, usados pelo professor
+            para reconhecer a turma e organizar a chamada. O tratamento serve a esse procedimento de avaliação e
+            ao registro acadêmico — não há uso publicitário, perfilamento comercial nem venda de dados.
           </p>
         </Cartao>
 
@@ -48,6 +49,15 @@ export function Privacidade() {
               fortes, pontos a desenvolver e a decisão do professor.
             </li>
             <li>
+              <strong className="font-medium text-tinta">Perfil:</strong> a foto que você escolher e, se fizer o
+              teste, o resultado de personalidade (tipo, grupo, estratégia, percentuais) e a data. Foto e teste são
+              opcionais.
+            </li>
+            <li>
+              <strong className="font-medium text-tinta">Frequência:</strong> a presença registrada pelo professor
+              em cada aula. É um registro do app, separado da frequência oficial do SIGA.
+            </li>
+            <li>
               <strong className="font-medium text-tinta">Registro técnico:</strong> data e hora do envio, do
               lançamento no SIGA e das ações administrativas (quem corrigiu, quem liberou, quando).
             </li>
@@ -64,9 +74,14 @@ export function Privacidade() {
           </h2>
           <ul className="space-y-2 text-[14px] leading-relaxed text-tinta-suave">
             <li>
-              <strong className="font-medium text-tinta">Você</strong> vê as próprias redações e devolutivas.{' '}
-              <strong className="font-medium text-tinta">O professor da turma</strong> vê as redações da turma dele;
-              nenhum colega vê a sua.
+              <strong className="font-medium text-tinta">Você</strong> vê as próprias redações, devolutivas, foto e
+              resultado de personalidade.{' '}
+              <strong className="font-medium text-tinta">O professor da turma</strong> vê as redações da turma dele
+              e, na chamada, a foto, a matrícula e a personalidade de cada aluno; nenhum colega vê os seus dados.
+            </li>
+            <li>
+              <strong className="font-medium text-tinta">Foto e personalidade</strong> não vão para o SIGA nem para
+              a IA de correção; ficam no Supabase e são lidas por link temporário apenas por você e pelo professor.
             </li>
             <li>
               <strong className="font-medium text-tinta">SIGA:</strong> vão apenas matrícula e nota (com o período e
@@ -95,7 +110,7 @@ export function Privacidade() {
             Os dados ficam no Supabase (banco PostgreSQL gerenciado), na região <strong>us-west-2 (Oregon,
             Estados Unidos)</strong> — portanto, há transferência internacional de dados. O acesso é protegido por
             login e por regras de banco que restringem cada linha ao dono e ao professor responsável. As fotos
-            ficam em um bucket privado, acessível apenas por links temporários.
+            ficam em buckets privados, acessíveis apenas por links temporários.
           </p>
           <p className="texto-corrido">
             O material é mantido durante a disciplina e o período necessário ao registro acadêmico e a eventuais

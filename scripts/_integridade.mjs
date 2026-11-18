@@ -23,6 +23,7 @@ export function conferir(dados) {
   const submissoes = dados.submissoes ?? []
   const correcoes = dados.correcoes ?? []
   const lancamentos = dados.lancamentos_siga ?? []
+  const frequencias = dados.frequencias ?? []
 
   const idsTurma = new Set(turmas.map((t) => t.id))
   const idsPerfil = new Set(perfis.map((p) => p.id))
@@ -46,6 +47,17 @@ export function conferir(dados) {
     }
     if (a.user_id && !idsPerfil.has(a.user_id)) {
       anotar('erro', 'lista-aponta-fantasma', `matrícula ${a.matricula} aponta para conta inexistente`)
+    }
+  }
+  for (const f of frequencias) {
+    if (!idsTurma.has(f.turma_id)) {
+      anotar('erro', 'frequencia-sem-turma', `chamada de ${f.matricula} aponta para turma inexistente`)
+    }
+    if (f.aluno_id && !idsPerfil.has(f.aluno_id)) {
+      anotar('erro', 'frequencia-sem-aluno', `chamada de ${f.matricula} aponta para conta inexistente`)
+    }
+    if (typeof f.presente !== 'boolean') {
+      anotar('erro', 'frequencia-sem-presenca', `chamada de ${f.matricula} em ${f.data_aula} sem presente/ausente`)
     }
   }
   for (const av of avaliacoes) {
@@ -162,6 +174,7 @@ export function resumir(dados) {
     submissoes: (dados.submissoes ?? []).length,
     correcoes: (dados.correcoes ?? []).length,
     lancamentos: (dados.lancamentos_siga ?? []).length,
+    frequencias: (dados.frequencias ?? []).length,
     auditoria: (dados.auditoria ?? []).length,
   }
 }

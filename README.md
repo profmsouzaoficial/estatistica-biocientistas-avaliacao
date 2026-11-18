@@ -2,7 +2,9 @@
 
 Aplicativo web (mobile-first) para receber redações manuscritas dos estudantes, transcrevê-las,
 corrigi-las com uma rubrica definida pelo professor e lançar a nota no SIGA — com a devolutiva
-(nota + pontos fortes + pontos a desenvolver) publicada para cada aluno.
+(nota + pontos fortes + pontos a desenvolver) publicada para cada aluno. O perfil do aluno também
+guarda **foto** (bucket privado) e o resultado de um **teste de personalidade** educativo; o
+professor usa os dois no **controle de frequência** por turma e data.
 
 Livro-base: <https://estatistica-biocientistas.vercel.app/> · DOI
 [10.5281/zenodo.23858966](https://doi.org/10.5281/zenodo.23858966) · UFJF/GV.
@@ -39,6 +41,8 @@ Decisões de projeto:
 | **Nota determinística** | O modelo só pontua cada critério entre 0 e o máximo. A soma e a conversão para 0–10 são feitas em código, nunca pelo modelo. |
 | **Professor aprova antes de lançar** | Nenhuma nota chega ao SIGA sem revisão humana. Toda tentativa fica registrada em `lancamentos_siga`. |
 | **Lista de alunos importada** | O cadastro só é aceito se matrícula **e** e-mail constarem na lista da turma (função `validar_matricula` + gatilho no banco). |
+| **Foto e personalidade opcionais** | O aluno pode enviar a foto e fazer o teste quando quiser; nada bloqueia a entrega da redação. O professor vê os dois na chamada, com cores por grupo. |
+| **Frequência separada do SIGA** | A chamada do app é um registro pedagógico próprio; ela **não** altera automaticamente a frequência oficial do SIGA. |
 
 ---
 
@@ -47,7 +51,7 @@ Decisões de projeto:
 - **Front-end:** Vite 8, React 19, TypeScript 7, Tailwind CSS 4, `lucide-react`, PWA instalável.
 - **Back-end:** funções serverless em `api/` (Vercel Functions, Node `(req, res)`), bundladas por
   esbuild no modo local.
-- **Banco/Auth/Storage:** Supabase (Postgres + RLS, Auth, bucket privado `redacoes`).
+- **Banco/Auth/Storage:** Supabase (Postgres + RLS, Auth, buckets privados `redacoes` e `perfis`).
 - **IA:** provedor compatível com OpenAI para OCR (OpenRouter, OpenAI, Gemini) e para o corretor
   (`LLM_BASE_URL` aponta para o Llama no Coolify ou qualquer endpoint compatível).
 - **Integração acadêmica:** API do SIGA (`https://siga-api.sparklingtech.com.br`, header `X-API-Key`).
@@ -78,25 +82,29 @@ Variáveis lidas pelo servidor (nunca expostas ao navegador): `SUPABASE_SERVICE_
 
 Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutura) e
 `0002_encerrada.sql` (avaliação encerrada continua visível ao aluno, mas não aceita entrega nova) e
-`0003_email_opcional.sql` (turma sem e-mails na lista, com o e-mail informado no cadastro) e
-`0004_consentimento.sql` (data do aceite do aviso de privacidade em `profiles.consentimento_em`):
+`0003_email_opcional.sql` (turma sem e-mails na lista, com o e-mail informado no cadastro),
+`0004_consentimento.sql` (data do aceite do aviso de privacidade em `profiles.consentimento_em`) e
+`0020_perfil_foto_personalidade_frequencia.sql` (foto, personalidade e chamada):
 
 | Tabela | Papel |
 |---|---|
 | `turmas` | código no SIGA (`CBV018GV-A`), período (`2026/3`), curso |
 | `alunos_esperados` | lista importada pelo professor (matrícula, nome, e-mail) |
 | `professores_autorizados` | e-mails que podem ter papel de professor |
-| `profiles` | dados do usuário autenticado + papel (`aluno`/`professor`); professor tem `departamento`/`instituto` |
+| `profiles` | dados do usuário autenticado + papel (`aluno`/`professor`); professor tem `departamento`/`instituto`; aluno pode ter `foto_path`, `personalidade` (JSONB) e `personalidade_em` |
 | `avaliacoes` | tema, instruções do aluno, instruções de correção da LLM, valor total, rubrica (JSONB), descrição/peso/data no SIGA |
 | `submissoes` | foto, transcrição, texto final, status |
 | `correcoes` | notas por critério, nota bruta, nota final, pontos fortes/desenvolver, decisão |
 | `lancamentos_siga` | trilha de auditoria de cada envio (sucesso, HTTP, erro, payload) |
+| `frequencias` | chamada do professor por turma, matrícula e data (`presente` + autor + timestamps) |
 | `auditoria` | log de ações sensíveis |
 
-Garantias no banco: RLS em todas as tabelas, bucket privado, gatilho `handle_new_user` que recusa
+Garantias no banco: RLS em todas as tabelas, buckets privados, gatilho `handle_new_user` que recusa
 cadastro fora da lista (`MATRICULA_NAO_LISTADA`, `EMAIL_NAO_CONFERE`) e gatilho que exige
 `Σ rubrica = valor_total`. A política de `submissoes` só aceita **insert** quando a avaliação está
-`publicada` — encerrar entrega não depende da boa vontade da tela.
+`publicada` — encerrar entrega não depende da boa vontade da tela. Foto e personalidade não têm
+`UPDATE` direto do aluno: passam por `salvar_foto_perfil` e `salvar_personalidade`, que validam o
+caminho e derivam o grupo no servidor.
 
 ```bash
 pnpm db:aplicar          # aplica as migrações via Management API
@@ -109,6 +117,8 @@ pnpm db:aplicar --simular
   lista da turma e o projeto não tem SMTP próprio; sem isso o cadastro esbarra no limite de
   e-mails do Supabase.
 - **Bucket `redacoes` privado**, acesso por URL assinada (1 h) apenas para o dono e professores.
+- **Bucket `perfis` privado** (5 MB, JPEG/PNG/WEBP): cada aluno só escreve na própria pasta
+  `<uid>/avatar.jpg`; o professor lê para montar a chamada.
 
 ---
 
@@ -352,7 +362,7 @@ dependência de ImageMagick).
 Contraste medido: `tinta-suave` #46536b = 6.28 · `tinta-fraca` #5a6678 = 4.72 · branco sobre marinho =
 11.01 · branco sobre vermelho = 6.56 · dourado sobre dourado-claro = 5.31.
 
-`pnpm e2e:mobile` mede os alvos de toque das 16 telas principais em 360×740 e reprova qualquer controle
+`pnpm e2e:mobile` mede os alvos de toque das 17 telas principais em 360×740 e reprova qualquer controle
 abaixo de 40px. Foi ele que achou as abas “Transcrição/Foto original” (32px) e o “Voltar para a lista”
 (20px) na tela de revisão.
 
@@ -366,7 +376,7 @@ O mesmo teste passou a cobrar duas garantias que se apoiam uma na outra:
 A trava saiu do `index.html` e quatro campos que ainda estavam em 13–14px na tela do professor
 (importar lista, descrição do critério, nota por critério, pontos fortes/desenvolver) passaram a
 `text-base` no celular e a fonte original a partir de `sm:`. No primeiro uso do novo teste, ele reprovou
-**4 das 16 telas** — todos eram campos de verdade, não falso positivo.
+**4 das telas** — todos eram campos de verdade, não falso positivo.
 
 ### Pré-cadastro das turmas e alunos
 
@@ -541,7 +551,7 @@ tela mudar, o teste de layout gera a captura nova.
 
 ### Acessibilidade (leitor de tela e teclado)
 
-`pnpm test:a11y` roda o [axe-core](https://github.com/dequelabs/axe-core) em 16 telas, na largura de
+`pnpm test:a11y` roda o [axe-core](https://github.com/dequelabs/axe-core) em 18 telas, na largura de
 360 px, logado como aluno e como professor: rótulo de campo, nome acessível de botão de ícone,
 `role` de aba, região com rolagem alcançável pelo teclado, link dentro de texto distinguível sem
 depender de cor. Contraste fica de fora — `pnpm test:contraste` mede com o fundo real de cada texto,
@@ -561,7 +571,7 @@ achou cinco defeitos reais, todos corrigidos:
 ### Conferência em tela pequena
 
 A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e com o polegar. O
-`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre dezesseis telas em
+`pnpm e2e:mobile` monta o app em **modo demonstração** (sem Supabase, sem rede), abre dezessete telas em
 360×740 e reprova quando:
 
 - alguma tela rola para o lado (`scrollWidth > innerWidth`) — o sintoma clássico de tabela ou
@@ -570,7 +580,7 @@ A turma abre o link no celular, muitas vezes num aparelho de 360 px de largura e
   desenho);
 - aparece erro de JavaScript no console.
 
-São 16 telas e 128 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
+São 17 telas e 160 alvos de toque medidos, com capturas em `e2e/resultados/mobile-*.png`. O modo
 demonstração também deixou de chamar a API do SIGA (não há servidor ali), o que eliminava um erro de
 rede no console sem função nenhuma.
 
@@ -958,6 +968,13 @@ Chromium em viewport de celular e valida o banco ao final:
     esse aluno se cadastra informando o próprio e-mail, e o banco confere que o e-mail e o
     `user_id` ficaram gravados na lista.
 
+O perfil e a chamada têm um teste próprio, mais rápido e sem Supabase:
+
+```bash
+pnpm e2e:perfil           # foto (remover, subir, recarregar), teste de 30 itens e chamada
+pnpm test:personalidade   # cálculo dos eixos, 16 tipos, grupos, validação
+```
+
 Capturas em `e2e/resultados/`. Nada é enviado ao SIGA de verdade: `SIGA_API_BASE` aponta para o mock.
 
 ### Correção com modelo real (não só mock)
@@ -1028,9 +1045,47 @@ função e ela morre com `FUNCTION_INVOCATION_FAILED` — o build passa, o erro 
 
 ---
 
-## 9. Privacidade (LGPD)
+## 9. Perfil, personalidade e frequência
 
-- A **foto** fica em bucket privado; o acesso é por URL assinada temporária.
+### Foto do perfil
+
+O aluno envia a foto em **Perfil**; o navegador recorta em quadrado, reduz para 640 px e converte
+em JPEG antes de subir. O bucket `perfis` é privado, o caminho é sempre `<uid>/avatar.jpg` e a
+leitura usa URL assinada de 1 hora. Sem foto, a interface mostra as iniciais — inclusive na chamada.
+
+### Teste de personalidade
+
+A implementação é uma **adaptação educacional** do modelo dos 16 tipos do
+[16Personalities](https://www.16personalities.com/br), não uma cópia do teste oficial:
+
+- 30 afirmações originais (6 por eixo, 3 de cada lado), escala de 7 pontos;
+- resultado com tipo de 5 letras, grupo (Analistas/Diplomatas/Sentinelas/Exploradores), estratégia,
+  descrição curta, características e percentuais por eixo;
+- grupo e estratégia são derivados no servidor; o cliente não escolhe o próprio grupo;
+- atribuição e aviso de “não oficial / não é diagnóstico” visíveis na tela e em
+  [docs/personalidade.md](docs/personalidade.md), que registra a investigação feita com Playwright
+  seguindo a abordagem do [REA](https://github.com/morluto/rea).
+
+Cores por grupo: Analistas (roxo `#6D4AFF`), Diplomatas (verde `#2E8B57`), Sentinelas (azul
+`#2F6FED`) e Exploradores (âmbar `#B47B00`). A cor nunca é o único sinal: o código do tipo e o
+nome do grupo aparecem por escrito.
+
+### Chamada do professor
+
+Em **Painel → Controle de frequência** o professor escolhe a turma e a data, vê foto/iniciais,
+nome, matrícula, e-mail e personalidade de cada aluno, marca presente/ausente e salva. A chave é
+`(turma_id, matricula, data_aula)`: salvar de novo na mesma data atualiza em vez de duplicar.
+A chamada é **independente do SIGA** e não altera a frequência oficial.
+
+```bash
+pnpm test:personalidade   # 30 afirmações, cálculo, 16 tipos, grupos e validação
+```
+
+## 10. Privacidade (LGPD)
+
+- As **fotos** (redação e perfil) ficam em buckets privados; o acesso é por URL assinada temporária.
+- O **resultado de personalidade** é autodeclarado, opcional e visível apenas ao aluno e ao professor;
+  não é diagnóstico, não vale nota e não deve ser usado para seleção ou punição.
 - A **transcrição** é enviada a um provedor de OCR em nuvem (Google/OpenAI/OpenRouter). Isso
   significa que o texto sai do servidor da UFJF. É preciso constar no termo de consentimento da
   turma, com a finalidade (correção) e a base legal (execução do contrato educacional).
@@ -1041,17 +1096,20 @@ função e ela morre com `FUNCTION_INVOCATION_FAILED` — o build passa, o erro 
 
 ---
 
-## 10. Estrutura
+## 11. Estrutura
 
 ```
 api/               funções serverless (transcrever, corrigir, saude, siga/*)
   _lib/            http, transcrever, rubrica, siga, corrigirServico
 src/
   lib/             tipos, dados (contrato), dadosSupabase, dadosDemo, sessão, router
-  components/      ui (Campo, Botao, Cartao…), Camera
-  pages/           auth, aluno, alunoEnvio, devolutiva, perfil, professor*
+  components/      ui (Campo, Botao, Cartao…), Camera, Avatar, FotoPerfil,
+                   TestePersonalidade, Personalidade
+  pages/           auth, aluno, alunoEnvio, devolutiva, perfil, professor*,
+                   professorFrequencia
+  lib/             personalidade (banco de afirmações e cálculo), imagem (recorte/redução)
 supabase/          migrações SQL
 scripts/           dev, migrações, criar professor, corrigir em lote, ícones
 e2e/               smoke test + mock de Llama/SIGA
-docs/              guia do professor, guia do aluno
+docs/              guia do professor, guia do aluno, operação e personalidade
 ```

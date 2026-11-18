@@ -44,6 +44,7 @@ async function lerBanco() {
     'submissoes',
     'correcoes',
     'lancamentos_siga',
+    'frequencias',
     'auditoria',
   ]
   const dados = {}

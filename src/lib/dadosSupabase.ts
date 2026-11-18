@@ -9,6 +9,7 @@ import type {
   RespostaApagarAvaliacao,
   RespostaApagarTurma,
   ConsultaMatricula,
+  RegistroFrequencia,
 } from './dados'
 import { comPrazo, erroDeEnvio, PRAZO_ENVIO_MS } from './envio'
 import {
@@ -20,15 +21,19 @@ import {
   PRAZO_SIGA_MS,
 } from './servidor'
 import { notaParaSiga } from './types'
+import { resultadoValido } from './personalidade'
 import type {
+  AlunoNaFrequencia,
   Avaliacao,
   AvaliacaoDoAluno,
   Correcao,
+  Frequencia,
   Esperado,
   LancamentoSiga,
   QuadroSiga,
   QuadroNotasSiga,
   Perfil,
+  ResultadoPersonalidade,
   ResumoAvaliacao,
   StatusAvaliacao,
   Submissao,
@@ -215,6 +220,48 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
             ...(p.departamento !== undefined ? { departamento: p.departamento } : {}),
             ...(p.instituto !== undefined ? { instituto: p.instituto } : {}),
           }
+        : perfilCache
+    },
+
+    async enviarFotoPerfil(arquivo) {
+      const perfil = exigirPerfil()
+      const caminho = `${perfil.id}/avatar.jpg`
+      const { error } = await sb.storage.from('perfis').upload(caminho, arquivo, {
+        contentType: 'image/jpeg',
+        upsert: true,
+        cacheControl: '60',
+      })
+      if (error) throw new Error(`Não foi possível enviar a foto: ${error.message}`)
+      const { error: erroRpc } = await sb.rpc('salvar_foto_perfil', { p_path: caminho })
+      if (erroRpc) throw new Error(`A foto subiu, mas o perfil não foi atualizado: ${erroRpc.message}`)
+      perfilCache = perfilCache ? { ...perfilCache, foto_path: caminho } : perfilCache
+      return caminho
+    },
+
+    async removerFotoPerfil() {
+      const perfil = exigirPerfil()
+      const caminho = perfil.foto_path
+      if (caminho) {
+        // Se o objeto já não existir, o perfil ainda deve ficar sem foto.
+        await sb.storage.from('perfis').remove([caminho]).catch(() => undefined)
+      }
+      const { error } = await sb.rpc('salvar_foto_perfil', { p_path: null })
+      if (error) throw new Error(error.message)
+      perfilCache = perfilCache ? { ...perfilCache, foto_path: null } : perfilCache
+    },
+
+    async urlDaFotoPerfil(path) {
+      if (!path) return null
+      const { data, error } = await sb.storage.from('perfis').createSignedUrl(path, 3600)
+      if (error) return null
+      return data?.signedUrl ?? null
+    },
+
+    async salvarPersonalidade(resultado) {
+      const { error } = await sb.rpc('salvar_personalidade', { p_resultado: resultado })
+      if (error) throw new Error(error.message)
+      perfilCache = perfilCache
+        ? { ...perfilCache, personalidade: resultado, personalidade_em: new Date().toISOString() }
         : perfilCache
     },
 
@@ -443,6 +490,83 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
         .order('nome_completo')
       if (error) throw new Error(error.message)
       return (data ?? []) as Esperado[]
+    },
+
+    async alunosDaTurmaFrequencia(turmaId) {
+      const { data: esperados, error } = await sb
+        .from('alunos_esperados')
+        .select('*')
+        .eq('turma_id', turmaId)
+        .order('nome_completo')
+      if (error) throw new Error(error.message)
+      const lista = (esperados ?? []) as Esperado[]
+
+      const ids = [...new Set(lista.map((e) => e.user_id).filter((id): id is string => Boolean(id)))]
+      const perfis = ids.length
+        ? (
+            await sb
+              .from('profiles')
+              .select('id,foto_path,personalidade,personalidade_em')
+              .in('id', ids)
+          ).data
+        : []
+
+      const caminhos = ((perfis ?? []) as { foto_path: string | null }[])
+        .map((p) => p.foto_path)
+        .filter((p): p is string => Boolean(p))
+      const urls: Record<string, string> = {}
+      if (caminhos.length) {
+        const { data: assinadas } = await sb.storage.from('perfis').createSignedUrls(caminhos, 3600)
+        for (const item of assinadas ?? []) {
+          if (item.path && item.signedUrl) urls[item.path] = item.signedUrl
+        }
+      }
+
+      return lista.map<AlunoNaFrequencia>((e) => {
+        const p = ((perfis ?? []) as {
+          id: string
+          foto_path: string | null
+          personalidade: unknown
+          personalidade_em: string | null
+        }[]).find((x) => x.id === e.user_id)
+        const personalidade = resultadoValido(p?.personalidade)
+          ? (p!.personalidade as ResultadoPersonalidade)
+          : null
+        const fotoPath = p?.foto_path ?? null
+        return {
+          ...e,
+          foto_url: fotoPath ? urls[fotoPath] ?? null : null,
+          personalidade,
+          personalidade_em: p?.personalidade_em ?? null,
+        }
+      })
+    },
+
+    async frequenciaDaTurma(turmaId, dataAula) {
+      const { data, error } = await sb
+        .from('frequencias')
+        .select('*')
+        .eq('turma_id', turmaId)
+        .eq('data_aula', dataAula)
+        .order('nome_completo')
+      if (error) throw new Error(error.message)
+      return (data ?? []) as Frequencia[]
+    },
+
+    async salvarFrequencia(turmaId, dataAula, registros: RegistroFrequencia[]) {
+      if (!registros.length) return
+      const linhas = registros.map((r) => ({
+        turma_id: turmaId,
+        aluno_id: r.aluno_id,
+        matricula: r.matricula,
+        nome_completo: r.nome_completo,
+        data_aula: dataAula,
+        presente: r.presente,
+      }))
+      const { error } = await sb
+        .from('frequencias')
+        .upsert(linhas, { onConflict: 'turma_id,matricula,data_aula' })
+      if (error) throw new Error(error.message)
     },
 
     async importarAlunos(turmaId, linhas: LinhaImportacao[]) {

@@ -1,12 +1,15 @@
 import type {
+  AlunoNaFrequencia,
   Avaliacao,
   AvaliacaoDoAluno,
   Correcao,
+  Frequencia,
   Criterio,
   Esperado,
   LancamentoAuditado,
   ResultadoLancamento,
   Perfil,
+  ResultadoPersonalidade,
   ResumoAvaliacao,
   StatusAvaliacao,
   QuadroSiga,
@@ -84,6 +87,14 @@ export interface LinhaImportacao {
   email: string
 }
 
+/** O que a tela envia ao salvar uma chamada; a data e a turma vão separadas. */
+export interface RegistroFrequencia {
+  matricula: string
+  nome_completo: string
+  aluno_id: string | null
+  presente: boolean
+}
+
 /**
  * Contrato único de dados. Duas implementações:
  *  - `dadosSupabase`  → produção (Supabase + funções /api)
@@ -139,6 +150,13 @@ export interface Dados {
    * aberta pelo link do e-mail (caminho de recuperação).
    */
   alterarSenha(novaSenha: string, senhaAtual?: string): Promise<void>
+  /** Sobe a foto de perfil no bucket privado e grava o caminho no próprio perfil. */
+  enviarFotoPerfil(arquivo: Blob): Promise<string>
+  removerFotoPerfil(): Promise<void>
+  /** URL assinada e temporária da foto de perfil; null se não houver foto. */
+  urlDaFotoPerfil(path: string | null): Promise<string | null>
+  /** Grava o resultado do teste educativo no perfil do aluno logado. */
+  salvarPersonalidade(resultado: ResultadoPersonalidade): Promise<void>
 
   // aluno
   avaliacoesDoAluno(): Promise<AvaliacaoDoAluno[]>
@@ -167,6 +185,12 @@ export interface Dados {
   /** Alinha o peso da avaliação com o peso dela no SIGA (escala da nota enviada). */
   mudarPesoSigaAvaliacao(id: string, pesoSiga: number): Promise<void>
   alunosDaTurma(turmaId: string): Promise<Esperado[]>
+  /** Lista da turma + foto e personalidade de quem já criou conta. */
+  alunosDaTurmaFrequencia(turmaId: string): Promise<AlunoNaFrequencia[]>
+  /** Chamada já registrada para uma data (vazia se ainda não houve chamada). */
+  frequenciaDaTurma(turmaId: string, dataAula: string): Promise<Frequencia[]>
+  /** Grava/atualiza a chamada inteira da turma naquela data. */
+  salvarFrequencia(turmaId: string, dataAula: string, registros: RegistroFrequencia[]): Promise<void>
   importarAlunos(turmaId: string, linhas: LinhaImportacao[]): Promise<{ inseridos: number; atualizados: number }>
   /** Liga/desliga a exigência de e-mail já cadastrado na lista da turma. */
   definirExigenciaDeEmail(turmaId: string, exige: boolean): Promise<void>

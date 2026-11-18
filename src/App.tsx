@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { ClipboardList, LayoutDashboard, UserRound, Users } from 'lucide-react'
+import { CalendarCheck, ClipboardList, LayoutDashboard, UserRound, Users } from 'lucide-react'
 import { ProvedorRota, casarRota, usarRota, Link } from './lib/router'
 import { ProvedorSessao, usarSessao } from './lib/sessao'
 import { guardarAvisoDoLink, lerErroDoLink } from './lib/linkRecuperacao'
@@ -13,6 +13,7 @@ import { ProfessorInicio, ProfessorNovaAvaliacao } from './pages/professor'
 import { ProfessorAvaliacao, ProfessorRevisao } from './pages/professorAvaliacao'
 import { ProfessorHistorico } from './pages/professorHistorico'
 import { ProfessorAlunos } from './pages/professorAlunos'
+import { ProfessorFrequencia } from './pages/professorFrequencia'
 import { Ajuda } from './pages/ajuda'
 import { Privacidade } from './pages/privacidade'
 
@@ -95,6 +96,7 @@ function Roteador() {
     if (limpo === '/' || limpo === '') return <ComBarra><ProfessorInicio /></ComBarra>
     if (limpo === '/prof/avaliacoes/nova') return <ComBarra><ProfessorNovaAvaliacao /></ComBarra>
     if (limpo === '/prof/alunos') return <ComBarra><ProfessorAlunos /></ComBarra>
+    if (limpo === '/prof/frequencia') return <ComBarra><ProfessorFrequencia /></ComBarra>
 
     const historico = casarRota('/prof/avaliacoes/:id/historico', caminho)
     if (historico) return <ProfessorHistorico avaliacaoId={historico.id} />
@@ -138,6 +140,7 @@ function BarraInferior({ papel }: { papel: 'aluno' | 'professor' }) {
     papel === 'professor'
       ? [
           { href: '/', rotulo: 'Painel', Icone: LayoutDashboard },
+          { href: '/prof/frequencia', rotulo: 'Frequência', Icone: CalendarCheck },
           { href: '/prof/alunos', rotulo: 'Alunos', Icone: Users },
           { href: '/perfil', rotulo: 'Perfil', Icone: UserRound },
         ]

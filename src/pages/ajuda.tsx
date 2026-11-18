@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, CheckCircle2, Clock, HelpCircle, Keyboard, Send, UserPlus } from 'lucide-react'
+import { ArrowLeft, Brain, Camera, CheckCircle2, Clock, HelpCircle, Keyboard, Send, UserPlus, UserRound } from 'lucide-react'
 import { Link } from '../lib/router'
 import { AppBar, Cartao } from '../components/ui'
 import { COMPILADO_EM, VERSAO, quandoFoiCompilado } from '../lib/versao'
@@ -113,6 +113,49 @@ export function Ajuda() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
+            <UserRound className="size-4 text-marinho" aria-hidden /> 6. Seu perfil: foto e personalidade
+          </h2>
+          <p className="texto-corrido">
+            Em <strong>Perfil</strong> você pode colocar uma <strong>foto</strong>. Ela fica em armazenamento
+            privado e aparece para você e para o professor — inclusive na chamada, para ele reconhecer quem
+            está presente. A imagem é recortada em quadrado e reduzida antes de subir; o arquivo original não
+            é guardado. Use JPG, PNG ou WEBP.
+          </p>
+          <p className="texto-corrido">
+            No mesmo lugar há o <strong>teste de personalidade</strong>: 30 afirmações rápidas, sem resposta
+            certa, que geram um resultado inspirado nos 16 tipos. O cartão mostra a categoria (grupo), a
+            subcategoria (estratégia e identidade), o tipo, uma descrição curta e os percentuais de cada eixo.
+            Você pode refazer o teste quando quiser; o perfil guarda o último resultado e a data.
+          </p>
+          <p className="texto-corrido">
+            O teste é <strong>educativo e não oficial</strong>: não é diagnóstico psicológico, não vale nota e
+            não substitui uma avaliação profissional. O site original é o{' '}
+            <a
+              href="https://www.16personalities.com/br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-marinho underline underline-offset-2"
+            >
+              16Personalities
+            </a>
+            .
+          </p>
+        </Cartao>
+
+        <Cartao className="space-y-3">
+          <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
+            <Brain className="size-4 text-marinho" aria-hidden /> 7. Frequência
+          </h2>
+          <p className="texto-corrido">
+            A frequência é registrada pelo professor, aula a aula, no painel dele. O app não altera sozinho a
+            frequência oficial do SIGA; se houver diferença, vale o que estiver no SIGA. Sua foto e seu
+            resultado de personalidade ajudam o professor a identificar a turma na chamada, mas não são usados
+            para calcular presença.
+          </p>
+        </Cartao>
+
+        <Cartao className="space-y-3">
+          <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
             <HelpCircle className="size-4 text-marinho" aria-hidden /> Problemas comuns
           </h2>
           <dl className="space-y-3 text-[14px] leading-relaxed">
@@ -136,6 +179,21 @@ export function Ajuda() {
                 O app reduz a imagem antes de enviar. Conexão fraca ainda pode falhar: tente de novo em um
                 lugar com Wi-Fi. A foto só sobe quando você toca em <em>Usar esta foto</em>; se desistir antes
                 disso, nada é enviado.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-tinta">“Minha foto do perfil não sobe”</dt>
+              <dd className="text-tinta-suave">
+                Confira se o arquivo é JPG, PNG ou WEBP. Se vier do iPhone em HEIC, escolha outra foto ou use a
+                câmera; o app recorta e reduz a imagem antes de enviar. Conexão fraca também pode interromper:
+                tente de novo com Wi-Fi.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-tinta">“Preciso fazer o teste de personalidade?”</dt>
+              <dd className="text-tinta-suave">
+                É opcional. Sem o teste, seu perfil e a chamada mostram “Teste não feito”; nada muda na sua
+                nota ou na sua frequência. Você pode fazer depois, quantas vezes quiser.
               </dd>
             </div>
             <div>

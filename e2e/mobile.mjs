@@ -233,7 +233,9 @@ async function main() {
   await fotoDoGuia(page, 'aluno-devolutiva')
 
   await page.goto(`${WEB}/perfil`, { waitUntil: 'networkidle' })
-  ok = (await medir(page, 'aluno · perfil')) && ok
+  await page.getByText('Foto do perfil', { exact: true }).waitFor({ timeout: 15000 })
+  await page.getByText('ENFJ-A').first().waitFor({ timeout: 15000 })
+  ok = (await medir(page, 'aluno · perfil com foto e personalidade')) && ok
   await foto(page, 'mobile-06-perfil')
 
   // troca de senha: a atual é conferida antes de trocar
@@ -345,6 +347,15 @@ async function main() {
 
   ok = (await medir(page, 'professor · alunos')) && ok
   await foto(page, 'mobile-11-professor-alunos')
+
+  // chamada: nomes, fotos/iniciais, matrícula e personalidade na mesma linha
+  await page.goto(`${WEB}/prof/frequencia`, { waitUntil: 'networkidle' })
+  await page.getByText('Lista de chamada').waitFor({ timeout: 15000 })
+  await page.getByText('Ana Beatriz Lima Ferreira').waitFor({ timeout: 15000 })
+  await page.getByText('ENFJ-A').first().waitFor({ timeout: 15000 })
+  await page.getByText('Teste não feito').first().waitFor({ timeout: 15000 })
+  ok = (await medir(page, 'professor · frequência')) && ok
+  await foto(page, 'mobile-17-professor-frequencia')
 
   await navegador.close()
 

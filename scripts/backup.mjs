@@ -41,6 +41,7 @@ const tabelas = [
   'submissoes',
   'correcoes',
   'lancamentos_siga',
+  'frequencias',
   'auditoria',
 ]
 

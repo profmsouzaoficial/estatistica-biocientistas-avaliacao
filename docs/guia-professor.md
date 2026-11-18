@@ -69,6 +69,39 @@ A lista do SIGA em Governador Valadares traz a matrícula com o sufixo do campus
 minúsculas: o aluno pode digitar `202506007gv` que o cadastro encontra a linha da lista. Ao colar a
 lista, mantenha o número exatamente como veio do SIGA; o app normaliza para maiúsculas sozinho.
 
+### Controle de frequência (chamada)
+
+**Painel → Controle de frequência** (ou a aba **Frequência** na barra de baixo)
+
+1. Escolha a **turma** e a **data da aula**. A data já vem com o dia de hoje.
+2. A lista mostra, para cada estudante: **foto** (ou as iniciais, quando ele ainda não enviou),
+   **nome**, **matrícula**, e-mail e a **personalidade** — código do tipo e a cor do grupo.
+3. Toque no botão **Presente/Ausente** de cada linha. Para começar com a turma toda, use
+   **Todos presentes** ou **Todos ausentes**.
+4. Confira o resumo (`N presentes · N ausentes`) e toque em **Salvar chamada**.
+5. Para corrigir uma chamada anterior, volte à mesma data: o app carrega o que já foi gravado.
+   Alterações não salvas aparecem como **alterações não salvas** no topo.
+
+Cores dos grupos (também na legenda da tela):
+
+| Grupo | Cor | Tipos |
+|---|---|---|
+| Analistas | roxo | INTJ, INTP, ENTJ, ENTP |
+| Diplomatas | verde | INFJ, INFP, ENFJ, ENFP |
+| Sentinelas | azul | ISTJ, ISFJ, ESTJ, ESFJ |
+| Exploradores | âmbar | ISTP, ISFP, ESTP, ESFP |
+
+Quem ainda não fez o teste aparece em cinza, com **Teste não feito**; quem não enviou foto aparece
+com as iniciais. Nada disso impede a chamada.
+
+> **A frequência do app não é a frequência do SIGA.** Ela é um registro pedagógico próprio,
+> por aula, e não altera automaticamente o campo de frequência do SIGA. Se houver divergência,
+> vale o que estiver no SIGA. Use a lista também para conhecer a turma e planejar dinâmicas —
+> a personalidade não deve virar critério de nota, presença ou avaliação.
+
+Privacidade: as fotos estão no bucket privado `perfis`; o professor as vê por links assinados
+temporários. O aluno vê a própria foto e o próprio resultado; a lista completa é só do professor.
+
 ## 3. Criar a avaliação
 
 **Painel → Nova**

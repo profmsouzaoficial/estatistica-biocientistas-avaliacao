@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Camera, Image as ImageIcon, RefreshCw, X } from 'lucide-react'
 import { Botao } from './ui'
-import { ErroDeImagem, ehHeic, mensagemDeFalha } from '../lib/imagem'
+import { ErroDeImagem, prepararImagem } from '../lib/imagem'
 
 export interface Foto {
   blob: Blob
@@ -16,86 +16,8 @@ export interface Foto {
 // deixa o arquivo em menos de 1 MB (o teste `pnpm e2e:foto` mede isso com uma
 // foto de 12 MP). Se um dia a transcrição errar letra pequena, este é o número a
 // subir: 2200 px (~188 dpi) custa ~50% mais bytes e nada em complexidade.
-const LADO_MAXIMO = 1800
-const QUALIDADE = 0.85
-
-// Um HEIC de 5 MB num celular lento pode levar segundos para falhar; sem limite,
-// o botão fica "processando" e a aluna não sabe se espera ou tenta de novo.
-const TEMPO_MAXIMO_DECODE = 20_000
-
-function comLimite<T>(promessa: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const relogio = setTimeout(() => reject(new ErroDeImagem('tempo', mensagemDeFalha('tempo'))), ms)
-    promessa.then(
-      (valor) => {
-        clearTimeout(relogio)
-        resolve(valor)
-      },
-      (erro) => {
-        clearTimeout(relogio)
-        reject(erro)
-      },
-    )
-  })
-}
-
-/** Segunda tentativa de decodificação: a tag <img>, que aceita formatos que o
- * `createImageBitmap` recusa. Revoga o object URL nos dois caminhos. */
-function decodificarComTag(arquivo: File): Promise<ImageBitmap> {
-  return new Promise<ImageBitmap>((resolve, reject) => {
-    const url = URL.createObjectURL(arquivo)
-    const img = new Image()
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      resolve(img as unknown as ImageBitmap)
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('formato não suportado'))
-    }
-    img.src = url
-  })
-}
-
-async function comprimir(arquivo: File): Promise<Omit<Foto, 'url'>> {
-  if (!arquivo.size) throw new ErroDeImagem('vazio', mensagemDeFalha('vazio'))
-
-  let bitmap: ImageBitmap
-  try {
-    bitmap = await comLimite(createImageBitmap(arquivo, { imageOrientation: 'from-image' }), TEMPO_MAXIMO_DECODE)
-  } catch (primeiro) {
-    if (primeiro instanceof ErroDeImagem) throw primeiro
-    try {
-      bitmap = await comLimite(decodificarComTag(arquivo), TEMPO_MAXIMO_DECODE)
-    } catch (segundo) {
-      if (segundo instanceof ErroDeImagem) throw segundo
-      // Nenhum dos dois abriu. HEIC é a causa provável, e a mensagem diz o que
-      // fazer em vez de só constatar o problema.
-      const codigo = ehHeic(arquivo.name, arquivo.type) ? 'heic' : 'formato'
-      throw new ErroDeImagem(codigo, mensagemDeFalha(codigo))
-    }
-  }
-
-  const larguraOriginal = 'width' in bitmap ? bitmap.width : 0
-  const alturaOriginal = 'height' in bitmap ? bitmap.height : 0
-  const escala = Math.min(1, LADO_MAXIMO / Math.max(larguraOriginal, alturaOriginal))
-  const largura = Math.round(larguraOriginal * escala)
-  const altura = Math.round(alturaOriginal * escala)
-
-  const canvas = document.createElement('canvas')
-  canvas.width = largura
-  canvas.height = altura
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Navegador sem suporte a canvas.')
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, largura, altura)
-  ctx.drawImage(bitmap as unknown as CanvasImageSource, 0, 0, largura, altura)
-  if ('close' in bitmap && typeof bitmap.close === 'function') bitmap.close()
-
-  const blob = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Falha ao processar a imagem.'))), 'image/jpeg', QUALIDADE),
-  )
-  return { blob, bytes: blob.size, largura, altura }
+async function comprimir(arquivo: File) {
+  return prepararImagem(arquivo, { ladoMaximo: 1800, qualidade: 0.85 })
 }
 
 export function CapturaDeFoto({
