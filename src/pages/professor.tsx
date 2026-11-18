@@ -434,6 +434,11 @@ export function ProfessorNovaAvaliacao() {
         'Para publicar, informe a descrição da avaliação no SIGA (ex.: TVC 1). Sem ela o lançamento de notas não tem para onde ir. Se a TVC ainda não existe, salve como rascunho.',
       )
     }
+    if (publicar && opcoesSiga.length > 0 && !sigaConfere) {
+      return setErro(
+        `A descrição “${descricaoSiga.trim()}” não está na lista do SIGA desta turma. Escolha uma das avaliações listadas acima ou crie a TVC no SIGA antes de publicar.`,
+      )
+    }
     // O banco também recusa prazo antes da abertura, mas a mensagem dele não
     // explica o que fazer — esta explica.
     const prazoOk = validarPrazoCriacao(prazo)

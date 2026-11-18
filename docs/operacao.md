@@ -87,7 +87,7 @@ Em **Nova avaliação**:
 | Tema e instruções | é o que o aluno lê no celular; diga o número de linhas e se é à mão |
 | Valor total | a rubrica precisa somar exatamente isso — o app recusa salvar se não fechar |
 | Rubrica | 3 a 6 critérios; cada um com valor e descrição do que conta |
-| Descrição no SIGA | precisa ser **idêntica** ao nome da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`) |
+| Descrição no SIGA | escolha na lista que o app busca ao selecionar a turma; precisa ser **idêntica** ao nome da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Publicar com uma descrição fora da lista é recusado — salve como rascunho e crie a TVC no SIGA primeiro |
 | Peso no SIGA | o peso que o SIGA usa para aquela avaliação; a nota é convertida proporcionalmente |
 | Prazo | opcional; depois dele o aluno não abre entrega nova. Data no passado é recusada (a avaliação nasceria fechada) |
 
