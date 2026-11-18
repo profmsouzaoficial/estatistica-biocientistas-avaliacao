@@ -10,7 +10,13 @@ import {
   type Requisicao,
   type Resposta,
 } from '../_lib/http.js'
-import { ErroSiga, criarAvaliacao, dataBr, numeroTvc } from '../_lib/siga.js'
+import {
+  ErroSiga,
+  consultarNotas,
+  criarAvaliacao,
+  dataBr,
+  proximoNumeroTvc,
+} from '../_lib/siga.js'
 
 /**
  * Cria a avaliação no SIGA — uma vez só.
@@ -20,7 +26,9 @@ import { ErroSiga, criarAvaliacao, dataBr, numeroTvc } from '../_lib/siga.js'
  * Probabilidades", o professor fica com uma avaliação fantasma lá dentro. Por
  * isso a rota é idempotente e tudo o que sai daqui fica na auditoria:
  *
+ *   - `num_tvc` = quantidade de avaliações da turma no SIGA + 1, lida na hora;
  *   - pedido idêntico ao último bem-sucedido → não chama o SIGA (repetido);
+ *   - descrição já existente na turma → 409, para não duplicar;
  *   - pedido diferente → 409, porque criar de novo DUPLICA; quem decide é o
  *     professor, com `forcar: true`;
  *   - requisição em andamento (até 2 min) → 409, para o duplo clique não passar;
@@ -57,6 +65,12 @@ interface Pedido {
   periodo: string | null
 }
 
+type ConteudoPedido = Omit<Pedido, 'num_tvc'>
+
+interface QuadroSiga {
+  avaliacoes?: unknown[]
+}
+
 const ACAO = 'siga.criar-avaliacao'
 /** Depois disso, um registro "em andamento" é considerado abandonado. */
 const EM_ANDAMENTO_MS = 120_000
@@ -66,18 +80,37 @@ function lerForcar(corpo: unknown): boolean {
   return (corpo as { forcar?: unknown }).forcar === true
 }
 
-/** Compara só o que muda o que o SIGA recebe. */
-function mesmoPedido(a: unknown, b: Pedido): boolean {
+/**
+ * Compara o conteúdo que o professor controla.
+ *
+ * `num_tvc` fica de fora de propósito: ele é calculado no momento da criação e
+ * muda quando outra avaliação é cadastrada no SIGA. Um clique duplo depois de
+ * um sucesso continua sendo o mesmo pedido, mesmo que a lista já tenha
+ * crescido; o número efetivamente usado está guardado na auditoria.
+ */
+function mesmoPedido(a: unknown, b: ConteudoPedido): boolean {
   if (!a || typeof a !== 'object') return false
   const p = a as Partial<Pedido>
   return (
     p.turma === b.turma &&
-    Number(p.num_tvc) === b.num_tvc &&
     Number(p.peso) === b.peso &&
     p.data === b.data &&
     p.descricao === b.descricao &&
     (p.periodo ?? null) === b.periodo
   )
+}
+
+function normalizarDescricao(texto: string): string {
+  return texto.trim().toLowerCase()
+}
+
+function descricaoJaExiste(avaliacoes: unknown[], descricao: string): boolean {
+  const alvo = normalizarDescricao(descricao)
+  return avaliacoes.some((a) => {
+    if (!a || typeof a !== 'object') return false
+    const d = (a as { descricao?: unknown }).descricao
+    return typeof d === 'string' && normalizarDescricao(d) === alvo
+  })
 }
 
 function descreverPedido(p: Pedido): string {
@@ -102,22 +135,16 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
   )
   if (!turma) throw new ErroHttp(404, 'TURMA', 'Turma não encontrada.')
 
-  const descricao = avaliacao.descricao_siga?.trim() || ''
-  const numTvc = numeroTvc(descricao)
-  if (!numTvc) {
-    throw new ErroHttp(
-      422,
-      'SEM_NUMERO_TVC',
-      'Não consegui identificar o número da TVC. Use uma descrição como "TVC 3" na avaliação.',
-    )
+  const descricao = (avaliacao.descricao_siga?.trim() || avaliacao.titulo.trim())
+  if (!descricao) {
+    throw new ErroHttp(422, 'DESCRICAO', 'Informe a descrição da avaliação no SIGA.')
   }
 
-  const pedido: Pedido = {
+  const conteudo: ConteudoPedido = {
     turma: turma.codigo_siga,
-    num_tvc: numTvc,
     peso: Number(avaliacao.peso_siga) || 10,
     data: dataBr(avaliacao.data_siga),
-    descricao: descricao || avaliacao.titulo,
+    descricao,
     periodo: turma.periodo,
   }
 
@@ -140,12 +167,12 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
   }
 
   if (estado === 'ok' && !forcar) {
-    if (mesmoPedido(detalhe.pedido, pedido)) {
+    if (mesmoPedido(detalhe.pedido, conteudo)) {
       return ok({
         repetido: true,
         criada_em: anterior?.criado_em ?? null,
         siga: detalhe.resposta ?? null,
-        request: pedido,
+        request: detalhe.pedido ?? null,
       })
     }
     const antes = detalhe.pedido as Partial<Pedido> | undefined
@@ -159,22 +186,50 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
       `Esta avaliação já foi criada no SIGA ${comoFoi}. ` +
         `Criar de novo vai DUPLICAR a avaliação e o SIGA não tem rota para apagar. ` +
         `Se for mesmo isso, confirme em “Criar de novo”.`,
-      { criada_em: anterior?.criado_em ?? null, pedido, pedido_anterior: detalhe.pedido ?? null },
+      { criada_em: anterior?.criado_em ?? null, pedido_anterior: detalhe.pedido ?? null },
     )
   }
 
-  // Marca antes de chamar o SIGA: se outra requisição chegar agora, ela vê
-  // "andamento" e não cria a segunda. O registro é atualizado no fim, com o
-  // resultado — e é ele que a tela mostra.
+  // Reserva antes de consultar o SIGA: se outra requisição chegar agora, ela vê
+  // "andamento" e não cria a segunda. O pedido definitivo (com num_tvc) é
+  // gravado no mesmo registro depois da leitura do quadro.
   const registro = await inserir<AuditoriaServidor>('auditoria', {
     ator: usuario.id,
     acao: ACAO,
     entidade: 'avaliacoes',
     entidade_id: avaliacaoId,
-    detalhe: { estado: 'andamento', pedido: { ...pedido }, forcar },
+    detalhe: { estado: 'andamento', pedido: null, forcar },
   })
 
+  let pedido: Pedido | null = null
   try {
+    const quadro = await consultarNotas(turma.codigo_siga, turma.periodo)
+    const corpoQuadro = quadro.corpo as QuadroSiga | null
+    if (!corpoQuadro || !Array.isArray(corpoQuadro.avaliacoes)) {
+      throw new ErroHttp(
+        502,
+        'SIGA_RESPOSTA_INVALIDA',
+        'O SIGA respondeu sem a lista de avaliações da turma. Não criei nada, para não usar um número de TVC errado. Tente de novo em instantes.',
+        { turma: turma.codigo_siga, periodo: turma.periodo },
+      )
+    }
+    const avaliacoes = corpoQuadro.avaliacoes
+
+    if (!forcar && descricaoJaExiste(avaliacoes, conteudo.descricao)) {
+      throw new ErroHttp(
+        409,
+        'SIGA_JA_EXISTE',
+        `Já existe uma avaliação “${conteudo.descricao}” no SIGA da turma ${turma.codigo_siga}. ` +
+          `Não criei outra: use “Buscar” para selecioná-la ou escolha outra descrição.`,
+        { descricao: conteudo.descricao, turma: turma.codigo_siga },
+      )
+    }
+
+    pedido = { ...conteudo, num_tvc: proximoNumeroTvc(avaliacoes) }
+    await atualizar('auditoria', `id=eq.${registro.id}`, {
+      detalhe: { estado: 'andamento', pedido: { ...pedido }, forcar },
+    })
+
     const resultado = await criarAvaliacao(pedido)
     await atualizar('auditoria', `id=eq.${registro.id}`, {
       detalhe: {
@@ -196,7 +251,7 @@ async function manipulador(req: Requisicao): Promise<Resposta> {
     await atualizar('auditoria', `id=eq.${registro.id}`, {
       detalhe: {
         estado: 'falha',
-        pedido: { ...pedido },
+        pedido: pedido ? { ...pedido } : null,
         forcar,
         http_status: erro instanceof ErroSiga ? erro.statusSiga : null,
         resposta: erro instanceof ErroHttp ? (erro.detalhe ?? null) : null,

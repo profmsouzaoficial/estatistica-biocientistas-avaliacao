@@ -8,7 +8,6 @@ import { SelecaoTurmas } from '../components/selecaoTurmas'
 import { CAPITULOS } from '../lib/livro'
 import type { Avaliacao, AvaliacaoSiga, Criterio, Diagnostico, Esperado, ResumoAvaliacao, Turma } from '../lib/types'
 import { formatarNota } from '../lib/formato'
-import { numeroDaTvc } from '../lib/siga'
 import { api } from '../lib/servidor'
 import { aberturaDaAvaliacao, validarPrazoCriacao } from '../lib/prazos'
 import type { Dados } from '../lib/dados'
@@ -386,7 +385,7 @@ export function ProfessorNovaAvaliacao() {
   }, [valorTotal, pesoEditado])
 
   /** O título é a fonte da descrição no SIGA; a descrição continua editável
-   * para casar com uma TVC que já existe ou para incluir o número exigido. */
+   * para casar com uma avaliação que já existe. O número da TVC é automático. */
   function mudarTitulo(valor: string) {
     setTitulo(valor)
     setDescricaoSiga(valor)
@@ -486,8 +485,6 @@ export function ProfessorNovaAvaliacao() {
     selecionadas.length > 0 &&
     semConsultaEm.length === 0 &&
     faltandoEm.length === 0
-  const numeroTvc = numeroDaTvc(descricaoSiga)
-
   const opcoesSiga = useMemo(() => {
     const mapa = new Map<string, AvaliacaoSiga & { codigos: string[] }>()
     for (const t of selecionadas) {
@@ -528,7 +525,7 @@ export function ProfessorNovaAvaliacao() {
 
     if (publicar && !descricaoSiga.trim()) {
       return setErro(
-        'Para publicar, informe a descrição da avaliação no SIGA (ex.: TVC 1). Sem ela o lançamento de notas não tem para onde ir. Se a TVC ainda não existe, salve como rascunho.',
+        'Para publicar, informe a descrição da avaliação no SIGA (ex.: Trabalho prático). Sem ela o lançamento de notas não tem para onde ir. Se a avaliação ainda não existe, marque a criação abaixo ou salve como rascunho.',
       )
     }
 
@@ -584,9 +581,6 @@ export function ProfessorNovaAvaliacao() {
         )
       }
       if (publicar && precisaCriarEm.length > 0) {
-        if (!numeroTvc) {
-          return setErro('Para criar no SIGA, a descrição precisa ter o número da TVC — por exemplo “TVC 1”.')
-        }
         if (!dataSiga) return setErro('Informe a data da avaliação no SIGA para criá-la.')
         if (!(Number(pesoSiga) > 0)) return setErro('Informe o peso da avaliação no SIGA.')
       }
@@ -831,8 +825,8 @@ export function ProfessorNovaAvaliacao() {
             <div>
               <h2 className="font-serif text-[16px] text-tinta">Lançamento no SIGA</h2>
               <p className="mt-1 text-[12.5px] leading-snug text-tinta-suave">
-                A descrição precisa ser idêntica à da avaliação (TVC) no SIGA. Se ela ainda não existir, crie no SIGA ou
-                use o botão de criação na tela da avaliação.
+                A descrição precisa ser idêntica à da avaliação (TVC) no SIGA. Se ela ainda não existir, marque a
+                criação abaixo: o app calcula o próximo número da TVC de cada turma.
               </p>
             </div>
             <div className="rounded-xl border border-borda bg-papel/70 p-3">
@@ -861,7 +855,7 @@ export function ProfessorNovaAvaliacao() {
               {semConsultaEm.length > 0 && !buscandoSiga ? (
                 <p className="mt-1.5 text-[12.5px] leading-snug text-dourado">
                   Não consegui conferir o SIGA de {semConsultaEm.map((t) => t.codigo_siga).join(', ')}. Use
-                  “Buscar”; se continuar, marque a criação abaixo — se a TVC já existir, o SIGA recusa sem duplicar.
+                  “Buscar”; se continuar, marque a criação abaixo — se a TVC já existir, o app recusa sem duplicar.
                 </p>
               ) : null}
               {opcoesSiga.length > 0 ? (
@@ -898,8 +892,8 @@ export function ProfessorNovaAvaliacao() {
               rotulo="Descrição da avaliação no SIGA"
               value={descricaoSiga}
               onChange={(e) => setDescricaoSiga(e.target.value)}
-              placeholder="TVC 1"
-              dica="Começa igual ao título. É o campo descricao_avaliacao da API do SIGA: ajuste para o nome exato da TVC (com o número) quando for criar uma nova."
+              placeholder="Trabalho prático"
+              dica="Começa igual ao título. É o campo descricao_avaliacao da API do SIGA: ajuste para o nome exato da avaliação. O número da TVC é calculado automaticamente pela quantidade de avaliações que já existem na turma."
             />
             {descricaoSiga.trim() && sigaConfere ? (
               <p className="text-[12.5px] leading-snug text-marinho">
@@ -910,7 +904,7 @@ export function ProfessorNovaAvaliacao() {
             {descricaoSiga.trim() && faltandoEm.length > 0 ? (
               <p className="text-[12.5px] leading-snug text-dourado">
                 Essa descrição não aparece no SIGA de {faltandoEm.map((t) => t.codigo_siga).join(', ')}. Se for uma
-                TVC nova, marque a opção abaixo para criá-la agora — ou confira maiúsculas, acentos e o número.
+                avaliação nova, marque a opção abaixo para criá-la agora — ou confira maiúsculas e acentos.
               </p>
             ) : null}
             {publicar && descricaoSiga.trim() && !sigaConfere ? (
@@ -922,18 +916,17 @@ export function ProfessorNovaAvaliacao() {
                   className="mt-0.5 size-5 accent-marinho"
                 />
                 <span className="text-[13px] leading-snug text-tinta">
-                  <strong>Criar esta avaliação no SIGA agora.</strong> O app usa a descrição, o peso e a data acima,
-                  uma vez para cada turma que ainda não tiver essa TVC. O SIGA não tem rota para apagar uma avaliação
-                  — confira antes de publicar.
+                  <strong>Criar esta avaliação no SIGA agora.</strong> O app usa a descrição, o peso e a data acima e
+                  calcula o próximo número de TVC de cada turma, contando as avaliações que já existem lá. O SIGA não
+                  tem rota para apagar uma avaliação — confira antes de publicar.
                 </span>
               </label>
             ) : null}
             {publicar &&
             descricaoSiga.trim() &&
             !sigaConfere &&
-            (!numeroTvc || !dataSiga || !(Number(pesoSiga) > 0)) ? (
+            (!dataSiga || !(Number(pesoSiga) > 0)) ? (
               <div className="text-[12.5px] leading-snug text-vermelho">
-                {!numeroTvc ? <p>A descrição precisa ter o número da TVC (ex.: “TVC 1”).</p> : null}
                 {!dataSiga ? <p>Informe a data no SIGA para poder criar.</p> : null}
                 {!(Number(pesoSiga) > 0) ? <p>Informe o peso da avaliação no SIGA.</p> : null}
               </div>

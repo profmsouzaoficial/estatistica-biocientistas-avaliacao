@@ -177,10 +177,13 @@ export function dataBr(iso: string | null | undefined): string {
   return `${dia}/${mes}/${hoje.getFullYear()}`
 }
 
-/** Extrai o número da TVC a partir de "TVC 4", "4ª TVC", "TVC4". */
-export function numeroTvc(descricao: string): number | null {
-  const achado = descricao.match(/(\d{1,2})/)
-  if (!achado) return null
-  const n = Number(achado[1])
-  return Number.isFinite(n) && n > 0 ? n : null
+/**
+ * Próximo número de TVC de uma turma.
+ *
+ * O SIGA não devolve `num_tvc` na leitura do quadro: devolve a lista de
+ * avaliações já cadastradas. Como a numeração é sequencial por turma/período,
+ * o app usa `quantidade existente + 1` para a próxima avaliação.
+ */
+export function proximoNumeroTvc(avaliacoes: unknown[] | null | undefined): number {
+  return (Array.isArray(avaliacoes) ? avaliacoes.length : 0) + 1
 }

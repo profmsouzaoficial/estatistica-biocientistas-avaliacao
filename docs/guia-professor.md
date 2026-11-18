@@ -83,7 +83,7 @@ lista, mantenha o número exatamente como veio do SIGA; o app normaliza para mai
 | Capítulo do livro | liga a redação ao capítulo 1–10 |
 | Valor total | a nota máxima em pontos; o padrão é **100** e pode ser editado |
 | Rubrica | 3–6 critérios; **a soma tem de fechar com o valor total** |
-| Descrição no SIGA | começa igual ao título; ajuste para o nome exato da TVC ou use **Buscar** para escolher da lista real |
+| Descrição no SIGA | começa igual ao título; ajuste para o nome exato da avaliação ou use **Buscar** para escolher da lista real. Não precisa incluir o número da TVC: ele é calculado automaticamente |
 | Peso / Data | usados ao criar a avaliação no SIGA; o peso acompanha o valor total até você escolher uma TVC ou editar à mão |
 | Prazo | opcional; pode ser uma data passada (lançamento retroativo) e anda junto com a **Data no SIGA** |
 
@@ -106,8 +106,11 @@ e mostra as TVCs com data e peso. Se a mesma descrição aparecer em mais de uma
 quantas turmas já a possuem. Um toque preenche descrição, peso e data.
 
 Se a descrição não existir em alguma turma, marque **Criar esta avaliação no SIGA agora**: ao
-publicar, o app cria a TVC apenas nas turmas em que ela falta, uma chamada por turma. O SIGA não tem
-rota para apagar avaliação; a tela avisa e nunca cria sozinha em rascunho.
+publicar, o app cria a avaliação apenas nas turmas em que ela falta, uma chamada por turma. O
+`num_tvc` é automático: o servidor consulta a lista daquela turma e usa a quantidade existente + 1.
+Não digite “TVC 3” no nome só para escolher o número — a descrição deve ser o nome real da
+avaliação, como **Trabalho prático**. O SIGA não tem rota para apagar avaliação; a tela avisa e
+nunca cria sozinha em rascunho.
 
 Deixe **Publicar agora** marcado para o aluno ver; desmarque para rascunho.
 
@@ -249,10 +252,10 @@ não existe no SIGA* com o resumo do que será criado — turma, descrição, pe
 **Criar no SIGA**. O SIGA recusa notas para avaliação inexistente, e criar por aqui evita cadastrar
 tudo de novo no site do SIGA. Depois da criação, a conferência já reconhece a avaliação.
 
-> A criação automática só funciona para descrições no formato de TVC (`TVC 3`, `4ª TVC`), porque é
-> esse número que a rota `/api/criar-avaliacao` exige. Para outro tipo de avaliação (trabalho,
-> relatório), cadastre no SIGA e use **Buscar** na criação da avaliação para copiar a descrição
-> exata — assim o lançamento encontra a coluna certa.
+> A criação automática vale para **qualquer descrição** — trabalho, relatório, prova. O número da
+> TVC é calculado pela lista da turma, não extraído do texto. Se a descrição já existir no SIGA, a
+> rota recusa com `SIGA_JA_EXISTE` em vez de duplicar; nesse caso use **Buscar** para selecionar a
+> avaliação existente. O número usado fica registrado na auditoria.
 
 ### Histórico de lançamentos
 

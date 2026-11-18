@@ -47,14 +47,3 @@ export function divergenciaDePeso(
   if (Math.abs(pesoSiga - pesoDoApp) < 0.001) return null
   return { pesoSiga, pesoApp: pesoDoApp }
 }
-
-/**
- * Número da TVC a partir da descrição ("TVC 1" → 1). O SIGA exige esse número
- * ao criar uma avaliação; o lançamento de notas usa só a descrição.
- */
-export function numeroDaTvc(descricao: string | null | undefined): number | null {
-  const achado = (descricao ?? '').match(/(\d{1,2})/)
-  if (!achado) return null
-  const numero = Number(achado[1])
-  return Number.isFinite(numero) && numero > 0 ? numero : null
-}

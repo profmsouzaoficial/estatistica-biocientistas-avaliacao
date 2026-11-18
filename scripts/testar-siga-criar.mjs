@@ -37,23 +37,38 @@ await writeFile(saida, bundle.outputFiles[0].text)
 // ---------------------------------------------------------------------------
 // Mundo falso: Supabase + SIGA no mesmo servidor
 // ---------------------------------------------------------------------------
+const AVALIACOES_BASE = [
+  { id: '1', descricao: 'Exercício Avaliativo', peso: 10 },
+  { id: '2', descricao: 'Prova 1', peso: 20 },
+  { id: '3', descricao: 'Trabalho sobre Probabilidades', peso: 30 },
+  { id: '4', descricao: 'Prova 2', peso: 40 },
+]
+
+function reiniciarAvaliacoesSiga() {
+  estado.avaliacoesSiga = AVALIACOES_BASE.map((a) => ({ ...a }))
+}
+
 const estado = {
   papel: 'professor',
   avaliacao: {
     id: 'av-1',
     turma_id: 'turma-1',
     titulo: 'Redação 1 — Testes diagnósticos',
-    descricao_siga: 'TVC 3',
+    descricao_siga: 'Trabalho prático',
     peso_siga: 30,
     data_siga: '2026-11-20',
   },
   turma: { id: 'turma-1', codigo_siga: 'CBV018GV-A', periodo: '2026/3' },
+  avaliacoesSiga: [],
   auditoria: [],
   proximoId: 1,
   sigaChamadas: 0,
   sigaModo: 'ok',
+  listaModo: 'ok',
+  listasSiga: 0,
   ultimoPedidoSiga: null,
 }
+reiniciarAvaliacoesSiga()
 
 const agora = () => new Date().toISOString()
 
@@ -109,10 +124,27 @@ const upstream = createServer(async (req, res) => {
   }
 
   // SIGA
+  if (url.pathname === '/api/notas' && req.method === 'GET') {
+    estado.listasSiga++
+    if (estado.listaModo === 'erro') return json(500, { detail: 'Quadro indisponível (teste).' })
+    if (estado.listaModo === 'invalida') return json(200, { consulta: {}, resumo: {} })
+    const turmaConsultada = url.searchParams.get('turma')
+    return json(200, {
+      consulta: { turma: turmaConsultada, periodo: url.searchParams.get('periodo') },
+      // A turma B começa sem avaliações: a contagem é por turma, não global.
+      avaliacoes: turmaConsultada === 'CBV018GV-B' ? [] : estado.avaliacoesSiga,
+      resumo: { total_alunos: 0 },
+    })
+  }
   if (url.pathname === '/api/criar-avaliacao' && req.method === 'POST') {
     estado.sigaChamadas++
     estado.ultimoPedidoSiga = post
     if (estado.sigaModo === 'erro') return json(422, { detail: 'Já existe uma avaliação com essa descrição.' })
+    estado.avaliacoesSiga.push({
+      id: String(500 + estado.sigaChamadas),
+      descricao: post.descricao,
+      peso: post.peso,
+    })
     return json(200, { id: 500 + estado.sigaChamadas, mensagem: 'criada' })
   }
 
@@ -168,21 +200,33 @@ let r = await chamar({ avaliacao_id: 'av-1' })
 conferir('primeira criação responde 200', r.status === 200, String(r.status))
 conferir('e diz que não é repetição', r.dados?.repetido === false, String(r.dados?.repetido))
 conferir('o SIGA foi chamado uma vez', estado.sigaChamadas === 1, `${estado.sigaChamadas} chamada(s)`)
-conferir('a descrição vai como está no banco', estado.ultimoPedidoSiga?.descricao === 'TVC 3', estado.ultimoPedidoSiga?.descricao)
-conferir('o número da TVC foi extraído', estado.ultimoPedidoSiga?.num_tvc === 3, String(estado.ultimoPedidoSiga?.num_tvc))
+conferir('a descrição vai como está no banco', estado.ultimoPedidoSiga?.descricao === 'Trabalho prático', estado.ultimoPedidoSiga?.descricao)
+conferir('o número da TVC é o próximo da turma', estado.ultimoPedidoSiga?.num_tvc === 5, String(estado.ultimoPedidoSiga?.num_tvc))
 conferir('o peso vai junto', estado.ultimoPedidoSiga?.peso === 30, String(estado.ultimoPedidoSiga?.peso))
 conferir('a data vai em DD/MM/AAAA', estado.ultimoPedidoSiga?.data === '20/11/2026', estado.ultimoPedidoSiga?.data)
 conferir('o período da turma vai junto', estado.ultimoPedidoSiga?.periodo === '2026/3', String(estado.ultimoPedidoSiga?.periodo))
 conferir('a auditoria guardou o sucesso', estado.auditoria.length === 1 && estado.auditoria[0].detalhe.estado === 'ok', String(estado.auditoria.length))
 conferir('com o autor certo', estado.auditoria[0].ator === 'prof-1', String(estado.auditoria[0].ator))
-conferir('e o pedido enviado', estado.auditoria[0].detalhe.pedido?.descricao === 'TVC 3', JSON.stringify(estado.auditoria[0].detalhe.pedido ?? null))
+conferir('e o pedido enviado', estado.auditoria[0].detalhe.pedido?.descricao === 'Trabalho prático', JSON.stringify(estado.auditoria[0].detalhe.pedido ?? null))
+
+// A lista do SIGA mudou depois do sucesso (outra avaliação foi cadastrada).
+// A repetição ainda é a mesma e não pode virar uma criação com o próximo número.
+estado.avaliacoesSiga.push({ id: '5', descricao: 'Outra avaliação', peso: 10 })
 
 // 2. clique duplo / repetição idêntica
+const listasAntesDaRepeticao = estado.listasSiga
 r = await chamar({ avaliacao_id: 'av-1' })
 conferir('repetir o mesmo pedido responde 200', r.status === 200, String(r.status))
 conferir('e avisa que é repetição', r.dados?.repetido === true, String(r.dados?.repetido))
 conferir('sem chamar o SIGA de novo', estado.sigaChamadas === 1, `${estado.sigaChamadas} chamada(s)`)
 conferir('sem gravar auditoria nova', estado.auditoria.length === 1, String(estado.auditoria.length))
+conferir('sem consultar a lista de novo', estado.listasSiga === listasAntesDaRepeticao, `${estado.listasSiga} consulta(s)`)
+conferir(
+  'e devolve o número que foi realmente usado',
+  r.dados?.request?.num_tvc === 5,
+  String(r.dados?.request?.num_tvc),
+)
+reiniciarAvaliacoesSiga()
 
 // 3. pedido diferente: criar de novo duplicaria
 estado.avaliacao.peso_siga = 40
@@ -202,6 +246,7 @@ conferir('e fica registrada na auditoria', estado.auditoria.length === 2, String
 estado.auditoria = []
 estado.sigaChamadas = 0
 estado.avaliacao.peso_siga = 30
+reiniciarAvaliacoesSiga()
 estado.sigaModo = 'erro'
 r = await chamar({ avaliacao_id: 'av-1' })
 conferir('recusa do SIGA chega como erro', r.status === 502, String(r.status))
@@ -232,11 +277,12 @@ estado.auditoria[estado.auditoria.length - 1].criado_em = new Date(Date.now() - 
 r = await chamar({ avaliacao_id: 'av-1', forcar: true })
 conferir('registro velho de andamento é ignorado', r.status === 200, String(r.status))
 
-// 8. validações continuam valendo
+// 8. qualquer descrição é aceita; o número vem da lista da turma
 estado.avaliacao.descricao_siga = 'Revisão de probabilidades'
 r = await chamar({ avaliacao_id: 'av-1', forcar: true })
-conferir('sem número de TVC responde 422', r.status === 422 && r.dados?.codigo === 'SEM_NUMERO_TVC', `${r.status} ${r.dados?.codigo}`)
-estado.avaliacao.descricao_siga = 'TVC 3'
+conferir('descrição sem número é aceita', r.status === 200, `${r.status} ${r.dados?.codigo ?? ''}`)
+conferir('e recebe o próximo número da lista', estado.ultimoPedidoSiga?.num_tvc === 7, String(estado.ultimoPedidoSiga?.num_tvc))
+estado.avaliacao.descricao_siga = 'Trabalho prático'
 
 estado.papel = 'aluno'
 r = await chamar({ avaliacao_id: 'av-1' })
@@ -246,12 +292,49 @@ estado.papel = 'professor'
 r = await chamar({})
 conferir('sem avaliacao_id responde 400', r.status === 400, String(r.status))
 
-// 9. data ausente usa hoje (formato DD/MM/AAAA)
+// 9. a lista é a fonte do número: se ela falhar, não inventa um número
+estado.auditoria = []
+estado.sigaChamadas = 0
+estado.avaliacao.descricao_siga = 'Trabalho novo'
+estado.listaModo = 'erro'
+r = await chamar({ avaliacao_id: 'av-1' })
+conferir('falha ao listar o SIGA interrompe a criação', r.status === 502, String(r.status))
+conferir('com o erro do SIGA, não um número chutado', r.dados?.codigo === 'SIGA_RECUSOU', String(r.dados?.codigo))
+conferir('sem chamar a criação', estado.sigaChamadas === 0, `${estado.sigaChamadas} chamada(s)`)
+conferir('e registrando a falha na auditoria', estado.auditoria[0]?.detalhe?.estado === 'falha', String(estado.auditoria[0]?.detalhe?.estado))
+estado.listaModo = 'invalida'
+r = await chamar({ avaliacao_id: 'av-1' })
+conferir('resposta sem lista de avaliações também interrompe', r.status === 502 && r.dados?.codigo === 'SIGA_RESPOSTA_INVALIDA', `${r.status} ${r.dados?.codigo}`)
+conferir('e não cria com um número inventado', estado.sigaChamadas === 0, `${estado.sigaChamadas} chamada(s)`)
+estado.listaModo = 'ok'
+
+// 10. descrição já existente não é duplicada sem confirmação
+estado.auditoria = []
+estado.avaliacao.descricao_siga = 'Prova 1'
+r = await chamar({ avaliacao_id: 'av-1' })
+conferir('descrição já existente responde 409', r.status === 409, String(r.status))
+conferir('com código SIGA_JA_EXISTE', r.dados?.codigo === 'SIGA_JA_EXISTE', String(r.dados?.codigo))
+conferir('e não chama a criação', estado.sigaChamadas === 0, `${estado.sigaChamadas} chamada(s)`)
+estado.avaliacao.descricao_siga = 'Trabalho prático'
+
+// 11. data ausente usa hoje (formato DD/MM/AAAA)
 estado.auditoria = []
 estado.sigaChamadas = 0
 estado.avaliacao.data_siga = null
+reiniciarAvaliacoesSiga()
 await chamar({ avaliacao_id: 'av-1' })
 conferir('sem data usa hoje em DD/MM/AAAA', /^\d{2}\/\d{2}\/\d{4}$/.test(estado.ultimoPedidoSiga?.data ?? ''), estado.ultimoPedidoSiga?.data)
+
+// 12. a contagem é da turma consultada, não do SIGA inteiro
+estado.auditoria = []
+estado.sigaChamadas = 0
+estado.avaliacao.descricao_siga = 'Trabalho da turma B'
+estado.avaliacao.data_siga = '2026-12-10'
+estado.turma.codigo_siga = 'CBV018GV-B'
+r = await chamar({ avaliacao_id: 'av-1' })
+conferir('a segunda turma começa na TVC 1', r.status === 200 && estado.ultimoPedidoSiga?.num_tvc === 1, `${r.status} · ${estado.ultimoPedidoSiga?.num_tvc}`)
+conferir('e o pedido leva o código da turma certa', estado.ultimoPedidoSiga?.turma === 'CBV018GV-B', estado.ultimoPedidoSiga?.turma)
+estado.turma.codigo_siga = 'CBV018GV-A'
 
 console.log()
 if (falhas) {

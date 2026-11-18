@@ -159,9 +159,11 @@ Variáveis: `LLM_BASE_URL` (ex.: `https://llama.sua-instancia.coolify.app/v1`), 
 | listar avaliações da turma | `GET /api/siga/avaliacoes` | `GET /api/notas` |
 | conferir notas | `GET/POST /api/siga/notas` | `GET/POST /api/notas` |
 
-A descrição em `avaliacoes.descricao_siga` precisa ser **idêntica** à do SIGA (`TVC 1`). O número
-do TVC é extraído da descrição; peso e data vêm da avaliação. Toda resposta é gravada em
-`lancamentos_siga` (inclusive falhas), então dá para reprocessar sem perder histórico.
+A descrição em `avaliacoes.descricao_siga` precisa ser **idêntica** à do SIGA. O `num_tvc` **não**
+vem da descrição: a rota consulta `GET /api/notas` da turma/período, conta as avaliações já
+cadastradas e envia a próxima posição (`quantidade + 1`). Peso e data vêm da avaliação. Toda
+resposta é gravada em `lancamentos_siga` (inclusive falhas), então dá para reprocessar sem perder
+histórico.
 
 Para não errar a descrição, o formulário de nova avaliação tem o botão **Buscar** em *Lançamento
 no SIGA*: ele consulta `GET /api/notas` da turma/período, lista as avaliações existentes
@@ -817,15 +819,17 @@ real, para sempre. A rota `POST /api/siga/avaliacao` agora decide assim:
 | O que já aconteceu | O que faz |
 |---|---|
 | nada | cria no SIGA e grava o pedido na auditoria |
-| criou com **os mesmos dados** | não chama o SIGA; responde `repetido: true` (“já estava criada”) |
+| criou com **os mesmos dados** | não chama o SIGA; responde `repetido: true` (“já estava criada”). O `num_tvc` usado fica na auditoria e não é recalculado |
 | criou com **dados diferentes** (peso, data, descrição) | `409 SIGA_JA_CRIADA` — a tela mostra o que existe lá e pede confirmação; só `forcar: true` cria de novo |
+| a **descrição já existe** na turma, mas não há sucesso local | `409 SIGA_JA_EXISTE` — não duplica; use **Buscar** para selecionar a avaliação existente |
+| o SIGA responde **sem a lista de avaliações** | `502 SIGA_RESPOSTA_INVALIDA` — não cria com número inventado |
 | já existe uma requisição **em andamento** (até 2 min) | `409 SIGA_EM_ANDAMENTO` — o duplo clique não passa |
 | a última tentativa **falhou** | deixa tentar de novo (falha não bloqueia) |
 
-O “em andamento” é gravado **antes** de chamar o SIGA, e o registro é atualizado no fim com o
-resultado. É isso que fecha a janela entre dois cliques quase simultâneos.
+O “em andamento” é gravado **antes** de consultar a lista e chamar o SIGA, e o registro é
+atualizado no fim com o resultado. É isso que fecha a janela entre dois cliques quase simultâneos.
 
-`pnpm test:siga:criar` (35 verificações) sobe um SIGA falso e um Supabase falso e conta quantas
+`pnpm test:siga:criar` (49 verificações) sobe um SIGA falso e um Supabase falso e conta quantas
 vezes o SIGA foi chamado em cada cenário — inclusive o pedido idêntico que **não** pode chamar de
 novo, o peso alterado que **precisa** de confirmação e a criação abandonada há 5 minutos, que não
 pode travar a avaliação para sempre.

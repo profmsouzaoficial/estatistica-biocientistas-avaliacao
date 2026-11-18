@@ -864,7 +864,7 @@ async function main() {
     await page.locator('#instrucoes').fill('De 15 a 20 linhas, à mão, em folha A4.')
     await page.getByLabel('Capítulo do livro').selectOption({ index: 3 })
     // sem buscar no SIGA: digita uma descrição que ainda não existe lá
-    await page.getByLabel('Descrição da avaliação no SIGA').fill('TVC 3')
+    await page.getByLabel('Descrição da avaliação no SIGA').fill('Trabalho prático')
     await page.getByLabel('Peso no SIGA').fill('20')
     await page.getByLabel('Data no SIGA').fill('2027-02-05')
     await page.getByRole('button', { name: 'Publicar avaliação', exact: true }).click()

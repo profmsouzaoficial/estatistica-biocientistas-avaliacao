@@ -94,7 +94,7 @@ Em **Nova avaliação**:
 | Instruções de correção pela LLM | opcional; entra no prompt do sistema da correção automática, sem aparecer para o aluno |
 | Valor total | padrão de 100 pontos; a rubrica precisa somar exatamente isso — o app recusa salvar se não fechar |
 | Rubrica | 3 a 6 critérios; já vem com 4 critérios de 25 pontos, editáveis |
-| Descrição no SIGA | começa igual ao título; use a lista que o app busca para as turmas marcadas e ajuste para o nome **idêntico** ao da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Se a TVC ainda não existir em alguma turma, marque **“Criar esta avaliação no SIGA agora”**: ao publicar, o app cria uma vez em cada turma que ainda não a tem e mostra o resultado por turma |
+| Descrição no SIGA | começa igual ao título; use a lista que o app busca para as turmas marcadas e ajuste para o nome **idêntico** ao da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Se ela ainda não existir em alguma turma, marque **“Criar esta avaliação no SIGA agora”**: ao publicar, o app calcula o próximo `num_tvc` pela quantidade de avaliações daquela turma, cria uma vez em cada turma que ainda não a tem e mostra o resultado por turma |
 | Peso no SIGA | o peso que o SIGA usa para aquela avaliação; acompanha o valor total até você escolher uma TVC ou editar, e a nota é convertida proporcionalmente |
 | Prazo / Data no SIGA | opcionais e espelhados: mudar um ajusta o outro. Datas passadas são aceitas para lançamento retroativo; a abertura recua para um dia antes do prazo |
 
@@ -193,6 +193,8 @@ que confundia "o SIGA recusou" com "não houve resposta".
 | Transcrição ruim | comparar com a foto; ajustar o texto | pedir foto com mais luz / usar digitação |
 | “Serviço não respondeu” (`*_DEMOROU`) | banco, SIGA, OCR ou Storage passou do prazo: tentar de novo em instantes | se repetir, conferir `status.supabase.com` / o painel do SIGA / o provedor de visão |
 | “Já foi criada no SIGA” (`SIGA_JA_CRIADA`) | a avaliação existe lá com outros dados; criar de novo duplica. Confirme em “Criar de novo mesmo assim” só se a antiga estiver errada |
+| “Já existe uma avaliação com essa descrição” (`SIGA_JA_EXISTE`) | a descrição está no SIGA, mas não há criação local registrada; não duplique. Use **Buscar** e selecione a avaliação existente |
+| “SIGA respondeu sem a lista de avaliações” (`SIGA_RESPOSTA_INVALIDA`) | a contagem da turma não veio; nada foi criado. Tente de novo em instantes | se persistir, confira o `/api/notas` da turma no painel do SIGA |
 | “Já estou criando” (`SIGA_EM_ANDAMENTO`) | outra requisição está no SIGA agora; espere alguns segundos e recarregue |
 | Correção automática falha | a própria mensagem diz o código: `LLM_INALCANCAVEL` (serviço fora do ar), `LLM_FALHOU` (status 401/500), `LLM_DEMOROU` (passou do prazo), `RESPOSTA_TRUNCADA` (aumente `LLM_MAX_TOKENS`), `RESPOSTA_INVALIDA` (modelo devolveu lixo) | `pnpm diagnostico` e `/api/saude`; se persistir, corrija à mão — a fila não trava |
 | Nota estranha no SIGA | conferir o **peso** da avaliação no app e no SIGA | "Peso no SIGA" na tela da avaliação alinha |
@@ -230,7 +232,7 @@ pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem mode
 pnpm test:a11y          # 16 telas no axe-core (leitor de tela, teclado, rótulos)
 pnpm test:rede          # prazo e mensagem quando banco, SIGA, OCR ou Storage não respondem
 pnpm test:envio         # envio da foto no celular: prazo, mensagem e chamadas /api
-pnpm test:siga:criar    # criar no SIGA: idempotência, confirmação de duplicata e auditoria
+pnpm test:siga:criar    # criar no SIGA: num_tvc incremental, idempotência, duplicata e auditoria
 pnpm test:ocr:deepseek  # leitura da foto pela DeepSeek: multipart, páginas, limites e prazo
 ```
 
