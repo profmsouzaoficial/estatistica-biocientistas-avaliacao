@@ -608,7 +608,7 @@ export function criarDadosDemo(): Dados {
     async avaliacoesDoAluno() {
       const p = exigir()
       return base.avaliacoes
-        .filter((a) => a.turma_id === p.turma_id && a.status === 'publicada')
+        .filter((a) => a.turma_id === p.turma_id && (a.status === 'publicada' || a.status === 'encerrada'))
         .map<AvaliacaoDoAluno>((a) => {
           const submissao = base.submissoes.find((s) => s.avaliacao_id === a.id && s.aluno_id === p.id) ?? null
           const correcao = submissao

@@ -5,6 +5,7 @@ import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, BarraIndeterminada, Botao, Carregando, Cartao, AreaTexto } from '../components/ui'
 import { CapturaDeFoto, type Foto } from '../components/Camera'
 import { ErroApi } from '../lib/servidor'
+import { recebendoTrabalhos } from '../lib/prazos'
 import type { Avaliacao, Submissao } from '../lib/types'
 
 type Etapa = 'foto' | 'enviando-foto' | 'conferir' | 'enviado'
@@ -15,6 +16,7 @@ export function AlunoEnvio({ id }: { id: string }) {
 
   const [avaliacao, setAvaliacao] = useState<Avaliacao | null>(null)
   const [submissao, setSubmissao] = useState<Submissao | null>(null)
+  const [carregando, setCarregando] = useState(true)
   const [foto, setFoto] = useState<Foto | null>(null)
   const [etapa, setEtapa] = useState<Etapa>('foto')
   const [texto, setTexto] = useState('')
@@ -28,9 +30,17 @@ export function AlunoEnvio({ id }: { id: string }) {
   useEffect(() => {
     if (!d || !id || inicio.current) return
     inicio.current = true
-    Promise.all([d.avaliacao(id), d.obterOuCriarSubmissao(id)])
-      .then(([av, sub]) => {
+    // Primeiro a avaliação; só cria/abre submissão se o professor está
+    // recebendo. Assim, avaliação encerrada não gera nem uma linha de rascunho.
+    d.avaliacao(id)
+      .then(async (av) => {
         setAvaliacao(av)
+        if (!av) {
+          setErro('Avaliação não encontrada ou ainda não publicada.')
+          return
+        }
+        if (!recebendoTrabalhos(av.status)) return
+        const sub = await d.obterOuCriarSubmissao(id)
         setSubmissao(sub)
         if (sub.transcrito) {
           setTexto(sub.transcrito)
@@ -41,6 +51,7 @@ export function AlunoEnvio({ id }: { id: string }) {
         }
       })
       .catch((e) => setErro(e instanceof Error ? e.message : 'Falha ao abrir a avaliação.'))
+      .finally(() => setCarregando(false))
   }, [d, id])
 
   async function transcreverEFoto() {
@@ -112,12 +123,58 @@ export function AlunoEnvio({ id }: { id: string }) {
     }
   }
 
-  if (!avaliacao || !submissao) {
+  if (carregando) {
     return (
       <>
         <AppBar titulo="Enviar redação" />
         <main className="mx-auto max-w-2xl px-4 py-4">
-          {erro ? <Alerta tom="vermelho" titulo="Ops">{erro}</Alerta> : <Carregando />}
+          <Carregando />
+        </main>
+      </>
+    )
+  }
+
+  if (erro || !avaliacao) {
+    return (
+      <>
+        <AppBar titulo="Enviar redação" />
+        <main className="mx-auto max-w-2xl space-y-4 px-4 py-4">
+          <Alerta tom="vermelho" titulo="Ops">
+            {erro ?? 'Avaliação não encontrada.'}
+          </Alerta>
+          <Botao largo variante="secundario" onClick={() => navegar(`/avaliacoes/${id}`)}>
+            Voltar para a avaliação
+          </Botao>
+        </main>
+      </>
+    )
+  }
+
+  if (!recebendoTrabalhos(avaliacao.status)) {
+    return (
+      <>
+        <AppBar titulo="Enviar redação" subtitulo={avaliacao.titulo} />
+        <main className="mx-auto max-w-2xl space-y-4 px-4 py-4">
+          <Alerta tom="neutro" titulo="Entregas encerradas">
+            O professor encerrou o recebimento desta redação. Se você ainda precisa entregar, fale com
+            ele para reabrir.
+          </Alerta>
+          <Botao largo variante="secundario" onClick={() => navegar(`/avaliacoes/${id}`)}>
+            Voltar para a avaliação
+          </Botao>
+        </main>
+      </>
+    )
+  }
+
+  if (!submissao) {
+    return (
+      <>
+        <AppBar titulo="Enviar redação" subtitulo={avaliacao.titulo} />
+        <main className="mx-auto max-w-2xl px-4 py-4">
+          <Alerta tom="vermelho" titulo="Ops">
+            Não foi possível abrir sua entrega. Volte para a avaliação e tente de novo.
+          </Alerta>
         </main>
       </>
     )

@@ -48,10 +48,11 @@ const NATIVOS = new Set([
 
 // Rótulos de tela: o que o professor realmente lê e toca.
 const ROTULOS = [
-  'Encerrar entregas',
-  'Reabrir entregas',
-  'Estender ou mudar o prazo',
-  'Remover prazo',
+  'Recebendo trabalhos',
+  'Data de referência',
+  'Mudar data de referência',
+  'Remover data de referência',
+  'Salvar data',
   'Corrigir',
   'Lançar',
   'no SIGA',
@@ -65,7 +66,6 @@ const ROTULOS = [
   'Faltam',
   'Ainda sem correção da IA',
   'Nota por critério',
-  'Prazo de entrega',
   'O que já está no SIGA',
   'Nova avaliação',
   'Peso no SIGA',

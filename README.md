@@ -535,7 +535,7 @@ volta a ser aceita depois do erro.
 
 `docs/guia-aluno.md` é a página que o professor manda para a turma antes da primeira entrega: como se
 cadastrar (matrícula, e-mail da lista, senha), como fotografar a folha, por que conferir a transcrição,
-o que cada selo significa, o prazo, a devolutiva, o reenvio e o que fazer quando o cadastro é recusado.
+o que cada selo significa, a data de referência, a devolutiva, o reenvio e o que fazer quando o cadastro é recusado.
 As imagens vêm de `pnpm e2e:mobile` (saída em `docs/img/`), então o guia não envelhece sozinho: se a
 tela mudar, o teste de layout gera a captura nova.
 
@@ -630,28 +630,46 @@ permitir sair de `enviada`). O passo 26 do `pnpm test:e2e` percorre o ciclo inte
 `pnpm test:seguranca` confirma que a aluna A grava e reenvia a própria redação devolvida enquanto a
 aluna B não altera a de A.
 
-### Prazo de entrega
+### Data de referência e recebimento
 
-O prazo é bloqueante: passada a data, o aluno não abre entrega nova (o botão fica em “Prazo
-encerrado”). O professor muda a data na própria avaliação, em **Prazo de entrega** — a mudança reabre
-o envio para quem faltou e não altera redação enviada nem nota lançada (`mudarPrazoAvaliacao` no
-contrato `Dados`). Redação enviada depois da data aparece marcada como **fora do prazo** na lista e na
-revisão; a marca é informativa. `pnpm test:formato` cobre as fronteiras dessa conta (minuto exato,
-datas ausentes e fusos diferentes); o passo 24 do `pnpm test:e2e` muda o prazo, confere a marca e remove o
-prazo.
+**A data não abre nem fecha o envio.** Ela é uma referência temporal: marca como **fora do prazo**
+quem entregar depois dela. Quem decide se a avaliação aceita entrega é o status escolhido pelo
+professor, na própria página, pelo quadrado **Recebendo trabalhos**:
+
+| Status | O que o aluno vê | Entrega |
+|---|---|---|
+| `rascunho` | nada ainda | não aparece |
+| `publicada` | tema, instruções e botão de envio | **recebendo**, mesmo com a data no passado |
+| `encerrada` | avaliação e devolutiva | não envia; o professor precisa reabrir |
+
+O banco confirma a mesma regra: a política de INSERT já exigia `publicada`, e a migration
+`0019_recebimento_aberto.sql` fecha também o caminho de UPDATE — nem o rascunho que ficou pela metade
+vira `enviada` depois de encerrar. A data continua no banco (`prazo_em`) porque é ela que alimenta a
+marca de atraso e o espelho com a **Data no SIGA**; ela não participa da decisão de aceitar ou não a
+entrega.
+
+O professor muda a data na própria avaliação, em **Data de referência** — a mudança não altera redação
+enviada nem nota lançada (`mudarPrazoAvaliacao` no contrato `Dados`). Se encurtar a data de quem já
+entregou, a tela avisa quantas entregas passariam a ser marcadas como fora do prazo e só grava depois
+do **Confirmar nova data**. `pnpm test:formato` cobre as fronteiras da marca (minuto exato, datas
+ausentes e fusos diferentes); o passo 24 do `pnpm test:e2e` muda a data, confere a marca e remove a
+referência.
 
 Duas coisas dão errado com data digitada à mão, e as duas agora são tratadas antes de gravar:
 
 | Situação | Antes | Agora |
 |---|---|---|
-| Prazo no passado ao criar | o trigger `trg_avaliacao_prazo` recusava o INSERT se a abertura fosse posterior ao prazo | é aceito para lançamento retroativo: o app recua `abre_em` para um dia antes do prazo e o mesmo trigger continua garantindo a coerência |
-| Encurtar o prazo de quem já entregou | gravava calado; o aluno que entregou no prazo passava a aparecer como atrasado | a tela diz quantas entregas mudam de estado e só grava depois do **Confirmar nova data** |
+| Data no passado ao criar | o trigger `trg_avaliacao_prazo` recusava o INSERT se a abertura fosse posterior à data | é aceito para lançamento retroativo: o app recua `abre_em` para um dia antes da data e o mesmo trigger continua garantindo a coerência |
+| Encurtar a data de quem já entregou | gravava calado; o aluno que entregou antes passava a aparecer como atrasado | a tela diz quantas entregas mudam de estado e só grava depois do **Confirmar nova data** |
 
-A conta do aviso e da abertura retroativa fica em `src/lib/prazos.ts` (funções puras, sem relógio
-dentro) e o `pnpm test:prazos` cobre 20 casos: prazo vazio, data inválida, prazo no passado (aceito,
-com abertura um dia antes), encurtar, estender, remover e o caso de quem já estava atrasado não
-contar duas vezes. O passo 3 do `pnpm test:e2e` confere o espelho entre prazo e data do SIGA e que o
-campo não bloqueia data passada; o passo 24 confirma o aviso de encurtamento.
+A conta do aviso, da abertura retroativa e da regra de recebimento fica em `src/lib/prazos.ts`
+(funções puras, sem relógio dentro). O `pnpm test:prazos` cobre 30 casos: data vazia, inválida, no
+passado (aceita, com abertura um dia antes), encurtar, estender, remover, recebimento por status e o
+caso de quem já estava atrasado não contar duas vezes. O `pnpm test:recebimento` prova, numa transação
+revertida, que avaliação encerrada recusa até rascunho existente, que data no passado não bloqueia
+avaliação publicada e que reabrir libera de novo. O passo 3 do `pnpm test:e2e` confere o espelho entre
+data de referência e data do SIGA; o passo 15b confere que uma data no passado mantém o botão de envio
+na tela do aluno; o passo 24 confirma o aviso de encurtamento.
 
 ### A lista de alunos
 
@@ -798,7 +816,7 @@ O formulário de **Nova avaliação** aceita mais de uma turma. O seletor não �
 usa) e pelo nome da turma. No celular, isso evita a lista cinza em que o toque erra o alvo.
 
 Ao publicar, o app percorre a seleção e cria **uma linha em `avaliacoes` por turma**, com o mesmo
-título, tema, instruções, rubrica e prazo. Cada aluno continua vendo só a avaliação da própria turma.
+título, tema, instruções, rubrica e data de referência. Cada aluno continua vendo só a avaliação da própria turma.
 Se a descrição do SIGA não existir em alguma delas, a criação no SIGA também roda em laço — uma
 chamada por turma que ainda não tem a TVC. Uma falha não desfaz as avaliações já criadas e não
 interrompe as seguintes: o cartão **Última publicação** lista o resultado de cada turma, com link para

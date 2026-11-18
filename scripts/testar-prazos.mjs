@@ -20,7 +20,7 @@ const entrada = join(pasta, 'entrada.ts')
 writeFileSync(
   entrada,
   [
-    `export { validarPrazoCriacao, aberturaDaAvaliacao, efeitoDaMudanca, avisoDaMudanca, lerData } from '../../src/lib/prazos'`,
+    `export { validarPrazoCriacao, aberturaDaAvaliacao, efeitoDaMudanca, avisoDaMudanca, lerData, recebendoTrabalhos, podeEnviarRedacao } from '../../src/lib/prazos'`,
   ].join('\n'),
 )
 
@@ -33,7 +33,7 @@ await build({
   logLevel: 'error',
 })
 
-const { validarPrazoCriacao, aberturaDaAvaliacao, efeitoDaMudanca, avisoDaMudanca, lerData } = await import(
+const { validarPrazoCriacao, aberturaDaAvaliacao, efeitoDaMudanca, avisoDaMudanca, lerData, recebendoTrabalhos, podeEnviarRedacao } = await import(
   `file://${join(pasta, 'prazos.mjs')}`
 )
 
@@ -70,6 +70,39 @@ conferir(
   aberturaDaAvaliacao(passado, agora).getTime() === new Date(passado).getTime() - 24 * 60 * 60 * 1000,
 )
 conferir('sem prazo abre agora', aberturaDaAvaliacao('', agora).getTime() === agora.getTime())
+
+// ---- recebimento: o status manda, a data não -------------------------------
+conferir('publicada está recebendo', recebendoTrabalhos('publicada') === true)
+conferir('encerrada não está recebendo', recebendoTrabalhos('encerrada') === false)
+conferir('rascunho não está recebendo', recebendoTrabalhos('rascunho') === false)
+conferir(
+  'data no passado não impede envio em avaliação publicada',
+  podeEnviarRedacao({ status: 'publicada', submissao: null }) === true,
+)
+conferir(
+  'avaliação publicada aceita reenvio de rascunho mesmo com data no passado',
+  podeEnviarRedacao({ status: 'publicada', submissao: { status: 'rascunho' } }) === true,
+)
+conferir(
+  'avaliação publicada aceita reenvio de redação devolvida',
+  podeEnviarRedacao({ status: 'publicada', submissao: { status: 'devolvida' } }) === true,
+)
+conferir(
+  'avaliação encerrada bloqueia entrega nova, mesmo com data futura',
+  podeEnviarRedacao({ status: 'encerrada', submissao: null }) === false,
+)
+conferir(
+  'avaliação encerrada bloqueia rascunho deixado pela metade',
+  podeEnviarRedacao({ status: 'encerrada', submissao: { status: 'rascunho' } }) === false,
+)
+conferir(
+  'rascunho de avaliação não libera envio',
+  podeEnviarRedacao({ status: 'rascunho', submissao: null }) === false,
+)
+conferir(
+  'quem já enviou não tem botão de novo envio',
+  podeEnviarRedacao({ status: 'publicada', submissao: { status: 'enviada' } }) === false,
+)
 
 // ---- efeito da mudança -----------------------------------------------------
 const enviados = [
@@ -109,8 +142,8 @@ conferir(
 conferir('estender não pede confirmação', avisoDaMudanca(estender, '2026-11-30T23:00:00.000Z', agora) === null)
 conferir('remover prazo não pede confirmação', avisoDaMudanca(remover, null, agora) === null)
 conferir(
-  'data no passado avisa que fecha o envio',
-  /ningu[ée]m consegue enviar/.test(avisoDaMudanca(remover, passado, agora) ?? ''),
+  'data no passado, sem entregas afetadas, não pede confirmação',
+  avisoDaMudanca(remover, passado, agora) === null,
   avisoDaMudanca(remover, passado, agora),
 )
 conferir('lerData aceita ISO e recusa lixo', lerData('2026-11-20T23:00:00.000Z') instanceof Date && lerData('lixo') === null)

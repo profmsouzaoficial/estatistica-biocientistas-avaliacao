@@ -89,11 +89,13 @@ export function Ajuda() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
-            <Clock className="size-4 text-marinho" aria-hidden /> 5. Prazo e devolutiva
+            <Clock className="size-4 text-marinho" aria-hidden /> 5. Data de referência e devolutiva
           </h2>
           <p className="texto-corrido">
-            O prazo aparece na tela da avaliação. Depois que o professor revisar e liberar, a devolutiva fica
-            disponível na sua lista de avaliações com:
+            A data de referência aparece na tela da avaliação. Ela serve para marcar se a entrega está fora
+            do prazo; <strong>não fecha o envio</strong>. Quem decide se ainda recebe é o professor: quando
+            ele encerra, o cartão mostra <strong>Entregas encerradas</strong>. Depois que ele revisar e
+            liberar, a devolutiva fica disponível na sua lista de avaliações com:
           </p>
           <ul className="space-y-1.5 text-[14px] leading-relaxed text-tinta-suave">
             <li>
@@ -137,10 +139,17 @@ export function Ajuda() {
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-tinta">“Passei do prazo e o envio está fechado”</dt>
+              <dt className="font-medium text-tinta">“Passei da data e o envio continua aberto”</dt>
               <dd className="text-tinta-suave">
-                O prazo bloqueia entrega nova. Se você tem motivo, fale com o professor: ele consegue
-                estender a data, e aí o envio reabre para quem ainda não entregou.
+                A data não fecha o envio: sua entrega só fica marcada como fora do prazo. Se o botão
+                ainda aparece, você pode enviar.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-tinta">“Entregas encerradas”</dt>
+              <dd className="text-tinta-suave">
+                O professor fechou o recebimento desta avaliação. Se você ainda precisa entregar, fale
+                com ele para reabrir; quando ele reabrir, o botão volta sozinho.
               </dd>
             </div>
             <div>

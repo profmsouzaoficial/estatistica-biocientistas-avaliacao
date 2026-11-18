@@ -96,7 +96,7 @@ Em **Nova avaliação**:
 | Rubrica | 3 a 6 critérios; já vem com 4 critérios de 25 pontos, editáveis |
 | Descrição no SIGA | começa igual ao título; use a lista que o app busca para as turmas marcadas e ajuste para o nome **idêntico** ao da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Se ela ainda não existir em alguma turma, marque **“Criar esta avaliação no SIGA agora”**: ao publicar, o app calcula o próximo `num_tvc` pela quantidade de avaliações daquela turma, cria uma vez em cada turma que ainda não a tem e mostra o resultado por turma |
 | Peso no SIGA | o peso que o SIGA usa para aquela avaliação; acompanha o valor total até você escolher uma TVC ou editar, e a nota é convertida proporcionalmente |
-| Prazo / Data no SIGA | opcionais e espelhados: mudar um ajusta o outro. Datas passadas são aceitas para lançamento retroativo; a abertura recua para um dia antes do prazo |
+| Data de referência / Data no SIGA | opcionais e espelhados: mudar um ajusta o outro. A referência só marca atraso, **não fecha o envio**. Datas passadas são aceitas para lançamento retroativo; a abertura recua para um dia antes da data |
 
 Com mais de uma turma marcada, a publicação roda um laço: cria a avaliação local em cada turma e, quando
 preciso, chama o SIGA uma vez por turma. O laço **não para no primeiro erro**; o cartão **Última
@@ -117,13 +117,15 @@ Publicada, a avaliação aparece para o aluno. Na tela dela, abaixo dos contador
 - **"X de Y alunos da turma entregaram"** — quantos já entregaram;
 - **"Faltam N"** — toque para ver nome e matrícula de quem não entregou (e quem está **sem cadastro**).
 
-Faltando alguém perto do prazo, **"Estender ou mudar o prazo"** reabre o envio sem mexer em redação já
-enviada nem em nota lançada.
+Faltando alguém, o recebimento continua aberto enquanto **Recebendo trabalhos** estiver marcado. A data
+de referência não fecha o envio: uma data no passado só marca a entrega como **fora do prazo**.
 
-Encurtar o prazo é legítimo, mas tem efeito colateral: quem já entregou pode passar a ser marcado como
-**fora do prazo**. A tela mede isso antes de gravar e pede confirmação — “2 entregas já feitas
-passariam a ser marcadas como fora do prazo”. Se a intenção é só fechar o envio, use **Encerrar
-entregas**, que não recategoriza ninguém.
+Para fechar o recebimento, desmarque **Recebendo trabalhos**. Isso não recategoriza ninguém e não mexe
+em redação enviada nem em nota lançada; para dar segunda chance, marque de novo.
+
+Mudar a data de referência é legítimo, mas tem efeito colateral: quem já entregou pode passar a ser
+marcado como **fora do prazo**. A tela mede isso antes de gravar e pede confirmação — “2 entregas já
+feitas passariam a ser marcadas como fora do prazo”.
 
 ### 3. Corrigir e revisar (o grosso do trabalho)
 
@@ -176,7 +178,7 @@ que confundia "o SIGA recusou" com "não houve resposta".
 | Quando | O que |
 |---|---|
 | D−7 | criar e publicar a avaliação |
-| D | prazo encerra; conferir **"Faltam N"** e decidir se estende |
+| D | conferir **"Faltam N"** e, se for o caso, desmarcar **Recebendo trabalhos** para encerrar |
 | D+1 | corrigir e revisar (bloco de 1 h para 7 alunos) |
 | D+2 | lançar no SIGA e conferir o diário |
 | D+3 | backup + `pnpm verificar` |
@@ -226,7 +228,8 @@ pnpm test:producao      # o app publicado, ponta a ponta (não lança nota no SI
 pnpm e2e:mobile         # layout e alvos de toque em 360×740
 pnpm test:contraste     # legibilidade dos textos
 pnpm test:documentacao  # este guia não ficou para trás
-pnpm test:prazos        # regras de prazo (retroativo, encurtar, remover)
+pnpm test:prazos        # regras de data (retroativo, encurtar, remover) e recebimento por status
+pnpm test:recebimento   # banco: encerrada recusa até rascunho; publicada com data passada aceita
 pnpm e2e:foto           # foto de 12 MP, HEIC do iPhone e arquivo corrompido
 pnpm test:imagem        # mensagem certa para cada tipo de falha na foto
 pnpm test:llm:mock      # o que a correção faz quando o modelo falha (sem modelo)
@@ -237,4 +240,4 @@ pnpm test:siga:criar    # criar no SIGA: num_tvc incremental, idempotência, dup
 pnpm test:ocr:deepseek  # leitura da foto pela DeepSeek: multipart, páginas, limites e prazo
 ```
 
-Os dez últimos não precisam de credencial nenhuma: rodam contra a demonstração local ou servidores falsos.
+Os testes de unidade e de navegador rodam contra a demonstração local ou servidores falsos. O `test:recebimento` usa o token do Supabase para rodar dentro de uma transação revertida — nada fica no banco.

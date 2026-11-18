@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, Clock3, Star } from 'lucide-react'
+import { CalendarClock, CheckCircle2, ClipboardList, Clock3, Star } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Carregando, Cartao, Selo, Vazio } from '../components/ui'
 import { atrasoDeEntrega, formatarDataHora, formatarNota, tempoRelativo, plural, primeiroNome } from '../lib/formato'
+import { podeEnviarRedacao } from '../lib/prazos'
 import type { Avaliacao, AvaliacaoDoAluno } from '../lib/types'
 
 export function rotuloEstado(a: AvaliacaoDoAluno): { texto: string; tom: 'neutro' | 'marinho' | 'dourado' | 'vermelho' | 'azul' } {
   const s = a.submissao
-  if (!s) {
-    if (a.status === 'encerrada') return { texto: 'Entregas encerradas', tom: 'neutro' }
-    const atrasada = a.prazo_em && new Date(a.prazo_em).getTime() < Date.now()
-    return atrasada ? { texto: 'Prazo encerrado', tom: 'vermelho' } : { texto: 'A fazer', tom: 'dourado' }
+  // A data não fecha o envio: só o status escolhido pelo professor faz isso.
+  // Por isso não existe mais rótulo "Prazo encerrado" aqui.
+  if (a.status === 'encerrada' && (!s || s.status === 'rascunho' || s.status === 'devolvida')) {
+    return { texto: 'Entregas encerradas', tom: 'neutro' }
   }
+  if (!s) return { texto: 'A fazer', tom: 'dourado' }
   if (s.status === 'rascunho') return { texto: 'Não enviada', tom: 'dourado' }
   if (s.status === 'devolvida') return { texto: 'Devolvida para ajuste', tom: 'vermelho' }
   if (a.correcao) return { texto: `Corrigida · ${formatarNota(a.correcao.nota_final)}`, tom: 'marinho' }
@@ -64,7 +66,7 @@ export function AlunoInicio() {
           <Carregando />
         ) : avaliacoes.length === 0 ? (
           <Vazio titulo="Nenhuma avaliação publicada" icone={<ClipboardList className="size-7" />}>
-            Quando o professor publicar uma redação, ela aparece aqui com o tema, as instruções e o prazo.
+            Quando o professor publicar uma redação, ela aparece aqui com o tema, as instruções e a data de referência.
           </Vazio>
         ) : (
           <>
@@ -101,7 +103,6 @@ export function AlunoInicio() {
 
 function CardAvaliacao({ a }: { a: AvaliacaoDoAluno }) {
   const estado = rotuloEstado(a)
-  const prazoPassado = a.prazo_em && new Date(a.prazo_em).getTime() < Date.now()
   const destino = a.correcao
     ? `/avaliacoes/${a.id}/devolutiva`
     : a.submissao && (a.submissao.status === 'enviada' || a.submissao.status === 'corrigida')
@@ -121,10 +122,9 @@ function CardAvaliacao({ a }: { a: AvaliacaoDoAluno }) {
             <Star className="size-3.5" aria-hidden /> {a.valor_total} pontos
           </span>
           {a.prazo_em ? (
-            <span className={`inline-flex items-center gap-1 ${prazoPassado ? 'text-vermelho' : ''}`}>
+            <span className="inline-flex items-center gap-1">
               <CalendarClock className="size-3.5" aria-hidden />
-              {prazoPassado ? 'Encerrado em ' : 'Até '}
-              {tempoRelativo(a.prazo_em)}
+              Referência: {tempoRelativo(a.prazo_em)}
             </span>
           ) : null}
           {a.submissao?.status === 'enviada' && !a.correcao ? (
@@ -172,9 +172,9 @@ export function AlunoAvaliacao({ id }: { id: string }) {
   const estado = rotuloEstado(a)
   const prazoPassado = a.prazo_em ? new Date(a.prazo_em).getTime() < Date.now() : false
   const encerrada = a.status === 'encerrada'
-  // Encerrada bloqueia entrega nova (o banco também barra). Quem já tinha
-  // rascunho ou foi devolvido ainda conclui o que começou.
-  const podeEnviar = !a.submissao ? !encerrada : a.submissao.status === 'rascunho' || a.submissao.status === 'devolvida'
+  // Só o status decide. A data de referência serve para marcar atraso; nem o
+  // rascunho de quem começou antes continua enviável depois de encerrar.
+  const podeEnviar = podeEnviarRedacao(a)
 
   return (
     <>
@@ -192,17 +192,21 @@ export function AlunoAvaliacao({ id }: { id: string }) {
         </div>
 
         {a.prazo_em ? (
-          <div className={`rounded-xl px-3 py-2.5 text-[13.5px] ${prazoPassado ? 'bg-vermelho-claro text-vermelho' : 'bg-marinho-claro text-marinho-escuro'}`}>
-            <div className="flex items-center gap-2">
-              <CalendarClock className="size-4 shrink-0" aria-hidden />
-              {prazoPassado ? 'Prazo encerrado em ' : 'Entrega até '}
-              <strong className="font-semibold">{formatarDataHora(a.prazo_em)}</strong>
+          <div className={`rounded-xl px-3 py-2.5 ${prazoPassado ? 'bg-dourado-claro text-tinta' : 'bg-marinho-claro text-marinho-escuro'}`}>
+            <div className="flex items-start gap-2">
+              <CalendarClock className={`mt-0.5 size-4 shrink-0 ${prazoPassado ? 'text-dourado' : ''}`} aria-hidden />
+              <div>
+                <p className="text-[12px] font-medium uppercase tracking-wide opacity-80">Data de referência</p>
+                <p className="text-[14px] font-semibold">{formatarDataHora(a.prazo_em)}</p>
+                {a.status === 'publicada' ? (
+                  <p className="mt-1 text-[13.5px] leading-snug">
+                    {prazoPassado
+                      ? 'Essa data já passou, mas o professor continua recebendo. A entrega será marcada como fora do prazo.'
+                      : 'Entregas depois dessa data ficam marcadas como fora do prazo. O envio continua aberto enquanto o professor estiver recebendo.'}
+                  </p>
+                ) : null}
+              </div>
             </div>
-            {prazoPassado && podeEnviar ? (
-              <p className="mt-1.5 leading-snug">
-                O envio está fechado. Se precisar de mais tempo, peça ao professor para <strong>estender o prazo</strong>.
-              </p>
-            ) : null}
           </div>
         ) : null}
 
@@ -263,24 +267,16 @@ export function AlunoAvaliacao({ id }: { id: string }) {
             largo
             variante={a.correcao ? 'secundario' : 'primario'}
             onClick={() => navegar(`/avaliacoes/${a.id}/enviar`)}
-            disabled={prazoPassado}
           >
-            {prazoPassado ? 'Prazo encerrado' : a.submissao ? 'Reenviar redação' : 'Fotografar minha redação'}
+            {a.submissao ? 'Reenviar redação' : 'Fotografar minha redação'}
           </Botao>
         ) : null}
 
-        {encerrada && !a.submissao ? (
+        {encerrada ? (
           <Alerta tom="neutro" titulo="Entregas encerradas">
-            O professor encerrou o recebimento desta redação. Se você precisa entregar, fale com ele —
-            a entrega pode ser reaberta.
+            O professor encerrou o recebimento desta redação. Se você ainda precisa entregar, fale com
+            ele para reabrir.
           </Alerta>
-        ) : null}
-
-        {prazoPassado && podeEnviar ? (
-          <p className="flex items-start gap-2 text-[13px] leading-snug text-tinta-suave">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dourado" aria-hidden />
-            O prazo terminou. Se precisar de prorrogação, fale com o professor — ele pode reabrir a entrega.
-          </p>
         ) : null}
       </main>
     </>

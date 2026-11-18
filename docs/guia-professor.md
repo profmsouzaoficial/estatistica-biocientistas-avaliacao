@@ -85,7 +85,7 @@ lista, mantenha o número exatamente como veio do SIGA; o app normaliza para mai
 | Rubrica | 3–6 critérios; **a soma tem de fechar com o valor total** |
 | Descrição no SIGA | começa igual ao título; ajuste para o nome exato da avaliação ou use **Buscar** para escolher da lista real. Não precisa incluir o número da TVC: ele é calculado automaticamente |
 | Peso / Data | usados ao criar a avaliação no SIGA; o peso acompanha o valor total até você escolher uma TVC ou editar à mão |
-| Prazo | opcional; pode ser uma data passada (lançamento retroativo) e anda junto com a **Data no SIGA** |
+| Data de referência | opcional; só marca atraso, **não fecha o envio**; pode ser uma data passada (lançamento retroativo) e anda junto com a **Data no SIGA** |
 
 A rubrica é o coração da correção: cada critério tem nome, descrição (o que se espera) e valor
 máximo. O formulário já abre com **4 critérios de 25 pontos** (100 no total); ajuste valores, nomes
@@ -98,7 +98,7 @@ segurança e fidelidade ao texto; servem para orientar o julgamento sem quebrar 
 correção. A versão do prompt fica registrada em cada correção para auditoria.
 
 A seleção de **Turmas** é múltipla: ao marcar duas ou três, o mesmo conteúdo (título, tema, rubrica,
-prazo) é criado em cada uma, com uma avaliação independente por turma. O código do SIGA é a chave —
+data de referência) é criado em cada uma, com uma avaliação independente por turma. O código do SIGA é a chave —
 não escolha pela posição na lista.
 
 Em **Lançamento no SIGA**, toque em **Buscar**: o app consulta o SIGA de **todas as turmas marcadas**
@@ -127,17 +127,21 @@ app recusa a duplicata e pede para abrir a avaliação existente.
 ## 4. Encerrar (e reabrir) as entregas
 
 Na página da avaliação, a faixa de estado mostra se ela está **recebendo entregas**, **encerrada** ou
-em **rascunho**, com o botão correspondente:
+em **rascunho**. Quem decide é o quadrado **Recebendo trabalhos**:
 
-| Estado | O que o aluno vê | Botão |
+| Estado | O que o aluno vê | Controle |
 |---|---|---|
-| recebendo entregas | tema, rubrica e o botão de enviar | **Encerrar entregas** |
-| entregas encerradas | continua vendo tema, rubrica e **a devolutiva**, mas não abre entrega nova | **Reabrir entregas** |
+| recebendo entregas | tema, rubrica e o botão de enviar | quadrado **marcado** |
+| entregas encerradas | continua vendo tema, rubrica e **a devolutiva**, mas não envia | quadrado **desmarcado** |
 | rascunho | nada (a avaliação não aparece) | **Publicar para os alunos** |
 
-Encerrar não apaga nada e é reversível. O bloqueio vale também no banco: mesmo que alguém tente
-enviar por fora do app, a política de segurança recusa a entrega nova. Quem já tinha rascunho ou
-teve a redação devolvida para reescrever continua conseguindo concluir.
+**A data de referência não participa dessa decisão.** Uma avaliação publicada continua recebendo mesmo
+que a data já tenha passado; a data só marca a entrega como **fora do prazo**.
+
+Encerrar não apaga nada e é reversível: basta marcar o quadrado de novo. O bloqueio vale também no
+banco — a política de segurança recusa entrega nova e o gatilho da migration
+`0019_recebimento_aberto.sql` recusa até o rascunho ou a redação devolvida que já estava na tela do
+aluno. Depois de encerrar, ele precisa de você para voltar a enviar.
 
 ## 5. Corrigir e revisar
 
@@ -172,7 +176,7 @@ Ao criar a avaliação, use a busca do SIGA: o peso vem preenchido.
 
 ### Quem mexeu no quê
 
-Cada aprovação, devolução, mudança de prazo e encerramento de entregas entra na trilha de auditoria
+Cada aprovação, devolução, mudança de data de referência e abertura/fechamento do recebimento entra na trilha de auditoria
 com a data, o seu usuário e o valor anterior. Se alguém perguntar "por que a nota mudou depois do
 lançamento?" ou "quando o prazo foi estendido?", a resposta está lá — não depende de memória.
 
@@ -182,10 +186,10 @@ Abaixo dos contadores, a linha de **entregas da turma** mostra “3 de 4 alunos 
 alguém faltou, **Faltam N** com o primeiro nome. Toque para abrir a lista com nome e matrícula; quem
 aparece como **sem cadastro** ainda não criou a conta no app.
 
-Use isso antes de fechar o prazo: quem não entregou fica sem nota nesta avaliação. Para dar segunda
-chance, **Estender ou mudar o prazo** reabre o envio — não mexe em redação já enviada nem em nota já
-lançada. A contagem considera só entrega confirmada pelo aluno: rascunho salvo no meio do caminho não
-conta, porque rascunho ele ainda pode mudar.
+Use isso antes de **desmarcar Recebendo trabalhos**: quem não entregou fica sem nota nesta avaliação.
+Para dar segunda chance, marque o quadrado de novo — isso não mexe em redação já enviada nem em nota
+já lançada. A contagem considera só entrega confirmada pelo aluno: rascunho salvo no meio do caminho
+não conta, porque rascunho ele ainda pode mudar.
 
 ## Devolver uma redação
 
@@ -200,26 +204,26 @@ Se um aluno disser que “não consegue reenviar”, era defeito nosso até a ve
 recusava a gravação da redação devolvida. Está corrigido — ele reabre, troca ou mantém a foto, ajusta o
 texto e envia normalmente.
 
-### Estender o prazo
+### Data de referência e atraso
 
-Aluno que adoeceu, queda de internet na véspera: entre na avaliação e use **Prazo de entrega →
-Estender ou mudar o prazo**. A data nova reabre o envio para quem faltou, sem tocar no que já foi
-enviado nem nas notas. **Remover prazo** deixa a avaliação aceitando entregas sem data limite.
+Aluno que adoeceu, queda de internet na véspera: **não é preciso mexer na data nem reabrir nada** se o
+quadrado **Recebendo trabalhos** já está marcado. Basta avisar que ele pode enviar; a data no passado
+não fecha o envio.
 
-Depois do prazo, o aluno vê o botão desabilitado (“Prazo encerrado”) com o aviso para pedir a
-extensão. Se uma redação for enviada depois da data — prazo encurtado depois do envio, por exemplo —
-ela aparece marcada em âmbar como **fora do prazo** na lista e na revisão. A marca é informativa: não
-muda a nota.
+A data aparece no cartão **Data de referência**, na própria avaliação. Use **Mudar data de referência**
+para atualizá-la e **Remover data de referência** para deixar a avaliação sem nenhuma marca de atraso.
+Mudar a data não toca em redação já enviada nem em nota lançada.
 
-Encurtar o prazo de uma avaliação que já recebeu entregas mexe nessa marca, então o app **avisa antes
+Se uma redação for enviada depois da data — data encurtada depois do envio, por exemplo — ela aparece
+marcada em âmbar como **fora do prazo** na lista e na revisão. A marca é informativa: não muda a nota.
+Encurtar a data de uma avaliação que já recebeu entregas mexe nessa marca, então o app **avisa antes
 de gravar**: “2 entregas já feitas passariam a ser marcadas como fora do prazo”, com **Confirmar nova
-data** e **Cancelar**. Não é proibição — é para a marca não aparecer sem você saber. Para simplesmente
-fechar o envio sem recategorizar ninguém, use **Encerrar entregas**.
+data** e **Cancelar**. Não é proibição — é para a marca não aparecer sem você saber.
 
 Ao criar a avaliação, uma data no passado é **aceita**: serve para lançar uma avaliação retroativa.
-O app recua a abertura para um dia antes do prazo, então o aluno ainda vê a avaliação e o banco não
-recebe uma linha com abertura posterior ao prazo. Se precisar mudar a data depois, use o próprio
-cartão do prazo — a mudança continua avisando quando encurta o prazo de quem já entregou.
+O app recua a abertura para um dia antes da data, então o banco não recebe uma linha com abertura
+posterior à referência. Se precisar mudar a data depois, use o próprio cartão da data — a mudança
+continua avisando quando encurta a data de quem já entregou.
 
 ### Conferir se a nota chegou ao SIGA
 

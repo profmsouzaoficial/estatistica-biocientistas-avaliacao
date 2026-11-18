@@ -380,18 +380,18 @@ async function main() {
     const descricaoEscolhida = await page.getByLabel('Descrição da avaliação no SIGA').inputValue()
     if (descricaoEscolhida !== 'TVC 1') throw new Error(`seletor do SIGA preencheu "${descricaoEscolhida}"`)
     await page.getByLabel('Data no SIGA').fill('2026-11-20')
-    if ((await page.getByLabel('Prazo de entrega (opcional)').inputValue()) !== '2026-11-20T23:59') {
-      throw new Error('A data no SIGA deveria espelhar o prazo de entrega.')
+    if ((await page.getByLabel('Data de referência (opcional)').inputValue()) !== '2026-11-20T23:59') {
+      throw new Error('A data no SIGA deveria espelhar a data de referência.')
     }
 
     // Datas passadas são permitidas (lançamento retroativo). O campo não tem
     // `min`; o teste puro em scripts/testar-prazos.mjs cobre a regra e a
     // abertura recuada. Aqui conferimos também o espelho inverso.
-    const minPrazo = await page.getByLabel('Prazo de entrega (opcional)').getAttribute('min')
+    const minPrazo = await page.getByLabel('Data de referência (opcional)').getAttribute('min')
     if (minPrazo) throw new Error(`O prazo ainda tem min="${minPrazo}"; datas passadas ficam bloqueadas.`)
-    await page.getByLabel('Prazo de entrega (opcional)').fill('2020-03-10T19:00')
+    await page.getByLabel('Data de referência (opcional)').fill('2020-03-10T19:00')
     if ((await page.getByLabel('Data no SIGA').inputValue()) !== '2020-03-10') {
-      throw new Error('Alterar o prazo deveria espelhar a data no SIGA.')
+      throw new Error('Alterar a data de referência deveria espelhar a data no SIGA.')
     }
     await foto(page, '02b-datas-espelhadas')
     console.log('      datas espelhadas; publicando de verdade com prazo em 2020')
@@ -415,14 +415,14 @@ async function main() {
         `O prazo retroativo ficou incoerente: abre em ${avaliacaoCriada.abre_em} e fecha em ${avaliacaoCriada.prazo_em}.`,
       )
     }
-    await page.getByRole('button', { name: 'Estender ou mudar o prazo' }).click()
+    await page.getByRole('button', { name: /Definir data de referência|Mudar data de referência/ }).click()
     const prazoSalvo = await page.locator('input[type="datetime-local"]').inputValue()
     if (prazoSalvo !== '2020-03-10T19:00') {
       throw new Error(`O prazo retroativo não foi gravado; o campo abriu com "${prazoSalvo}".`)
     }
     await page.locator('input[type="datetime-local"]').fill('2026-11-20T23:59')
-    await page.getByRole('button', { name: 'Salvar prazo' }).click()
-    await page.getByText(/Prazo atualizado/).waitFor({ timeout: 20000 })
+    await page.getByRole('button', { name: 'Salvar data' }).click()
+    await page.getByText(/Data de referência atualizada/).waitFor({ timeout: 20000 })
     console.log('      prazo retroativo gravado e estendido para a entrega')
     await page.getByText('Nenhuma redação enviada ainda').waitFor()
     await foto(page, '03-avaliacao-criada')
@@ -753,8 +753,8 @@ async function main() {
     await page.getByLabel('Data no SIGA').fill('2026-12-11')
     const idAvaliacao3 = await publicarEAbrir(page)
 
-    await page.getByRole('button', { name: /Encerrar entregas/ }).click()
-    await page.getByText('Entregas encerradas. Os alunos continuam vendo').waitFor({ timeout: 20000 })
+    await page.getByRole('checkbox', { name: 'Recebendo trabalhos' }).uncheck()
+    await page.getByText('Recebimento encerrado. Os alunos continuam vendo').waitFor({ timeout: 20000 })
     await page.getByText('entregas encerradas').first().waitFor()
     await foto(page, '15-avaliacao-encerrada')
 
@@ -803,10 +803,44 @@ async function main() {
     await foto(paginaAluno, '16-aluno-entregas-encerradas')
     await contextoAluno.close()
 
-    await page.getByRole('button', { name: /Reabrir entregas/ }).click()
-    await page.getByText('Entregas reabertas').waitFor({ timeout: 20000 })
+    await page.getByRole('checkbox', { name: 'Recebendo trabalhos' }).check()
+    await page.getByText('Recebimento reaberto').waitFor({ timeout: 20000 })
 
+    // ---- 15b. data no passado não fecha o recebimento -------------------
+    // O caso que motivou a mudança: a avaliação está publicada, a data já
+    // passou, e mesmo assim o aluno precisa conseguir abrir o envio.
+    console.log('  ▸ 15b/26 data de referência no passado mantém o envio aberto')
+    await page.getByRole('button', { name: /Definir data de referência|Mudar data de referência/ }).click()
+    await page.locator('input[type="datetime-local"]').fill('2020-03-10T19:00')
+    await page.getByRole('button', { name: 'Salvar data' }).click()
+    await page.getByText(/Data de referência atualizada/).waitFor({ timeout: 20000 })
 
+    const [avaliacaoComDataPassada] = await supabaseRest(
+      `avaliacoes?id=eq.${idAvaliacao3}&select=status,prazo_em`,
+    )
+    if (avaliacaoComDataPassada?.status !== 'publicada') {
+      throw new Error(`A avaliação deveria continuar publicada; veio "${avaliacaoComDataPassada?.status}".`)
+    }
+    if (new Date(avaliacaoComDataPassada.prazo_em).getTime() >= Date.now()) {
+      throw new Error('O teste não conseguiu colocar a data de referência no passado.')
+    }
+
+    const contextoDataPassada = await navegador.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+      locale: 'pt-BR',
+      timezoneId: 'America/Sao_Paulo',
+    })
+    const paginaDataPassada = await contextoDataPassada.newPage()
+    paginaDataPassada.setDefaultTimeout(25000)
+    await entrar(paginaDataPassada, ALUNO.email, ALUNO.senha)
+    await paginaDataPassada.getByText('Redação 3 — Intervalo de confiança').first().click()
+    await paginaDataPassada.getByRole('button', { name: /Fotografar minha redação/ }).waitFor({ timeout: 20000 })
+    if (await paginaDataPassada.getByText('Entregas encerradas').count()) {
+      throw new Error('A tela do aluno ainda diz que as entregas estão encerradas por causa da data.')
+    }
+    await foto(paginaDataPassada, '16b-data-passada-envio-aberto')
+    await contextoDataPassada.close()
 
     // ---- 16. turma sem e-mail: lista só com matrícula e nome ------------
     console.log('  ▸ 16/26 lista sem e-mail e cadastro que informa o próprio e-mail')
@@ -1000,22 +1034,22 @@ async function main() {
     await page.getByText('Problemas comuns').waitFor({ timeout: 15000 })
     await foto(page, '25-ajuda-aluno')
 
-    // ---- 24. professor muda e remove o prazo ------------------------------
-    console.log('  ▸ 24/26 muda o prazo e confere a marca de atraso')
+    // ---- 24. professor muda e remove a data de referência ------------------
+    console.log('  ▸ 24/26 muda a data de referência e confere a marca de atraso')
     await entrar(page, PROFESSOR.email, PROFESSOR.senha)
     await page.goto(`${WEB}/prof/avaliacoes/${idAvaliacao}`, { waitUntil: 'networkidle' })
-    // A avaliação nasceu com prazo porque a data do SIGA é espelhada no prazo;
+    // A avaliação nasceu com data porque a data do SIGA é espelhada na referência;
     // por isso o botão é o de mudança, não o de definir do zero.
-    await page.getByRole('button', { name: /Definir um prazo|Estender ou mudar o prazo/ }).click()
+    await page.getByRole('button', { name: /Definir data de referência|Mudar data de referência/ }).click()
     await page.locator('input[type="datetime-local"]').fill('2026-11-01T18:00')
-    await page.getByRole('button', { name: 'Salvar prazo' }).click()
-    // Encurtar o prazo de quem já entregou muda o aviso de atraso: a tela pede
+    await page.getByRole('button', { name: 'Salvar data' }).click()
+    // Encurtar a data de quem já entregou muda o aviso de atraso: a tela pede
     // confirmação e diz quantas entregas mudam de estado antes de gravar.
     await page.getByText(/passaria\(m\) a ser marcada/).waitFor({ timeout: 20000 })
     await foto(page, '25b-confirmar-prazo')
     await page.getByRole('button', { name: 'Confirmar nova data' }).click()
-    await page.getByText(/Prazo atualizado/).waitFor({ timeout: 20000 })
-    // a redação já enviada passa a estar depois do prazo: fica marcada, sem mexer na nota
+    await page.getByText(/Data de referência atualizada/).waitFor({ timeout: 20000 })
+    // a redação já enviada passa a estar depois da data: fica marcada, sem mexer na nota
     await page.getByText('· fora do prazo').waitFor({ timeout: 20000 })
     await foto(page, '26-prazo-mudado')
 
@@ -1025,8 +1059,8 @@ async function main() {
     await page.getByRole('button', { name: '← Voltar para a lista' }).click()
     await page.waitForURL(/\/prof\/avaliacoes\/[^/]+$/)
 
-    await page.getByRole('button', { name: 'Remover prazo' }).click()
-    await page.getByText(/Prazo removido/).waitFor({ timeout: 20000 })
+    await page.getByRole('button', { name: 'Remover data de referência' }).click()
+    await page.getByText(/Data de referência removida/).waitFor({ timeout: 20000 })
     if (await page.getByText('· fora do prazo').count()) {
       throw new Error('Sem prazo, a redação não deveria continuar marcada como fora do prazo.')
     }

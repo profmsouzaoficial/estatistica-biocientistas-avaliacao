@@ -391,7 +391,7 @@ export function ProfessorNovaAvaliacao() {
     setDescricaoSiga(valor)
   }
 
-  /** Data do SIGA e prazo de entrega são espelhos: uma alteração atualiza a outra. */
+  /** Data do SIGA e data de referência são espelhos: uma alteração atualiza a outra. */
   function mudarDataSiga(valor: string) {
     setDataSiga(valor)
     if (!valor) {
@@ -532,7 +532,7 @@ export function ProfessorNovaAvaliacao() {
     }
 
     const prazoOk = validarPrazoCriacao(prazo)
-    if (!prazoOk.ok) return setErro(prazoOk.mensagem ?? 'Prazo inválido.')
+    if (!prazoOk.ok) return setErro(prazoOk.mensagem ?? 'Data de referência inválida.')
 
     setSalvando(true)
     setProgresso(null)
@@ -742,11 +742,11 @@ export function ProfessorNovaAvaliacao() {
               />
             </div>
             <Campo
-              rotulo="Prazo de entrega (opcional)"
+              rotulo="Data de referência (opcional)"
               type="datetime-local"
               value={prazo}
               onChange={(e) => mudarPrazo(e.target.value)}
-              dica="Aceita datas passadas para lançamento retroativo. A data no SIGA acompanha o dia escolhido aqui."
+              dica="Só para marcar entregas atrasadas; não fecha o envio. Aceita datas passadas para lançamento retroativo. A data no SIGA acompanha o dia escolhido aqui."
             />
           </Cartao>
 
@@ -964,12 +964,13 @@ export function ProfessorNovaAvaliacao() {
                 type="date"
                 value={dataSiga}
                 onChange={(e) => mudarDataSiga(e.target.value)}
-                dica="Também aceita data passada. Mudar esta data ajusta o prazo para o mesmo dia, às 23:59."
+                dica="Também aceita data passada. Mudar esta data ajusta a referência para o mesmo dia, às 23:59."
               />
             </div>
             <p className="text-[12.5px] leading-snug text-tinta-suave">
-              As duas datas andam juntas: alterar uma atualiza a outra. Se o prazo for anterior a hoje, a avaliação
-              abre um dia antes dele — assim o lançamento retroativo fica coerente e o aluno ainda vê a avaliação.
+              As duas datas andam juntas: alterar uma atualiza a outra. A data de referência não fecha o envio —
+              ela só marca atraso. Se for anterior a hoje, a avaliação abre um dia antes dela, para o lançamento
+              retroativo ficar coerente.
             </p>
             <div className="rounded-lg bg-papel-fundo px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-tinta-suave">
               <p className="mb-1 font-sans text-[11px] font-medium uppercase tracking-wide text-tinta-fraca">

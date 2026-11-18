@@ -3,18 +3,15 @@ import {
   CalendarClock,
   CheckCircle2,
   Download,
-  Eye,
   History,
   ImageOff,
   Loader2,
-  Lock,
   Pencil,
   RefreshCw,
   Send,
   Sparkles,
   Trash2,
   Undo2,
-  Unlock,
   UploadCloud,
 } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
@@ -210,6 +207,10 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
 
   async function mudarStatus(novo: 'publicada' | 'encerrada') {
     if (!d) return
+    const anterior = avaliacao?.status
+    // O quadrado muda na hora; o banco confirma em seguida. Sem isso, o
+    // controle fica "pulando" de volta enquanto a requisição não termina.
+    if (avaliacao) setAvaliacao({ ...avaliacao, status: novo })
     setErro(null)
     setResultado(null)
     setOcupado('status')
@@ -218,10 +219,11 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       await carregar()
       setResultado(
         novo === 'encerrada'
-          ? 'Entregas encerradas. Os alunos continuam vendo a devolutiva; ninguém abre entrega nova.'
-          : 'Entregas reabertas: a avaliação voltou a aceitar envios.',
+          ? 'Recebimento encerrado. Os alunos continuam vendo a avaliação e a devolutiva, mas não enviam redação nova.'
+          : 'Recebimento reaberto: a avaliação voltou a aceitar envios, independentemente da data de referência.',
       )
     } catch (e) {
+      if (anterior && avaliacao) setAvaliacao({ ...avaliacao, status: anterior })
       setErro(e instanceof Error ? e.message : 'Não foi possível mudar o estado da avaliação.')
     } finally {
       setOcupado(null)
@@ -263,8 +265,8 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       setPrazoPendente(null)
       setResultado(
         novo
-          ? 'Prazo atualizado. Quem já enviou continua enviado; quem não enviou passa a poder entregar até a nova data.'
-          : 'Prazo removido: a avaliação passa a aceitar entregas sem data limite.',
+          ? 'Data de referência atualizada. O recebimento continua sendo controlado pelo quadrado "Recebendo trabalhos"; entregas depois da data ficam marcadas como fora do prazo.'
+          : 'Data de referência removida: nenhuma entrega será marcada como fora do prazo.',
       )
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível salvar o prazo.')
@@ -481,38 +483,52 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           </button>
         </div>
 
-        <Cartao className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-          <div className="flex items-center gap-2">
-            <Selo tom={avaliacao.status === 'publicada' ? 'marinho' : avaliacao.status === 'encerrada' ? 'neutro' : 'dourado'}>
-              {avaliacao.status === 'publicada' ? 'recebendo entregas' : avaliacao.status === 'encerrada' ? 'entregas encerradas' : 'rascunho'}
-            </Selo>
-            <span className="text-[12.5px] text-tinta-suave">
-              {avaliacao.status === 'publicada'
-                ? 'O aluno vê o tema e pode enviar.'
-                : avaliacao.status === 'encerrada'
-                  ? 'O aluno vê a devolutiva, mas não abre entrega nova.'
-                  : 'O aluno ainda não vê esta avaliação.'}
-            </span>
+        <Cartao className="space-y-2">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-[14px] font-medium text-tinta">Recebimento de entregas</h2>
+                <Selo tom={avaliacao.status === 'publicada' ? 'marinho' : avaliacao.status === 'encerrada' ? 'neutro' : 'dourado'}>
+                  {avaliacao.status === 'publicada' ? 'recebendo entregas' : avaliacao.status === 'encerrada' ? 'entregas encerradas' : 'rascunho'}
+                </Selo>
+              </div>
+              <p className="mt-1 text-[12.5px] leading-snug text-tinta-suave">
+                {avaliacao.status === 'publicada'
+                  ? 'O aluno vê o tema e pode enviar a redação.'
+                  : avaliacao.status === 'encerrada'
+                    ? 'O aluno vê a avaliação e a devolutiva, mas não envia.'
+                    : 'O aluno ainda não vê esta avaliação.'}
+              </p>
+            </div>
+            {avaliacao.status === 'rascunho' ? (
+              <Botao
+                type="button"
+                variante="secundario"
+                onClick={() => mudarStatus('publicada')}
+                carregando={ocupado === 'status'}
+                disabled={ocupado === 'status'}
+              >
+                Publicar para os alunos
+              </Botao>
+            ) : (
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-borda bg-white px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={avaliacao.status === 'publicada'}
+                  onChange={(e) => void mudarStatus(e.target.checked ? 'publicada' : 'encerrada')}
+                  disabled={ocupado === 'status'}
+                  className="size-5 shrink-0 accent-marinho disabled:opacity-50"
+                />
+                <span className="text-[13px] font-medium leading-tight text-tinta">
+                  Recebendo trabalhos
+                </span>
+              </label>
+            )}
           </div>
-          {avaliacao.status === 'publicada' ? (
-            <button
-              type="button"
-              onClick={() => mudarStatus('encerrada')}
-              disabled={ocupado === 'status'}
-              className="alvo-toque gap-1 rounded-lg border border-borda px-2.5 text-[12.5px] font-medium text-tinta-suave disabled:opacity-50"
-            >
-              <Lock className="size-3.5" aria-hidden /> Encerrar entregas
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => mudarStatus('publicada')}
-              disabled={ocupado === 'status'}
-              className="inline-flex items-center gap-1 rounded-lg border border-marinho/30 px-2.5 py-1 text-[12.5px] font-medium text-marinho disabled:opacity-50"
-            >
-              {avaliacao.status === 'encerrada' ? <Unlock className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
-              {avaliacao.status === 'encerrada' ? 'Reabrir entregas' : 'Publicar para os alunos'}
-            </button>
+          {avaliacao.status === 'rascunho' ? null : (
+            <p className="text-[12.5px] leading-snug text-tinta-fraca">
+              Desmarque para encerrar; marque para reabrir. <strong>A data de referência não fecha o envio.</strong>
+            </p>
           )}
         </Cartao>
 
@@ -532,16 +548,16 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CalendarClock className="size-4 text-tinta-suave" aria-hidden />
-              <h2 className="text-[14px] font-medium text-tinta">Prazo de entrega</h2>
+              <h2 className="text-[14px] font-medium text-tinta">Data de referência</h2>
             </div>
             <span className="text-[12.5px] text-tinta-suave">
-              {avaliacao.prazo_em ? `até ${formatarDataHora(avaliacao.prazo_em)}` : 'sem prazo definido'}
+              {avaliacao.prazo_em ? formatarDataHora(avaliacao.prazo_em) : 'sem data definida'}
             </span>
           </div>
           {prazoEmEdicao ? (
             <div className="flex flex-wrap items-end gap-2">
               <label className="flex-1">
-                <span className="mb-1 block text-[12.5px] text-tinta-suave">Nova data e hora</span>
+                <span className="mb-1 block text-[12.5px] text-tinta-suave">Nova data e hora de referência</span>
                 <input
                   type="datetime-local"
                   className="campo"
@@ -555,7 +571,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                 carregando={ocupado === 'prazo'}
                 disabled={!prazoNovo || ocupado === 'prazo'}
               >
-                Salvar prazo
+                Salvar data
               </Botao>
               <button
                 type="button"
@@ -579,7 +595,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                 className="alvo-toque gap-1 rounded-lg border border-borda px-2.5 text-[12.5px] font-medium text-tinta-suave"
               >
                 <CalendarClock className="size-3.5" aria-hidden />
-                {avaliacao.prazo_em ? 'Estender ou mudar o prazo' : 'Definir um prazo'}
+                {avaliacao.prazo_em ? 'Mudar data de referência' : 'Definir data de referência'}
               </button>
               {avaliacao.prazo_em ? (
                 <button
@@ -588,13 +604,13 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                   disabled={ocupado === 'prazo'}
                   className="alvo-toque px-1 text-[12.5px] text-tinta-suave underline-offset-2 hover:text-tinta hover:underline disabled:opacity-50"
                 >
-                  Remover prazo
+                  Remover data de referência
                 </button>
               ) : null}
             </div>
           )}
           {prazoPendente ? (
-            <Alerta tom="dourado" titulo="Confirme a mudança de prazo">
+            <Alerta tom="dourado" titulo="Confirme a mudança de data">
               <p>{prazoPendente.aviso}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Botao
@@ -617,9 +633,10 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             </Alerta>
           ) : null}
           <p className="text-[12.5px] leading-snug text-tinta-fraca">
-            Depois do prazo o aluno não abre entrega nova. Mudar a data reabre o envio para quem faltou —
-            não altera redação já enviada nem nota já lançada. Encurtar o prazo de quem já entregou pede
-            confirmação, porque muda o aviso de atraso.
+            A data é só referência: serve para marcar como <strong>fora do prazo</strong> quem entregar
+            depois dela. <strong>Ela não fecha o envio.</strong> Quem controla o recebimento é o quadrado
+            “Recebendo trabalhos”. Mudar a data não altera redação enviada nem nota lançada; encurtar a
+            data de quem já entregou pede confirmação, porque muda o aviso de atraso.
           </p>
         </Cartao>
 

@@ -90,13 +90,19 @@ abrem. Se você escolher uma foto da galeria e o app disser que não conseguiu a
 
 A mensagem do app diz qual dos dois usar — ela não aparece para JPG, PNG ou WEBP.
 
-## 4. Prazo
+## 4. Data de referência e recebimento
 
-Cada avaliação tem uma data e hora limite, mostrada no cartão (“Até em 3 dias”). Depois do prazo, o
-botão muda para **Prazo encerrado** e não abre mais o envio. Se o professor estender o prazo, o botão
-volta sozinho — não é preciso pedir para “liberar de novo”.
+Cada avaliação pode ter uma **data de referência**, mostrada no cartão (“Referência: em 3 dias”). Ela
+serve para dizer se a sua entrega está **fora do prazo** — não para fechar o envio. Uma avaliação com a
+data no passado continua aceitando redação enquanto o professor estiver recebendo.
 
-O app usa o horário de Brasília. Entregar 23h59 do dia do prazo vale; 00h01 do dia seguinte, não.
+Quem controla isso é o professor: quando ele desmarca **Recebendo trabalhos**, o cartão passa a mostrar
+**Entregas encerradas** e o botão de envio some. Se você ainda precisa entregar, peça a ele para
+reabrir; quando ele marca de novo, o botão volta sozinho.
+
+O app usa o horário de Brasília para decidir a marca de atraso. Entregar 23h59 do dia de referência
+conta como no prazo; 00h01 do dia seguinte fica marcado como fora do prazo — mas o envio só é recusado
+se o professor tiver encerrado o recebimento.
 
 ## 5. Ver a devolutiva
 
@@ -145,7 +151,8 @@ fim, e a foto fica em área privada.
 | Não chega o e-mail de recuperação | confira spam/lixo eletrônico e se digitou o e-mail institucional; o link vale 1 hora |
 | “Este link expirou” | peça outro na mesma tela (**Esqueci minha senha** → seu e-mail); cada link vale uma hora e só funciona uma vez |
 | “Senha atual incorreta” ao trocar a senha | digite a senha que você usa hoje; se esqueceu, saia e use **Esqueci minha senha** |
-| “Prazo encerrado” | o prazo passou; fale com o professor |
+| **Entregas encerradas** | o professor fechou o recebimento; peça a ele para reabrir |
+| “Sua entrega ficou fora do prazo” | a data de referência passou, mas o envio continua aberto se o professor estiver recebendo; a marca é informativa |
 | A foto não carrega | tente de novo com sinal melhor; se persistir, use **Galeria** com uma foto tirada antes |
 | “Esta foto está em HEIC…” | é foto de iPhone num navegador que não abre HEIC: use **Tirar foto** ou mude o formato no iPhone (veja “Foto do iPhone”) |
 | O texto lido está muito errado | **Trocar a foto** e refazer com mais luz; ou corrija o texto à mão antes de enviar |

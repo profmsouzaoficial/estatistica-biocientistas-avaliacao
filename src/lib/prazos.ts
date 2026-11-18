@@ -1,13 +1,18 @@
 /**
- * Regras de prazo de entrega.
+ * Regras da data de referência e do recebimento de entregas.
  *
- * O prazo é a única configuração da avaliação que pode **tirar** o direito de
- * entregar de quem ainda não entregou — e ele é digitado à mão, num campo
- * `datetime-local` que aceita qualquer data. Duas coisas dão errado com
- * facilidade:
+ * **A data não abre nem fecha o envio.** Ela é uma referência temporal: serve
+ * para marcar como "fora do prazo" quem entregar depois dela. Quem decide se a
+ * avaliação aceita entregas é o status escolhido pelo professor:
  *
- *   1. encurtar o prazo de uma avaliação que já recebeu entregas — quem entregou
- *      no prazo passa a aparecer como atrasado, retroativamente;
+ *   - `publicada` → recebendo trabalhos;
+ *   - `encerrada` → não recebe mais;
+ *   - `rascunho` → ainda não apareceu para o aluno.
+ *
+ * Duas coisas dão errado com data digitada à mão:
+ *
+ *   1. encurtar a data de uma avaliação que já recebeu entregas — quem entregou
+ *      antes passa a aparecer como atrasado, retroativamente;
  *   2. datas passadas digitadas por engano ou de propósito (lançamento
  *      retroativo), que precisam ser aceitas sem criar uma avaliação impossível
  *      de abrir.
@@ -15,6 +20,7 @@
  * As funções aqui são puras (recebem as datas e o "agora", não leem relógio nem
  * banco) para que o teste cubra os casos sem esperar o tempo passar.
  */
+import type { StatusAvaliacao, Submissao } from './types'
 
 export interface ResultadoValidacaoPrazo {
   ok: boolean
@@ -28,12 +34,33 @@ export function lerData(valor: string | null | undefined): Date | null {
   return Number.isNaN(data.getTime()) ? null : data
 }
 
+/** O professor está recebendo entregas desta avaliação? Só o status decide. */
+export function recebendoTrabalhos(status: StatusAvaliacao): boolean {
+  return status === 'publicada'
+}
+
 /**
- * Valida o prazo no momento de **criar** a avaliação.
+ * O aluno pode abrir o envio agora?
  *
- * Prazo vazio é permitido (entrega sem data limite). Datas no passado também
- * são aceitas de propósito: servem para lançar avaliações retroativas. A
- * abertura é recuada para antes do prazo em `aberturaDaAvaliacao`, então o
+ * A data de referência não entra nesta conta: uma avaliação publicada aceita
+ * entrega mesmo com a data no passado. O status `encerrada` bloqueia inclusive
+ * quem deixou um rascunho pela metade — reabrir é uma decisão do professor.
+ */
+export function podeEnviarRedacao(avaliacao: {
+  status: StatusAvaliacao
+  submissao?: Pick<Submissao, 'status'> | null
+}): boolean {
+  if (!recebendoTrabalhos(avaliacao.status)) return false
+  const situacao = avaliacao.submissao?.status
+  return !situacao || situacao === 'rascunho' || situacao === 'devolvida'
+}
+
+/**
+ * Valida a data de referência no momento de **criar** a avaliação.
+ *
+ * Data vazia é permitida (nenhuma entrega será marcada como atrasada). Datas no
+ * passado também são aceitas de propósito: servem para lançamentos retroativos.
+ * A abertura é recuada para antes da data em `aberturaDaAvaliacao`, então o
  * banco (trigger `trg_avaliacao_prazo`, só no INSERT) continua satisfeito.
  * A data só precisa ser interpretável.
  */
@@ -43,16 +70,17 @@ export function validarPrazoCriacao(
 ): ResultadoValidacaoPrazo {
   if (!prazo) return { ok: true }
   const data = lerData(prazo)
-  if (!data) return { ok: false, mensagem: 'A data do prazo não é válida. Confira dia, mês, hora e minuto.' }
+  if (!data) return { ok: false, mensagem: 'A data de referência não é válida. Confira dia, mês, hora e minuto.' }
   return { ok: true }
 }
 
 /**
- * Quando a avaliação deve constar como aberta.
+ * Quando a avaliação deve constar como aberta no banco.
  *
- * Para prazo futuro, abre agora. Para prazo passado (retroativo), abre um dia
- * antes dele: a avaliação nasce coerente com o prazo e o trigger do banco não
- * recusa o INSERT. Se o prazo não existir ou for inválido, abre agora.
+ * Para data futura, abre agora. Para data passada (retroativa), abre um dia
+ * antes dela: a avaliação nasce coerente e o trigger do banco não recusa o
+ * INSERT. Isso é só coerência de cadastro — não é o que permite ou impede o
+ * aluno de enviar. Se a data não existir ou for inválida, abre agora.
  */
 export function aberturaDaAvaliacao(
   prazo: string | null | undefined,
@@ -109,20 +137,19 @@ export function efeitoDaMudanca({
 }
 
 /**
- * Texto da confirmação mostrada ao professor antes de mudar o prazo.
+ * Texto da confirmação mostrada ao professor antes de mudar a data.
  * `null` quando a mudança não tem efeito colateral: não há o que confirmar.
+ *
+ * Data no passado, sozinha, não é motivo para confirmação: ela não fecha o
+ * envio. O aviso existe apenas quando entregas já feitas passariam a aparecer
+ * como atrasadas.
  */
 export function avisoDaMudanca(
   efeito: EfeitoDoPrazo,
   prazoNovo: string | null | undefined,
-  agora: Date = new Date(),
+  _agora: Date = new Date(),
 ): string | null {
-  if (!prazoNovo) return null
-  const novo = lerData(prazoNovo)
-  if (!novo) return null
-  if (novo.getTime() <= agora.getTime() && efeito.pioram === 0) {
-    return 'A data escolhida já passou: a partir de agora ninguém consegue enviar. Quem já enviou continua enviado.'
-  }
+  if (!prazoNovo || !lerData(prazoNovo)) return null
   if (efeito.pioram > 0) {
     const alunos = efeito.pioram === 1 ? '1 entrega já feita' : `${efeito.pioram} entregas já feitas`
     return `${alunos} passaria(m) a ser marcada(s) como fora do prazo. A redação e a nota não mudam; o aviso de atraso sim.`
