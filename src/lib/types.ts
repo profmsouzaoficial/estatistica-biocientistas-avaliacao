@@ -20,6 +20,9 @@ export interface Perfil {
   matricula: string | null
   email: string
   curso: string | null
+  /** Só para professores; alunos usam `curso`. */
+  departamento?: string | null
+  instituto?: string | null
   telefone: string | null
   turma_id: string | null
   precisa_trocar_senha?: boolean

@@ -10,6 +10,8 @@ export function Perfil() {
 
   const [nome, setNome] = useState(perfil?.nome_completo ?? '')
   const [curso, setCurso] = useState(perfil?.curso ?? '')
+  const [departamento, setDepartamento] = useState(perfil?.departamento ?? '')
+  const [instituto, setInstituto] = useState(perfil?.instituto ?? '')
   const [telefone, setTelefone] = useState(perfil?.telefone ?? '')
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState<{ tom: 'marinho' | 'vermelho'; texto: string } | null>(null)
@@ -26,7 +28,13 @@ export function Perfil() {
     setSalvando(true)
     setMsg(null)
     try {
-      await d.atualizarPerfil({ nome_completo: nome.trim(), telefone: telefone.trim() || null, curso: curso.trim() })
+      await d.atualizarPerfil({
+        nome_completo: nome.trim(),
+        telefone: telefone.trim() || null,
+        ...(ehProfessor
+          ? { departamento: departamento.trim() || null, instituto: instituto.trim() || null }
+          : { curso: curso.trim() }),
+      })
       await recarregar()
       setMsg({ tom: 'marinho', texto: 'Dados atualizados.' })
     } catch (e) {
@@ -62,6 +70,8 @@ export function Perfil() {
 
   if (!perfil) return null
 
+  const ehProfessor = perfil.papel === 'professor'
+
   return (
     <>
       <AppBar titulo="Meus dados" subtitulo={perfil.papel === 'professor' ? 'Professor' : 'Estudante'} />
@@ -75,11 +85,37 @@ export function Perfil() {
         <Cartao>
           <form onSubmit={salvarDados} className="space-y-3.5">
             <Campo rotulo="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} required />
-            <div className="grid grid-cols-2 gap-3">
-              <Campo rotulo="Matrícula" value={perfil.matricula ?? '—'} disabled />
-              <Campo rotulo="Curso" value={curso} onChange={(e) => setCurso(e.target.value)} />
-            </div>
-            <Campo rotulo="E-mail" value={perfil.email} disabled dica="Para trocar o e-mail, fale com o professor." />
+            {ehProfessor ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Campo
+                  rotulo="Departamento"
+                  value={departamento}
+                  onChange={(e) => setDepartamento(e.target.value)}
+                  placeholder="Ex.: Departamento de …"
+                />
+                <Campo
+                  rotulo="Instituto"
+                  value={instituto}
+                  onChange={(e) => setInstituto(e.target.value)}
+                  placeholder="Ex.: Instituto de …"
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <Campo rotulo="Matrícula" value={perfil.matricula ?? '—'} disabled />
+                <Campo rotulo="Curso" value={curso} onChange={(e) => setCurso(e.target.value)} />
+              </div>
+            )}
+            <Campo
+              rotulo="E-mail"
+              value={perfil.email}
+              disabled
+              dica={
+                ehProfessor
+                  ? 'O e-mail institucional é o seu login e só muda pelo cadastro de professor.'
+                  : 'Para trocar o e-mail, fale com o professor.'
+              }
+            />
             <Campo
               rotulo="Telefone (opcional)"
               inputMode="tel"

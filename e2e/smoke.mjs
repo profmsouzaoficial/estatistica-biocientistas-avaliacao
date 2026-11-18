@@ -190,14 +190,38 @@ async function foto(page, nome) {
  * turmas reais na mesma lista e o índice 1 poderia ser a turma de verdade.
  */
 async function escolherTurmaDeTeste(page) {
-  const porRotulo = page.getByLabel('Turma').first()
-  const select = (await porRotulo.count()) ? porRotulo : page.locator('select').first()
-  // o rótulo da opção varia: "TESTEE2E-A · 2026/3" no cadastro e
-  // "... (TESTEE2E-A)" no painel — o código do SIGA casa nos dois
-  const opcao = select.locator('option', { hasText: ALUNO.codigo }).first()
-  const valor = await opcao.getAttribute('value')
-  if (!valor) throw new Error(`A turma ${ALUNO.turma} não apareceu na lista de turmas.`)
-  await select.selectOption(valor)
+  // Cadastro e revisão ainda usam <select>; a criação de avaliação usa o
+  // seletor múltiplo (botão + caixas de seleção). Escolhe pelo código do SIGA
+  // nos dois formatos, sem depender da posição na lista.
+  const select = page.locator('select').filter({ has: page.locator('option', { hasText: ALUNO.codigo }) }).first()
+  if (await select.count()) {
+    const opcao = select.locator('option', { hasText: ALUNO.codigo }).first()
+    const valor = await opcao.getAttribute('value')
+    if (!valor) throw new Error(`A turma ${ALUNO.turma} não apareceu na lista de turmas.`)
+    await select.selectOption(valor)
+    return
+  }
+
+  await page.getByRole('button', { name: /^Turmas\b/ }).click()
+  const grupo = page.getByRole('group', { name: 'Turmas disponíveis' })
+  const caixa = grupo.getByRole('checkbox', { name: new RegExp(ALUNO.codigo) }).first()
+  if (!(await caixa.count())) throw new Error(`A turma ${ALUNO.turma} não apareceu no seletor de turmas.`)
+  await caixa.check()
+  await page.getByRole('button', { name: 'Fechar', exact: true }).click()
+}
+
+/**
+ * Publica a avaliação de uma turma e abre a tela dela pelo link do resultado.
+ * A criação não navega mais sozinha: o formulário fica preenchido para o
+ * professor publicar o mesmo conteúdo em outras turmas.
+ */
+async function publicarEAbrir(page) {
+  await page.getByRole('button', { name: 'Publicar avaliação', exact: true }).click()
+  const link = page.getByRole('link', { name: 'Abrir avaliação' }).first()
+  await link.waitFor({ timeout: 60000 })
+  await link.click()
+  await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
+  return page.url().split('/').pop()
 }
 
 async function entrar(page, email, senha) {
@@ -362,9 +386,7 @@ async function main() {
     await page.getByLabel('Prazo de entrega (opcional)').fill('')
     console.log('      prazo no passado recusado, com o motivo na tela')
 
-    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
-    const idAvaliacao = page.url().split('/').pop()
+    const idAvaliacao = await publicarEAbrir(page)
     console.log(`     avaliação ${idAvaliacao}`)
     await page.getByText('Nenhuma redação enviada ainda').waitFor()
     await foto(page, '03-avaliacao-criada')
@@ -583,9 +605,7 @@ async function main() {
     await page.getByRole('button', { name: 'Buscar' }).click()
     await page.getByRole('button', { name: /TVC 2/ }).click()
     await page.getByLabel('Data no SIGA').fill('2026-12-04')
-    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
-    const idAvaliacao2 = page.url().split('/').pop()
+    const idAvaliacao2 = await publicarEAbrir(page)
     console.log(`     avaliação ${idAvaliacao2}`)
 
     // ---- 11. aluno envia a segunda redação --------------------------------
@@ -695,9 +715,7 @@ async function main() {
     await page.getByRole('button', { name: 'Buscar' }).click()
     await page.getByRole('button', { name: /TVC 2/ }).click()
     await page.getByLabel('Data no SIGA').fill('2026-12-11')
-    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
-    const idAvaliacao3 = page.url().split('/').pop()
+    const idAvaliacao3 = await publicarEAbrir(page)
 
     await page.getByRole('button', { name: /Encerrar entregas/ }).click()
     await page.getByText('Entregas encerradas. Os alunos continuam vendo').waitFor({ timeout: 20000 })
@@ -814,11 +832,12 @@ async function main() {
     await page.getByLabel('Descrição da avaliação no SIGA').fill('TVC 3')
     await page.getByLabel('Peso no SIGA').fill('20')
     await page.getByLabel('Data no SIGA').fill('2027-02-05')
-    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/, { timeout: 30000 })
-    // a criação no SIGA agora é automática: o formulário já cria a TVC e a tela
-    // da avaliação confirma, sem passar pelo botão manual
-    await page.getByText('Avaliação criada no SIGA').waitFor({ timeout: 30000 })
+    await page.getByRole('button', { name: 'Publicar avaliação', exact: true }).click()
+    // a criação no SIGA é automática e o resultado aparece na própria tela;
+    // só depois o link leva para a avaliação
+    await page.getByText('SIGA: TVC criada agora.').waitFor({ timeout: 60000 })
+    await page.getByRole('link', { name: 'Abrir avaliação' }).first().click()
+    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
     if (await page.getByText('Esta avaliação ainda não existe no SIGA').count()) {
       throw new Error('A avaliação deveria ter sido criada no SIGA automaticamente.')
     }
@@ -882,8 +901,7 @@ async function main() {
     await page.getByRole('button', { name: 'Buscar' }).click()
     await page.getByRole('button', { name: /TVC 2/ }).click()
     await page.getByLabel('Data no SIGA').fill('2026-11-20')
-    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
+    await publicarEAbrir(page)
 
     await page.getByRole('button', { name: 'Quero excluir…' }).click()
     await page.getByLabel(/^Digite "/).fill(tituloDescartavel)
@@ -986,9 +1004,7 @@ async function main() {
     // "TVC 1" já existe no SIGA com peso 10; aqui o peso fica 20 de propósito
     await page.getByLabel('Descrição da avaliação no SIGA').fill('TVC 1')
     await page.getByLabel('Peso no SIGA').fill('20')
-    await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
-    const idRedacao5 = page.url().split('/').pop()
+    const idRedacao5 = await publicarEAbrir(page)
     await page.getByText('O peso aqui não é o peso do SIGA').waitFor({ timeout: 20000 })
     await page.getByText(/No SIGA, .* vale 10 pontos/).waitFor({ timeout: 15000 })
     await foto(page, '27-peso-divergente')

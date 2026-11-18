@@ -587,7 +587,9 @@ export function criarDadosDemo(): Dados {
       if (alvo) {
         alvo.nome_completo = p.nome_completo
         alvo.telefone = p.telefone
-        alvo.curso = p.curso
+        if (p.curso !== undefined) alvo.curso = p.curso
+        if (p.departamento !== undefined) alvo.departamento = p.departamento
+        if (p.instituto !== undefined) alvo.instituto = p.instituto
         gravar()
       }
     },

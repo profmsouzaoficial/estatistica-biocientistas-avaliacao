@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, ChevronRight, Circle, ClipboardCheck, Plus, RefreshCw, Users } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { COMPILADO_EM, VERSAO, quandoFoiCompilado } from '../lib/versao'
 import { Link, usarRota } from '../lib/router'
 import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../components/ui'
+import { SelecaoTurmas } from '../components/selecaoTurmas'
 import { CAPITULOS } from '../lib/livro'
-import type { AvaliacaoSiga, Criterio, Diagnostico, Esperado, ResumoAvaliacao, Turma } from '../lib/types'
+import type { Avaliacao, AvaliacaoSiga, Criterio, Diagnostico, Esperado, ResumoAvaliacao, Turma } from '../lib/types'
 import { agoraParaInput, formatarNota } from '../lib/formato'
 import { numeroDaTvc } from '../lib/siga'
 import { api } from '../lib/servidor'
 import { validarPrazoCriacao } from '../lib/prazos'
+import type { Dados } from '../lib/dados'
 
 // ---------------------------------------------------------------------------
 
@@ -292,12 +294,48 @@ const novoCriterio = (n: number): Criterio => ({
   valor: 0,
 })
 
+type EstadoSiga = { opcoes: AvaliacaoSiga[]; erro: string | null }
+
+type ItemPublicacao = {
+  turma: Turma
+  avaliacao: Avaliacao | null
+  siga: 'criada' | 'existente' | 'nao_solicitada' | 'falhou' | 'local_falhou'
+  erro?: string
+}
+
+const normalizar = (texto: string) => texto.trim().toLowerCase()
+
+/** Consulta o SIGA de cada turma em paralelo; uma falha não derruba as outras. */
+async function consultarSiga(d: Dados, turmas: Turma[]): Promise<Record<string, EstadoSiga>> {
+  const pares = await Promise.all(
+    turmas.map(async (t) => {
+      try {
+        const quadro = await d.avaliacoesDoSiga(t.codigo_siga, t.periodo)
+        return [t.id, { opcoes: quadro.avaliacoes, erro: null }] as const
+      } catch (e) {
+        return [
+          t.id,
+          { opcoes: [], erro: e instanceof Error ? e.message : 'Não foi possível consultar o SIGA.' },
+        ] as const
+      }
+    }),
+  )
+  return Object.fromEntries(pares)
+}
+
+function rotuloDoResultado(item: ItemPublicacao): string {
+  if (item.siga === 'local_falhou') return 'A avaliação local não foi criada.'
+  if (item.siga === 'nao_solicitada') return 'Rascunho salvo; nada foi criado no SIGA.'
+  if (item.siga === 'existente') return 'SIGA: a TVC já existia e será usada no lançamento.'
+  if (item.siga === 'criada') return 'SIGA: TVC criada agora.'
+  return 'SIGA: a TVC não foi criada.'
+}
+
 export function ProfessorNovaAvaliacao() {
   const { d } = usarSessao()
-  const { navegar } = usarRota()
 
   const [turmas, setTurmas] = useState<Turma[]>([])
-  const [turmaId, setTurmaId] = useState('')
+  const [turmaIds, setTurmaIds] = useState<string[]>([])
   const [titulo, setTitulo] = useState('')
   const [tema, setTema] = useState('')
   const [instrucoes, setInstrucoes] = useState('')
@@ -322,16 +360,22 @@ export function ProfessorNovaAvaliacao() {
   const [criarNoSiga, setCriarNoSiga] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
-  const [opcoesSiga, setOpcoesSiga] = useState<AvaliacaoSiga[]>([])
+  const [progresso, setProgresso] = useState<string | null>(null)
+  const [sigaPorTurma, setSigaPorTurma] = useState<Record<string, EstadoSiga>>({})
   const [buscandoSiga, setBuscandoSiga] = useState(false)
-  const [erroSiga, setErroSiga] = useState<string | null>(null)
+  const [resultado, setResultado] = useState<ItemPublicacao[] | null>(null)
+  const resultadoRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (resultado) resultadoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [resultado])
 
   useEffect(() => {
     if (!d) return
     d.turmasTodas()
       .then((t) => {
         setTurmas(t)
-        if (t.length === 1) setTurmaId(t[0].id)
+        if (t.length === 1) setTurmaIds([t[0].id])
       })
       .catch(() => setErro('Não foi possível carregar as turmas.'))
   }, [d])
@@ -359,32 +403,27 @@ export function ProfessorNovaAvaliacao() {
     )
   }
 
-  const turmaSelecionada = turmas.find((t) => t.id === turmaId) ?? null
-  const sigaConfere =
-    descricaoSiga.trim() !== '' &&
-    opcoesSiga.some((a) => a.descricao.trim().toLowerCase() === descricaoSiga.trim().toLowerCase())
-  const numeroTvc = numeroDaTvc(descricaoSiga)
+  const selecionadas = useMemo(
+    () => turmas.filter((t) => turmaIds.includes(t.id)),
+    [turmas, turmaIds],
+  )
+  const chaveTurmas = useMemo(() => [...turmaIds].sort().join('|'), [turmaIds])
 
-  // Ao escolher a turma, já consulta o SIGA: o professor vê as TVCs existentes
-  // sem precisar descobrir o botão. O botão continua lá para atualizar.
+  // Ao escolher as turmas, já consulta o SIGA de todas: o professor vê as TVCs
+  // existentes sem precisar descobrir o botão. O botão continua lá para atualizar.
   useEffect(() => {
-    if (!turmaId || !d) return
+    if (!d || !chaveTurmas) {
+      setSigaPorTurma({})
+      setBuscandoSiga(false)
+      return
+    }
     let vivo = true
-    const turma = turmas.find((t) => t.id === turmaId)
-    if (!turma) return
-    setErroSiga(null)
+    const lista = turmas.filter((t) => turmaIds.includes(t.id))
+    if (lista.length === 0) return
     setBuscandoSiga(true)
-    setOpcoesSiga([])
-    d.avaliacoesDoSiga(turma.codigo_siga, turma.periodo)
-      .then((quadro) => {
-        if (!vivo) return
-        setOpcoesSiga(quadro.avaliacoes)
-        if (quadro.avaliacoes.length === 0) {
-          setErroSiga('Nenhuma avaliação no SIGA para esta turma. Crie a TVC no SIGA ou salve como rascunho.')
-        }
-      })
-      .catch((e) => {
-        if (vivo) setErroSiga(e instanceof Error ? e.message : 'Não foi possível consultar o SIGA.')
+    consultarSiga(d, lista)
+      .then((mapa) => {
+        if (vivo) setSigaPorTurma(mapa)
       })
       .finally(() => {
         if (vivo) setBuscandoSiga(false)
@@ -392,27 +431,52 @@ export function ProfessorNovaAvaliacao() {
     return () => {
       vivo = false
     }
-    // buscarSiga usa o estado atual da turma; o efeito roda quando a turma muda
+    // chaveTurmas resume a seleção; turmaIds muda de identidade a cada render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turmaId, d, turmas])
+  }, [chaveTurmas, d, turmas])
 
   async function buscarSiga() {
-    if (!d || !turmaSelecionada) return
-    setErroSiga(null)
+    if (!d || selecionadas.length === 0) return
     setBuscandoSiga(true)
     try {
-      const quadro = await d.avaliacoesDoSiga(turmaSelecionada.codigo_siga, turmaSelecionada.periodo)
-      setOpcoesSiga(quadro.avaliacoes)
-      if (quadro.avaliacoes.length === 0) {
-        setErroSiga('Nenhuma avaliação encontrada nesta turma. Crie a TVC no SIGA primeiro.')
-      }
-    } catch (e) {
-      setOpcoesSiga([])
-      setErroSiga(e instanceof Error ? e.message : 'Não foi possível consultar o SIGA.')
+      setSigaPorTurma(await consultarSiga(d, selecionadas))
     } finally {
       setBuscandoSiga(false)
     }
   }
+
+  /** true = existe; false = não existe; null = ainda não consultado ou falhou. */
+  function turmaTemDescricao(t: Turma): boolean | null {
+    const estado = sigaPorTurma[t.id]
+    if (!estado || estado.erro) return null
+    if (!descricaoSiga.trim()) return false
+    return estado.opcoes.some((a) => normalizar(a.descricao) === normalizar(descricaoSiga))
+  }
+
+  const semConsultaEm = selecionadas.filter((t) => turmaTemDescricao(t) === null)
+  const faltandoEm = selecionadas.filter((t) => turmaTemDescricao(t) === false)
+  const sigaConfere =
+    descricaoSiga.trim() !== '' &&
+    selecionadas.length > 0 &&
+    semConsultaEm.length === 0 &&
+    faltandoEm.length === 0
+  const numeroTvc = numeroDaTvc(descricaoSiga)
+
+  const opcoesSiga = useMemo(() => {
+    const mapa = new Map<string, AvaliacaoSiga & { codigos: string[] }>()
+    for (const t of selecionadas) {
+      for (const a of sigaPorTurma[t.id]?.opcoes ?? []) {
+        const chave = normalizar(a.descricao)
+        const atual = mapa.get(chave)
+        if (atual) {
+          if (!atual.codigos.includes(t.codigo_siga)) atual.codigos.push(t.codigo_siga)
+        } else {
+          mapa.set(chave, { ...a, codigos: [t.codigo_siga] })
+        }
+      }
+    }
+    return [...mapa.values()]
+  }, [selecionadas, sigaPorTurma])
 
   /** DD/MM/AAAA (SIGA) → AAAA-MM-DD (input type=date). */
   function escolherSiga(a: AvaliacaoSiga) {
@@ -430,92 +494,133 @@ export function ProfessorNovaAvaliacao() {
     e.preventDefault()
     if (!d) return
     setErro(null)
-    if (!turmaId) return setErro('Escolha a turma.')
+    if (selecionadas.length === 0) return setErro('Escolha pelo menos uma turma.')
     if (!titulo.trim() || !tema.trim() || !instrucoes.trim()) return setErro('Preencha título, tema e instruções.')
     if (total <= 0) return setErro('O valor total precisa ser maior que zero.')
     if (rubrica.some((c) => !c.nome.trim())) return setErro('Todo critério precisa de um nome.')
     if (!somaOk) return setErro(`A rubrica soma ${soma} mas o valor total é ${total}.`)
-
-    // A lista do SIGA pode ter chegado depois de o professor digitar a
-    // descrição. Antes de decidir entre "lançar na TVC existente" e "criar uma
-    // nova", confere de novo — sem isso, uma TVC que já existe seria tratada
-    // como nova e o formulário pediria data à toa.
-    let existeNoSiga = sigaConfere
-    if (publicar && descricaoSiga.trim() && !existeNoSiga && turmaSelecionada) {
-      setBuscandoSiga(true)
-      try {
-        const quadro = await d.avaliacoesDoSiga(turmaSelecionada.codigo_siga, turmaSelecionada.periodo)
-        setOpcoesSiga(quadro.avaliacoes)
-        existeNoSiga = quadro.avaliacoes.some(
-          (a) => a.descricao.trim().toLowerCase() === descricaoSiga.trim().toLowerCase(),
-        )
-      } catch {
-        // sem lista, segue com o que já estava na tela; as validações abaixo
-        // cobram data/peso se for criar
-      } finally {
-        setBuscandoSiga(false)
-      }
-    }
 
     if (publicar && !descricaoSiga.trim()) {
       return setErro(
         'Para publicar, informe a descrição da avaliação no SIGA (ex.: TVC 1). Sem ela o lançamento de notas não tem para onde ir. Se a TVC ainda não existe, salve como rascunho.',
       )
     }
-    if (publicar && !existeNoSiga && !criarNoSiga) {
-      return setErro(
-        `A descrição “${descricaoSiga.trim()}” não está na lista do SIGA desta turma. Escolha uma das avaliações listadas acima ou marque “Criar esta avaliação no SIGA” para criar a TVC agora.`,
-      )
-    }
-    if (publicar && criarNoSiga && !existeNoSiga) {
-      if (!numeroTvc) {
-        return setErro('Para criar no SIGA, a descrição precisa ter o número da TVC — por exemplo “TVC 1”.')
-      }
-      if (!dataSiga) return setErro('Informe a data da avaliação no SIGA para criá-la.')
-      if (!(Number(pesoSiga) > 0)) return setErro('Informe o peso da avaliação no SIGA.')
-    }
-    // O banco também recusa prazo antes da abertura, mas a mensagem dele não
-    // explica o que fazer — esta explica.
+
     const prazoOk = validarPrazoCriacao(prazo)
     if (!prazoOk.ok) return setErro(prazoOk.mensagem ?? 'Prazo inválido.')
 
     setSalvando(true)
+    setProgresso(null)
+    setResultado(null)
     try {
-      const criada = await d.criarAvaliacao({
-        turma_id: turmaId,
-        titulo: titulo.trim(),
-        tema: tema.trim(),
-        instrucoes: instrucoes.trim(),
-        capitulo: capitulo || null,
-        valor_total: total,
-        rubrica: rubrica.map((c) => ({ ...c, valor: Number(c.valor) })),
-        descricao_siga: descricaoSiga.trim() || null,
-        peso_siga: Number(pesoSiga) || 10,
-        data_siga: dataSiga || null,
-        abre_em: new Date().toISOString(),
-        prazo_em: prazo ? new Date(prazo).toISOString() : null,
-        status: publicar ? 'publicada' : 'rascunho',
-      })
-      if (publicar && criarNoSiga && !existeNoSiga) {
+      // Evita publicar duas vezes a mesma avaliação na mesma turma: o
+      // formulário agora fica preenchido, então um segundo clique é fácil.
+      let existentes: ResumoAvaliacao[] = []
+      try {
+        existentes = await d.resumoAvaliacoes()
+      } catch {
+        // sem a lista, segue: o banco ainda protege os dados essenciais
+      }
+      const repetidas = selecionadas.filter((t) =>
+        existentes.some((a) => a.turma_id === t.id && normalizar(a.titulo) === normalizar(titulo)),
+      )
+      if (repetidas.length > 0) {
+        return setErro(
+          `Já existe uma avaliação com este título em ${repetidas.map((t) => t.codigo_siga).join(', ')}. Mude o título ou abra a avaliação existente no painel.`,
+        )
+      }
+
+      // A lista do SIGA pode ter chegado antes de o professor digitar a
+      // descrição. Antes de decidir entre usar uma TVC existente e criar uma
+      // nova, confere de novo — em todas as turmas selecionadas.
+      let mapa = sigaPorTurma
+      if (publicar && descricaoSiga.trim()) {
+        setBuscandoSiga(true)
         try {
-          await api('/siga/avaliacao', { avaliacao_id: criada.id })
-          sessionStorage.setItem('siga-ok', 'Avaliação criada no SIGA. Agora as notas podem ser lançadas.')
-        } catch (e) {
-          // A avaliação local já existe; não dá para desfazer sem apagar o que
-          // o professor acabou de montar. Avisa na tela da avaliação e deixa o
-          // botão “Criar no SIGA” para a segunda tentativa.
-          const motivo = e instanceof Error ? e.message : 'o SIGA não aceitou a criação.'
-          sessionStorage.setItem(
-            'siga-aviso',
-            `A avaliação foi salva, mas não foi criada no SIGA: ${motivo} Use “Criar no SIGA” nesta tela para tentar de novo.`,
-          )
+          mapa = await consultarSiga(d, selecionadas)
+          setSigaPorTurma(mapa)
+        } finally {
+          setBuscandoSiga(false)
         }
       }
-      navegar(`/prof/avaliacoes/${criada.id}`)
+
+      const precisaCriarEm = selecionadas.filter((t) => {
+        const estado = mapa[t.id]
+        if (!estado || estado.erro) return true
+        return !estado.opcoes.some((a) => normalizar(a.descricao) === normalizar(descricaoSiga))
+      })
+
+      if (publicar && precisaCriarEm.length > 0 && !criarNoSiga) {
+        return setErro(
+          `A descrição “${descricaoSiga.trim()}” não está confirmada no SIGA de ${precisaCriarEm
+            .map((t) => t.codigo_siga)
+            .join(', ')}. Escolha uma das avaliações listadas acima ou marque “Criar esta avaliação no SIGA”.`,
+        )
+      }
+      if (publicar && precisaCriarEm.length > 0) {
+        if (!numeroTvc) {
+          return setErro('Para criar no SIGA, a descrição precisa ter o número da TVC — por exemplo “TVC 1”.')
+        }
+        if (!dataSiga) return setErro('Informe a data da avaliação no SIGA para criá-la.')
+        if (!(Number(pesoSiga) > 0)) return setErro('Informe o peso da avaliação no SIGA.')
+      }
+
+      const itens: ItemPublicacao[] = []
+      for (const [indice, t] of selecionadas.entries()) {
+        setProgresso(`Publicando ${indice + 1}/${selecionadas.length} · ${t.codigo_siga}…`)
+        try {
+          const criada = await d.criarAvaliacao({
+            turma_id: t.id,
+            titulo: titulo.trim(),
+            tema: tema.trim(),
+            instrucoes: instrucoes.trim(),
+            capitulo: capitulo || null,
+            valor_total: total,
+            rubrica: rubrica.map((c) => ({ ...c, valor: Number(c.valor) })),
+            descricao_siga: descricaoSiga.trim() || null,
+            peso_siga: Number(pesoSiga) || 10,
+            data_siga: dataSiga || null,
+            abre_em: new Date().toISOString(),
+            prazo_em: prazo ? new Date(prazo).toISOString() : null,
+            status: publicar ? 'publicada' : 'rascunho',
+          })
+
+          let siga: ItemPublicacao['siga'] = publicar ? 'existente' : 'nao_solicitada'
+          let erroItem: string | undefined
+          const precisaCriar = precisaCriarEm.some((x) => x.id === t.id)
+          if (publicar && criarNoSiga && precisaCriar) {
+            setProgresso(`Criando ${t.codigo_siga} no SIGA (${indice + 1}/${selecionadas.length})…`)
+            try {
+              await api('/siga/avaliacao', { avaliacao_id: criada.id }, undefined, 60_000)
+              siga = 'criada'
+            } catch (e) {
+              // A avaliação local já existe; não dá para desfazer sem apagar o
+              // que o professor acabou de montar. O item mostra o motivo e a
+              // tela da avaliação tem o botão “Criar no SIGA” para a 2ª tentativa.
+              siga = 'falhou'
+              erroItem = e instanceof Error ? e.message : 'O SIGA não aceitou a criação.'
+            }
+          }
+          itens.push({ turma: t, avaliacao: criada, siga, erro: erroItem })
+        } catch (e) {
+          itens.push({
+            turma: t,
+            avaliacao: null,
+            siga: 'local_falhou',
+            erro: e instanceof Error ? e.message : 'Falha ao criar a avaliação.',
+          })
+        }
+      }
+
+      setResultado(itens)
+      if (itens.every((i) => !i.avaliacao)) {
+        setErro('Nenhuma avaliação pôde ser criada. Confira a mensagem de cada turma abaixo.')
+      }
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Falha ao criar a avaliação.')
     } finally {
       setSalvando(false)
+      setProgresso(null)
     }
   }
 
@@ -541,20 +646,7 @@ export function ProfessorNovaAvaliacao() {
             obrigatoriedade, mas quem barra (e explica) é o `salvar`. */}
         <form onSubmit={salvar} className="space-y-4" noValidate>
           <Cartao className="space-y-3.5">
-            <select
-              className="campo"
-              aria-label="Turma"
-              value={turmaId}
-              onChange={(e) => setTurmaId(e.target.value)}
-              required
-            >
-              <option value="">Turma…</option>
-              {turmas.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nome} · {t.periodo} ({t.codigo_siga})
-                </option>
-              ))}
-            </select>
+            <SelecaoTurmas turmas={turmas} selecionadas={turmaIds} onChange={setTurmaIds} />
             <Campo rotulo="Título" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Redação 1 — Testes diagnósticos" required />
             <div>
               <label className="rotulo" htmlFor="tema">Tema (o que o aluno deve responder)</label>
@@ -695,15 +787,17 @@ export function ProfessorNovaAvaliacao() {
             <div className="rounded-xl border border-borda bg-papel/70 p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[12.5px] leading-snug text-tinta-suave">
-                  {turmaSelecionada
-                    ? `Turma ${turmaSelecionada.codigo_siga} · ${turmaSelecionada.periodo}`
-                    : 'Escolha a turma para consultar o SIGA.'}
+                  {selecionadas.length === 0
+                    ? 'Escolha as turmas para consultar o SIGA.'
+                    : `${selecionadas.length} turma${selecionadas.length > 1 ? 's' : ''}: ${selecionadas
+                        .map((t) => t.codigo_siga)
+                        .join(', ')}`}
                 </p>
                 <Botao
                   type="button"
                   variante="fantasma"
                   onClick={buscarSiga}
-                  disabled={!turmaSelecionada}
+                  disabled={selecionadas.length === 0}
                   carregando={buscandoSiga}
                   icone={<RefreshCw className="size-4" />}
                 >
@@ -713,11 +807,16 @@ export function ProfessorNovaAvaliacao() {
               {buscandoSiga ? (
                 <p className="mt-1.5 text-[12.5px] leading-snug text-tinta-suave">Consultando o SIGA…</p>
               ) : null}
-              {erroSiga ? <p className="mt-1.5 text-[12.5px] leading-snug text-vermelho">{erroSiga}</p> : null}
+              {semConsultaEm.length > 0 && !buscandoSiga ? (
+                <p className="mt-1.5 text-[12.5px] leading-snug text-dourado">
+                  Não consegui conferir o SIGA de {semConsultaEm.map((t) => t.codigo_siga).join(', ')}. Use
+                  “Buscar”; se continuar, marque a criação abaixo — se a TVC já existir, o SIGA recusa sem duplicar.
+                </p>
+              ) : null}
               {opcoesSiga.length > 0 ? (
                 <ul className="mt-2 space-y-1.5">
                   {opcoesSiga.map((a) => {
-                    const ativa = descricaoSiga.trim().toLowerCase() === a.descricao.trim().toLowerCase()
+                    const ativa = normalizar(descricaoSiga) === normalizar(a.descricao)
                     return (
                       <li key={a.id ?? a.descricao}>
                         <button
@@ -730,12 +829,18 @@ export function ProfessorNovaAvaliacao() {
                           <span className="block text-[13.5px] font-medium text-tinta">{a.descricao}</span>
                           <span className="block text-[12px] text-tinta-fraca">
                             {a.data ?? 'sem data'} · peso {a.peso}
+                            {a.codigos.length > 1 ? ` · ${a.codigos.length} turmas` : ''}
                           </span>
                         </button>
                       </li>
                     )
                   })}
                 </ul>
+              ) : null}
+              {selecionadas.length > 0 && !buscandoSiga && opcoesSiga.length === 0 && semConsultaEm.length === 0 ? (
+                <p className="mt-1.5 text-[12.5px] leading-snug text-tinta-suave">
+                  Nenhuma TVC nesta(s) turma(s) do SIGA. Se for criar agora, marque a opção abaixo.
+                </p>
               ) : null}
             </div>
             <Campo
@@ -745,15 +850,16 @@ export function ProfessorNovaAvaliacao() {
               placeholder="TVC 1"
               dica="É o campo descricao_avaliacao da API do SIGA; precisa ser idêntico ao nome da TVC."
             />
-            {descricaoSiga.trim() && opcoesSiga.length > 0 && sigaConfere ? (
+            {descricaoSiga.trim() && sigaConfere ? (
               <p className="text-[12.5px] leading-snug text-marinho">
-                Essa avaliação já existe no SIGA — as notas serão lançadas nela, sem criar outra.
+                Essa avaliação já existe no SIGA de todas as turmas selecionadas — as notas serão lançadas nela, sem
+                criar outra.
               </p>
             ) : null}
-            {descricaoSiga.trim() && opcoesSiga.length > 0 && !sigaConfere ? (
+            {descricaoSiga.trim() && faltandoEm.length > 0 ? (
               <p className="text-[12.5px] leading-snug text-dourado">
-                Essa descrição não aparece na lista do SIGA. Se for uma TVC nova, marque a opção abaixo para criá-la
-                agora — ou confira maiúsculas, acentos e o número.
+                Essa descrição não aparece no SIGA de {faltandoEm.map((t) => t.codigo_siga).join(', ')}. Se for uma
+                TVC nova, marque a opção abaixo para criá-la agora — ou confira maiúsculas, acentos e o número.
               </p>
             ) : null}
             {publicar && descricaoSiga.trim() && !sigaConfere ? (
@@ -765,12 +871,16 @@ export function ProfessorNovaAvaliacao() {
                   className="mt-0.5 size-5 accent-marinho"
                 />
                 <span className="text-[13px] leading-snug text-tinta">
-                  <strong>Criar esta avaliação no SIGA agora.</strong> O app usa a descrição, o peso e a data acima.
-                  O SIGA não tem rota para apagar uma avaliação — confira antes de publicar.
+                  <strong>Criar esta avaliação no SIGA agora.</strong> O app usa a descrição, o peso e a data acima,
+                  uma vez para cada turma que ainda não tiver essa TVC. O SIGA não tem rota para apagar uma avaliação
+                  — confira antes de publicar.
                 </span>
               </label>
             ) : null}
-            {publicar && descricaoSiga.trim() && !sigaConfere && (!numeroTvc || !dataSiga || !(Number(pesoSiga) > 0)) ? (
+            {publicar &&
+            descricaoSiga.trim() &&
+            !sigaConfere &&
+            (!numeroTvc || !dataSiga || !(Number(pesoSiga) > 0)) ? (
               <div className="text-[12.5px] leading-snug text-vermelho">
                 {!numeroTvc ? <p>A descrição precisa ter o número da TVC (ex.: “TVC 1”).</p> : null}
                 {!dataSiga ? <p>Informe a data no SIGA para poder criar.</p> : null}
@@ -801,9 +911,19 @@ export function ProfessorNovaAvaliacao() {
               <p className="mb-1 font-sans text-[11px] font-medium uppercase tracking-wide text-tinta-fraca">
                 O que será enviado ao SIGA
               </p>
-              <div>turma: {turmaSelecionada?.codigo_siga ?? '—'}</div>
-              <div>periodo: {turmaSelecionada?.periodo ?? '—'}</div>
+              <div>turmas: {selecionadas.map((t) => t.codigo_siga).join(', ') || '—'}</div>
+              <div>periodo: {[...new Set(selecionadas.map((t) => t.periodo))].join(', ') || '—'}</div>
               <div>descricao_avaliacao: {descricaoSiga.trim() || '—'}</div>
+              <div>
+                chamadas de criação:{' '}
+                {publicar && descricaoSiga.trim()
+                  ? selecionadas.filter((t) => turmaTemDescricao(t) !== true).length
+                  : 0}{' '}
+                · já existentes:{' '}
+                {publicar && descricaoSiga.trim()
+                  ? selecionadas.filter((t) => turmaTemDescricao(t) === true).length
+                  : 0}
+              </div>
               <div>notas_json: {'{'} matrícula: nota {'}'} (montado na revisão)</div>
             </div>
           </Cartao>
@@ -822,9 +942,69 @@ export function ProfessorNovaAvaliacao() {
 
           {erro ? <Alerta tom="vermelho">{erro}</Alerta> : null}
 
+          {resultado ? (
+            <div ref={resultadoRef} aria-live="polite">
+              <Cartao className="space-y-2 bg-marinho-claro/40">
+                <div>
+                  <h2 className="font-serif text-[16px] text-tinta">Última publicação</h2>
+                  <p className="mt-0.5 text-[12.5px] leading-snug text-tinta-suave">
+                    {resultado.filter((i) => i.avaliacao).length} de {resultado.length} turma
+                    {resultado.length > 1 ? 's' : ''} com avaliação criada. Os campos continuam preenchidos.
+                  </p>
+                </div>
+                <ul className="divide-y divide-borda">
+                  {resultado.map((item) => (
+                    <li key={item.turma.id} className="py-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[13.5px] font-medium text-tinta">
+                            {item.turma.codigo_siga} · {item.turma.periodo}
+                          </p>
+                          <p className="truncate text-[11.5px] text-tinta-fraca">{item.turma.nome}</p>
+                        </div>
+                        {item.avaliacao ? (
+                          <Link
+                            href={`/prof/avaliacoes/${item.avaliacao.id}`}
+                            className="alvo-toque shrink-0 px-1 text-[12.5px] font-medium text-marinho underline underline-offset-2"
+                          >
+                            Abrir avaliação
+                          </Link>
+                        ) : null}
+                      </div>
+                      <p
+                        className={`mt-1 text-[12.5px] leading-snug ${
+                          item.siga === 'falhou' || item.siga === 'local_falhou' ? 'text-vermelho' : 'text-tinta-suave'
+                        }`}
+                      >
+                        {rotuloDoResultado(item)}
+                      </p>
+                      {item.erro ? <p className="mt-0.5 text-[12px] leading-snug text-vermelho">{item.erro}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[12px] leading-snug text-tinta-suave">
+                  Para publicar em outras turmas, ajuste a seleção acima e use o botão de novo. Nada foi apagado.
+                </p>
+              </Cartao>
+            </div>
+          ) : null}
+
           <Botao type="submit" largo carregando={salvando}>
-            {publicar ? 'Publicar avaliação' : 'Salvar rascunho'}
+            {salvando
+              ? publicar
+                ? 'Publicando…'
+                : 'Salvando…'
+              : publicar
+                ? selecionadas.length > 1
+                  ? `Publicar em ${selecionadas.length} turmas`
+                  : 'Publicar avaliação'
+                : 'Salvar rascunho'}
           </Botao>
+          {salvando && progresso ? (
+            <p aria-live="polite" className="text-center text-[12.5px] text-tinta-suave">
+              {progresso}
+            </p>
+          ) : null}
         </form>
       </main>
     </>

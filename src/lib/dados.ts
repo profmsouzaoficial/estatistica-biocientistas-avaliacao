@@ -123,7 +123,14 @@ export interface Dados {
   /** Confere a matrícula na lista da turma e devolve os dados para preencher o cadastro. */
   consultarMatricula(turmaId: string, matricula: string): Promise<ConsultaMatricula>
   recuperarSenha(email: string): Promise<void>
-  atualizarPerfil(p: { nome_completo: string; telefone: string | null; curso: string }): Promise<void>
+  atualizarPerfil(p: {
+    nome_completo: string
+    telefone: string | null
+    /** Aluno edita o curso; professor não vê esse campo. */
+    curso?: string
+    departamento?: string | null
+    instituto?: string | null
+  }): Promise<void>
   /**
    * Define a nova senha. Com `senhaAtual`, confere a senha antiga antes de
    * trocar (caminho de "Alterar senha" no perfil); sem ela, exige a sessão

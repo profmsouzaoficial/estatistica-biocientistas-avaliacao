@@ -86,7 +86,7 @@ Migrações idempotentes em `supabase/migrations/` — `0001_init.sql` (estrutur
 | `turmas` | código no SIGA (`CBV018GV-A`), período (`2026/3`), curso |
 | `alunos_esperados` | lista importada pelo professor (matrícula, nome, e-mail) |
 | `professores_autorizados` | e-mails que podem ter papel de professor |
-| `profiles` | dados do usuário autenticado + papel (`aluno`/`professor`) |
+| `profiles` | dados do usuário autenticado + papel (`aluno`/`professor`); professor tem `departamento`/`instituto` |
 | `avaliacoes` | tema, instruções, valor total, rubrica (JSONB), descrição/peso/data no SIGA |
 | `submissoes` | foto, transcrição, texto final, status |
 | `correcoes` | notas por critério, nota bruta, nota final, pontos fortes/desenvolver, decisão |
@@ -787,6 +787,25 @@ O prazo cobre **cabeçalho e corpo**: o corpo é lido dentro do prazo, porque um
 `200` e trava no meio da resposta escapa de um timeout aplicado só ao `fetch`. Foi assim que apareceu
 o defeito mais enganoso desta rodada — OCR lento devolvia `SEM_TEXTO`, ou seja, o aluno lia “não
 encontrei texto manuscrito legível na foto” quando o problema era fila no serviço, não a letra dele.
+
+### Uma avaliação, várias turmas
+
+O formulário de **Nova avaliação** aceita mais de uma turma. O seletor não é um `<select multiple>`:
+é um botão que abre caixas de seleção, cada uma identificada pelo `codigo_siga` (a chave que o SIGA
+usa) e pelo nome da turma. No celular, isso evita a lista cinza em que o toque erra o alvo.
+
+Ao publicar, o app percorre a seleção e cria **uma linha em `avaliacoes` por turma**, com o mesmo
+título, tema, instruções, rubrica e prazo. Cada aluno continua vendo só a avaliação da própria turma.
+Se a descrição do SIGA não existir em alguma delas, a criação no SIGA também roda em laço — uma
+chamada por turma que ainda não tem a TVC. Uma falha não desfaz as avaliações já criadas e não
+interrompe as seguintes: o cartão **Última publicação** lista o resultado de cada turma, com link para
+abrir a avaliação e o motivo do erro quando houver.
+
+O formulário **não é limpo nem navega sozinho** depois de publicar. Isso é intencional: o professor
+reaproveita o mesmo conteúdo para outras turmas trocando apenas a seleção. Para impedir duplicata por
+clique duplo, o app consulta os títulos existentes e recusa o mesmo título na mesma turma; a chave
+local é `(turma_id, título normalizado)`, verificada na interface (não há índice único no banco, para
+não bloquear títulos repetidos legítimos em contextos diferentes).
 
 ### Criar a avaliação no SIGA — uma vez só
 

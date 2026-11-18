@@ -26,6 +26,15 @@ export function MolduraAuth({ children, rodape }: { children: ReactNode; rodape?
       <p className="mt-8 text-center text-[11.5px] leading-relaxed text-tinta-fraca">
         Uso restrito a estudantes matriculados. Seus dados são usados apenas para avaliação
         e lançamento de notas.
+        <span className="mt-1.5 block">
+          Autoria: Prof. Dr. Márcio Souza ·{' '}
+          <a
+            href="mailto:marcio.souza@ufjf.br"
+            className="font-medium text-tinta-suave underline underline-offset-2 hover:text-marinho"
+          >
+            marcio.souza@ufjf.br
+          </a>
+        </span>
       </p>
     </div>
   )

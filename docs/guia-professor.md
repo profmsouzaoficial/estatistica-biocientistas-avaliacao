@@ -17,7 +17,9 @@ Tudo é feito pelo celular, mas a tela de revisão é mais confortável no compu
    (remetente padrão), então peça para olhar o spam na primeira vez.
 
 Contas de professor não são criadas pela tela de cadastro: use `pnpm professor:criar` (script em
-`scripts/criar-professor.mjs`), que autoriza o e-mail e cria o usuário.
+`scripts/criar-professor.mjs`), que autoriza o e-mail e cria o usuário. Em **Meus dados**, o professor
+edita nome, telefone, **departamento** e **instituto**; matrícula e curso são os campos do aluno. O
+rodapé do login traz a autoria e o link `marcio.souza@ufjf.br` para dúvidas.
 
 Logo abaixo do título aparece **Para começar**: seis conferências do primeiro uso (turma, lista,
 primeira avaliação, SIGA, IA, leitura das fotos). Cada pendência tem um botão que leva ao lugar
@@ -73,6 +75,7 @@ lista, mantenha o número exatamente como veio do SIGA; o app normaliza para mai
 
 | Campo | Dica |
 |---|---|
+| Turmas | marque **uma ou mais**; cada opção mostra o `codigo_siga` (ex.: `CBV018GV-A`) e o nome da turma |
 | Título | aparece para o aluno (`Redação 1 — Testes diagnósticos`) |
 | Tema | uma frase; é o que o aluno lê na hora de escrever |
 | Instruções | número de linhas, se pode consultar, critérios de formatação |
@@ -86,11 +89,25 @@ A rubrica é o coração da correção: cada critério tem nome, descrição (o 
 máximo. O modelo só pode pontuar dentro desse máximo. O botão **Distribuir 20 pts** preenche
 30%/30%/20%/20% como ponto de partida.
 
-Em **Lançamento no SIGA**, toque em **Buscar**: o app pergunta ao SIGA quais avaliações já
-existem naquela turma/período e mostra cada uma com data e peso. Um toque preenche descrição,
-peso e data — assim a nota não cai na avaliação errada por causa de uma letra.
+A seleção de **Turmas** é múltipla: ao marcar duas ou três, o mesmo conteúdo (título, tema, rubrica,
+prazo) é criado em cada uma, com uma avaliação independente por turma. O código do SIGA é a chave —
+não escolha pela posição na lista.
+
+Em **Lançamento no SIGA**, toque em **Buscar**: o app consulta o SIGA de **todas as turmas marcadas**
+e mostra as TVCs com data e peso. Se a mesma descrição aparecer em mais de uma, o seletor indica
+quantas turmas já a possuem. Um toque preenche descrição, peso e data.
+
+Se a descrição não existir em alguma turma, marque **Criar esta avaliação no SIGA agora**: ao
+publicar, o app cria a TVC apenas nas turmas em que ela falta, uma chamada por turma. O SIGA não tem
+rota para apagar avaliação; a tela avisa e nunca cria sozinha em rascunho.
 
 Deixe **Publicar agora** marcado para o aluno ver; desmarque para rascunho.
+
+Depois de publicar, **nada é apagado da tela**: o formulário continua preenchido e a seleção de
+turmas permanece. Abaixo aparece **Última publicação**, com o resultado de cada turma (avaliação
+criada, TVC já existente ou erro do SIGA) e o link **Abrir avaliação**. Para reaproveitar o conteúdo
+em outras turmas, basta ajustar a seleção e publicar de novo; para o mesmo título na mesma turma, o
+app recusa a duplicata e pede para abrir a avaliação existente.
 
 ## 4. Encerrar (e reabrir) as entregas
 

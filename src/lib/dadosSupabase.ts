@@ -163,10 +163,19 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       const { error } = await sb.rpc('atualizar_meu_perfil', {
         p_nome: p.nome_completo,
         p_telefone: p.telefone,
-        p_curso: p.curso,
+        p_curso: p.curso ?? null,
+        p_departamento: p.departamento ?? null,
+        p_instituto: p.instituto ?? null,
       })
       if (error) throw new Error(error.message)
-      perfilCache = perfilCache ? { ...perfilCache, ...p } : perfilCache
+      perfilCache = perfilCache
+        ? {
+            ...perfilCache,
+            ...(p.curso !== undefined ? { curso: p.curso } : {}),
+            ...(p.departamento !== undefined ? { departamento: p.departamento } : {}),
+            ...(p.instituto !== undefined ? { instituto: p.instituto } : {}),
+          }
+        : perfilCache
     },
 
     async alterarSenha(novaSenha, senhaAtual) {
