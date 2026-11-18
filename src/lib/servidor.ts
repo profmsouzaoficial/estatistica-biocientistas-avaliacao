@@ -45,9 +45,27 @@ export const PRAZO_OCR_MS = 40_000
 export const PRAZO_SIGA_MS = 25_000
 
 let obterToken: (() => Promise<string | null>) | null = null
+let renovarToken: (() => Promise<string | null>) | null = null
 
 export function configurarToken(fn: () => Promise<string | null>) {
   obterToken = fn
+}
+
+/**
+ * Renovação forçada usada quando o servidor responde 401.
+ *
+ * Não basta renovar “um pouco antes” no cliente: uma aba pode ficar horas
+ * suspensa, o token vence nesse intervalo e o primeiro clique volta 401. Uma
+ * única nova tentativa com o token renovado resolve o caso comum sem esconder
+ * uma sessão realmente inválida (aí o 401 continua e a pessoa entra de novo).
+ */
+export function configurarRenovacao(fn: () => Promise<string | null>) {
+  renovarToken = fn
+}
+
+interface ResultadoHttp {
+  resposta: Response
+  texto: string
 }
 
 export async function api<T>(
@@ -60,31 +78,48 @@ export async function api<T>(
   const token = obterToken ? await obterToken() : null
   if (token) headers.Authorization = `Bearer ${token}`
 
-  let resposta: Response
-  let texto: string
-  try {
-    resposta = await fetch(`/api${caminho}`, {
-      method: corpo === undefined ? 'GET' : 'POST',
-      headers,
-      body: corpo === undefined ? undefined : JSON.stringify(corpo),
-      ...init,
-      // O sinal cobre cabeçalho E corpo: a leitura do texto fica dentro do try.
-      signal: init?.signal ?? AbortSignal.timeout(prazoMs),
-    })
-    texto = await resposta.text()
-  } catch (erro) {
-    const nome = erro instanceof Error ? erro.name : ''
-    const segundos = Math.max(1, Math.round(prazoMs / 1000))
-    if (nome === 'TimeoutError' || nome === 'AbortError') {
-      throw new ErroApi(
-        `O servidor não respondeu em ${segundos} s. ` +
-          (caminho.includes('corrigir')
-            ? 'Se foi a correção automática, o modelo em CPU pode estar sobrecarregado — tente de novo ou faça a correção manual.'
-            : 'Confira sua conexão e tente de novo em instantes.'),
-        0,
-      )
+  async function enviar(): Promise<ResultadoHttp> {
+    try {
+      const resposta = await fetch(`/api${caminho}`, {
+        method: corpo === undefined ? 'GET' : 'POST',
+        headers,
+        body: corpo === undefined ? undefined : JSON.stringify(corpo),
+        ...init,
+        // O sinal cobre cabeçalho E corpo: a leitura do texto fica dentro do try.
+        signal: init?.signal ?? AbortSignal.timeout(prazoMs),
+      })
+      return { resposta, texto: await resposta.text() }
+    } catch (erro) {
+      const nome = erro instanceof Error ? erro.name : ''
+      const segundos = Math.max(1, Math.round(prazoMs / 1000))
+      if (nome === 'TimeoutError' || nome === 'AbortError') {
+        throw new ErroApi(
+          `O servidor não respondeu em ${segundos} s. ` +
+            (caminho.includes('corrigir')
+              ? 'Se foi a correção automática, o modelo em CPU pode estar sobrecarregado — tente de novo ou faça a correção manual.'
+              : 'Confira sua conexão e tente de novo em instantes.'),
+          0,
+        )
+      }
+      throw new ErroApi('Não consegui falar com o servidor. Confira sua conexão e tente de novo.', 0)
     }
-    throw new ErroApi('Não consegui falar com o servidor. Confira sua conexão e tente de novo.', 0)
+  }
+
+  let { resposta, texto } = await enviar()
+
+  if (resposta.status === 401 && token && renovarToken) {
+    let novo: string | null = null
+    try {
+      novo = await renovarToken()
+    } catch {
+      novo = null
+    }
+    if (novo && novo !== token) {
+      headers.Authorization = `Bearer ${novo}`
+      const renovada = await enviar()
+      resposta = renovada.resposta
+      texto = renovada.texto
+    }
   }
 
   let json: unknown = null

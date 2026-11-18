@@ -11,7 +11,14 @@ import type {
   ConsultaMatricula,
 } from './dados'
 import { comPrazo, erroDeEnvio, PRAZO_ENVIO_MS } from './envio'
-import { api, configurarToken, PRAZO_CORRECAO_MS, PRAZO_OCR_MS, PRAZO_SIGA_MS } from './servidor'
+import {
+  api,
+  configurarRenovacao,
+  configurarToken,
+  PRAZO_CORRECAO_MS,
+  PRAZO_OCR_MS,
+  PRAZO_SIGA_MS,
+} from './servidor'
 import { notaParaSiga } from './types'
 import type {
   Avaliacao,
@@ -34,7 +41,40 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
   const sb = createClient(url, chave, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   })
-  configurarToken(async () => (await sb.auth.getSession()).data.session?.access_token ?? null)
+  // Um token vencido faz o servidor responder 401. Em uma publicação isso é
+  // especialmente ruim: a avaliação local já foi criada e a TVC não chega ao
+  // SIGA. Renova um pouco antes de vencer e também deixa uma renovação forçada
+  // para a camada de API tentar de novo quando o 401 acontecer mesmo assim.
+  let renovando: Promise<string | null> | null = null
+
+  function renovarSessao(): Promise<string | null> {
+    if (!renovando) {
+      renovando = (async () => {
+        try {
+          const { data } = await sb.auth.refreshSession()
+          return data.session?.access_token ?? null
+        } catch {
+          return null
+        }
+      })().finally(() => {
+        renovando = null
+      })
+    }
+    return renovando
+  }
+
+  configurarToken(async () => {
+    const { data } = await sb.auth.getSession()
+    const sessao = data.session
+    if (!sessao) return null
+    const expiraEm = (sessao.expires_at ?? 0) * 1000
+    if (expiraEm > 0 && expiraEm < Date.now() + 60_000) {
+      const nova = await renovarSessao()
+      if (nova) return nova
+    }
+    return sessao.access_token
+  })
+  configurarRenovacao(renovarSessao)
 
   let perfilCache: Perfil | null = null
 

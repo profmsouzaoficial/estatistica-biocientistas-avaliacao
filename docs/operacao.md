@@ -196,6 +196,7 @@ que confundia "o SIGA recusou" com "não houve resposta".
 | “Já existe uma avaliação com essa descrição” (`SIGA_JA_EXISTE`) | a descrição está no SIGA, mas não há criação local registrada; não duplique. Use **Buscar** e selecione a avaliação existente |
 | “SIGA respondeu sem a lista de avaliações” (`SIGA_RESPOSTA_INVALIDA`) | a contagem da turma não veio; nada foi criado. Tente de novo em instantes | se persistir, confira o `/api/notas` da turma no painel do SIGA |
 | “Já estou criando” (`SIGA_EM_ANDAMENTO`) | outra requisição está no SIGA agora; espere alguns segundos e recarregue |
+| Sessão expirada ao consultar ou criar no SIGA (HTTP 401) | o app tenta renovar o token e repetir uma vez; se continuar, saia e entre novamente. A avaliação local pode já ter sido salva: abra-a no painel e use **Criar no SIGA**, em vez de preencher outra | conferir a lista/auditoria antes de tentar de novo; nunca criar uma segunda avaliação local com o mesmo título |
 | Correção automática falha | a própria mensagem diz o código: `LLM_INALCANCAVEL` (serviço fora do ar), `LLM_FALHOU` (status 401/500), `LLM_DEMOROU` (passou do prazo), `RESPOSTA_TRUNCADA` (aumente `LLM_MAX_TOKENS`), `RESPOSTA_INVALIDA` (modelo devolveu lixo) | `pnpm diagnostico` e `/api/saude`; se persistir, corrija à mão — a fila não trava |
 | Nota estranha no SIGA | conferir o **peso** da avaliação no app e no SIGA | "Peso no SIGA" na tela da avaliação alinha |
 | Conferir se a nota foi lançada | tela da avaliação → **Histórico de lançamentos** | mostra também as recusas, com a resposta do SIGA |

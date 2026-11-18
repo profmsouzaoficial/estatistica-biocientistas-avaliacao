@@ -127,6 +127,31 @@ globalThis.fetch = async () =>
 const ok = await servidor.api('/corrigir-manual', { submissao_id: 'x' }, undefined, 5000)
 conferir('resposta normal continua passando', ok?.correcao?.id === 'c1', JSON.stringify(ok))
 
+// A aba pode ficar horas parada; o token vence e a primeira chamada volta 401.
+// A camada de API pede uma renovação única e repete a chamada com o token novo.
+let chamadas = 0
+const autorizacoes = []
+globalThis.fetch = async (_url, init) => {
+  chamadas++
+  autorizacoes.push(init?.headers?.Authorization ?? null)
+  if (chamadas === 1) {
+    return new Response(JSON.stringify({ erro: 'Sessão expirada. Entre novamente.' }), { status: 401 })
+  }
+  return new Response(JSON.stringify({ ok: true }), { status: 200 })
+}
+servidor.configurarToken(async () => 'token-velho')
+servidor.configurarRenovacao(async () => 'token-novo')
+r = await capturar(() => servidor.api('/sessao-expirada'))
+conferir('401 pede renovação e repete uma vez', r.erro === null && chamadas === 2, `${chamadas} chamada(s)`)
+conferir('a repetição usa o token renovado', autorizacoes[1] === 'Bearer token-novo', String(autorizacoes[1]))
+
+chamadas = 0
+servidor.configurarRenovacao(async () => null)
+r = await capturar(() => servidor.api('/sessao-invalida'))
+conferir('sem renovação, o 401 continua sendo 401', r.erro?.status === 401 && chamadas === 1, `${r.erro?.status} · ${chamadas} chamada(s)`)
+
+servidor.configurarToken(async () => null)
+servidor.configurarRenovacao(async () => null)
 clearInterval(segura)
 globalThis.fetch = fetchOriginal
 

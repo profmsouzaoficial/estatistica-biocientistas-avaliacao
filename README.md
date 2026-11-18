@@ -829,6 +829,11 @@ real, para sempre. A rota `POST /api/siga/avaliacao` agora decide assim:
 O “em andamento” é gravado **antes** de consultar a lista e chamar o SIGA, e o registro é
 atualizado no fim com o resultado. É isso que fecha a janela entre dois cliques quase simultâneos.
 
+Se o token da sessão estiver vencido, a camada `src/lib/servidor.ts` tenta renová-lo uma vez e
+repete a chamada; sem isso, uma aba deixada aberta por horas criava a avaliação local e deixava a
+TVC sem criar no SIGA. Quando a renovação não resolve, a tela pede para entrar de novo, mas **não**
+desfaz a avaliação local: abra-a no painel e use **Criar no SIGA**.
+
 `pnpm test:siga:criar` (49 verificações) sobe um SIGA falso e um Supabase falso e conta quantas
 vezes o SIGA foi chamado em cada cenário — inclusive o pedido idêntico que **não** pode chamar de
 novo, o peso alterado que **precisa** de confirmação e a criação abandonada há 5 minutos, que não
@@ -843,7 +848,7 @@ O upload sai do navegador direto para o Storage do Supabase, e o SDK **não acei
 Sem prazo, a tela ficava em “Enviando a foto…” até o navegador desistir sozinho — e o erro que chegava
 era de infraestrutura, como `Failed to fetch`, sem instrução para quem está no 4G do corredor.
 
-`pnpm test:envio` (38 verificações) cobre as duas metades:
+`pnpm test:envio` (41 verificações) cobre as duas metades:
 
 | Situação | O que o aluno lê |
 |---|---|

@@ -112,6 +112,10 @@ Não digite “TVC 3” no nome só para escolher o número — a descrição de
 avaliação, como **Trabalho prático**. O SIGA não tem rota para apagar avaliação; a tela avisa e
 nunca cria sozinha em rascunho.
 
+Se a sessão do app vencer no meio do caminho, ele tenta renovar e repetir a chamada sozinho. Se
+ainda assim o SIGA recusar, a avaliação local continua salva: abra-a no painel e use **Criar no
+SIGA** — não preencha tudo de novo, porque isso criaria uma avaliação local duplicada.
+
 Deixe **Publicar agora** marcado para o aluno ver; desmarque para rascunho.
 
 Depois de publicar, **nada é apagado da tela**: o formulário continua preenchido e a seleção de

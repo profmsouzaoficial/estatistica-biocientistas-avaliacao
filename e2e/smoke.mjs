@@ -321,12 +321,13 @@ async function main() {
     if (await page.getByText('Para começar').count()) {
       await page.getByText('Para começar').waitFor({ timeout: 15000 })
       await page.getByText('Criar a turma').waitFor()
+      // o diagnóstico do servidor só existe enquanto o painel de primeiros
+      // passos está visível; depois que a turma e a avaliação existem, ele some.
+      await page.getByText(/Notas podem ser lançadas direto na turma/).waitFor({ timeout: 15000 })
     } else {
       await page.getByText('A CORRIGIR').waitFor()
       await page.getByText('A LANÇAR').waitFor()
     }
-    // o diagnóstico do servidor chega depois: SIGA/IA/OCR deixam de dizer "Verificando"
-    await page.getByText(/Notas podem ser lançadas direto na turma/).waitFor({ timeout: 15000 })
     await foto(page, '01-painel-professor')
 
     // ---- 2. cria turma e importa a lista ----------------------------------

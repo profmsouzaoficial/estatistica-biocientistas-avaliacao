@@ -327,7 +327,7 @@ function rotuloDoResultado(item: ItemPublicacao): string {
   if (item.siga === 'nao_solicitada') return 'Rascunho salvo; nada foi criado no SIGA.'
   if (item.siga === 'existente') return 'SIGA: a TVC já existia e será usada no lançamento.'
   if (item.siga === 'criada') return 'SIGA: TVC criada agora.'
-  return 'SIGA: a TVC não foi criada.'
+  return 'SIGA: a TVC não foi criada agora. A avaliação local foi salva; abra-a e use “Criar no SIGA” para tentar de novo.'
 }
 
 export function ProfessorNovaAvaliacao() {
@@ -480,6 +480,8 @@ export function ProfessorNovaAvaliacao() {
 
   const semConsultaEm = selecionadas.filter((t) => turmaTemDescricao(t) === null)
   const faltandoEm = selecionadas.filter((t) => turmaTemDescricao(t) === false)
+  const erroSiga =
+    semConsultaEm.map((t) => sigaPorTurma[t.id]?.erro).find((erro): erro is string => Boolean(erro)) ?? null
   const sigaConfere =
     descricaoSiga.trim() !== '' &&
     selecionadas.length > 0 &&
@@ -549,7 +551,8 @@ export function ProfessorNovaAvaliacao() {
       )
       if (repetidas.length > 0) {
         return setErro(
-          `Já existe uma avaliação com este título em ${repetidas.map((t) => t.codigo_siga).join(', ')}. Mude o título ou abra a avaliação existente no painel.`,
+          `Já existe uma avaliação com este título em ${repetidas.map((t) => t.codigo_siga).join(', ')}. ` +
+            'Abra a avaliação existente no painel; se a criação no SIGA falhou na primeira tentativa, use “Criar no SIGA” dentro dela. Não preencha outra vez — isso criaria uma avaliação local duplicada.',
         )
       }
 
@@ -853,10 +856,17 @@ export function ProfessorNovaAvaliacao() {
                 <p className="mt-1.5 text-[12.5px] leading-snug text-tinta-suave">Consultando o SIGA…</p>
               ) : null}
               {semConsultaEm.length > 0 && !buscandoSiga ? (
-                <p className="mt-1.5 text-[12.5px] leading-snug text-dourado">
-                  Não consegui conferir o SIGA de {semConsultaEm.map((t) => t.codigo_siga).join(', ')}. Use
-                  “Buscar”; se continuar, marque a criação abaixo — se a TVC já existir, o app recusa sem duplicar.
-                </p>
+                <div className="mt-1.5 text-[12.5px] leading-snug text-dourado">
+                  <p>
+                    Não consegui conferir o SIGA de {semConsultaEm.map((t) => t.codigo_siga).join(', ')}. Use
+                    “Buscar”; se continuar, marque a criação abaixo — se a TVC já existir, o app recusa sem duplicar.
+                  </p>
+                  {erroSiga ? (
+                    <p className="mt-0.5 text-tinta-suave">
+                      Motivo: {erroSiga.replace(/\.$/, '')}. Se falar de sessão, saia e entre novamente antes de publicar.
+                    </p>
+                  ) : null}
+                </div>
               ) : null}
               {opcoesSiga.length > 0 ? (
                 <ul className="mt-2 space-y-1.5">
@@ -1003,7 +1013,7 @@ export function ProfessorNovaAvaliacao() {
                   <h2 className="font-serif text-[16px] text-tinta">Última publicação</h2>
                   <p className="mt-0.5 text-[12.5px] leading-snug text-tinta-suave">
                     {resultado.filter((i) => i.avaliacao).length} de {resultado.length} turma
-                    {resultado.length > 1 ? 's' : ''} com avaliação criada. Os campos continuam preenchidos.
+                    {resultado.length > 1 ? 's' : ''} com avaliação local criada. Confira abaixo o resultado no SIGA.
                   </p>
                 </div>
                 <ul className="divide-y divide-borda">
