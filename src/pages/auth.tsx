@@ -293,7 +293,7 @@ export function Cadastrar() {
           <option value="">Selecione…</option>
           {turmas.map((t) => (
             <option key={t.id} value={t.id}>
-              {t.codigo_siga} · {t.periodo}
+              {t.curso} · {t.codigo_siga} · {t.periodo}
             </option>
           ))}
         </Selecao>

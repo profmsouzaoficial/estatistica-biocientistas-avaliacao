@@ -210,7 +210,7 @@ export function ProfessorAlunos() {
                   <option value="">Selecione…</option>
                   {turmas.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.nome} · {t.periodo} ({t.codigo_siga})
+                      {t.curso} · {t.codigo_siga} · {t.periodo} — {t.nome}
                     </option>
                   ))}
                 </select>

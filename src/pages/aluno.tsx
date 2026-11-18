@@ -33,7 +33,7 @@ export function AlunoInicio() {
       .then(([avs, turmas]) => {
         setAvaliacoes(avs)
         const t = turmas.find((x) => x.id === perfil?.turma_id)
-        setNomeTurma(t ? `${t.nome} · ${t.periodo}` : '')
+        setNomeTurma(t ? `${t.curso} · ${t.codigo_siga} · ${t.periodo}` : '')
       })
       .catch((e) => setErro(e instanceof Error ? e.message : 'Falha ao carregar.'))
   }, [d, perfil?.turma_id])

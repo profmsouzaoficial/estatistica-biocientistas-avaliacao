@@ -1019,7 +1019,7 @@ export function ProfessorNovaAvaliacao() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-[13.5px] font-medium text-tinta">
-                            {item.turma.codigo_siga} · {item.turma.periodo}
+                            {item.turma.curso} · {item.turma.codigo_siga} · {item.turma.periodo}
                           </p>
                           <p className="truncate text-[11.5px] text-tinta-fraca">{item.turma.nome}</p>
                         </div>
