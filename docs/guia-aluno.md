@@ -183,6 +183,8 @@ chegar a 5, o cartão fica com o aviso em vermelho. A conta soma todas as chamad
 já salvou nesta turma; uma data sem chamada não vira falta. Se você discordar de uma marcação,
 fale com o professor — o app não corrige a chamada sozinho.
 
+![Cartão Sua frequência com faltas, horas e aulas registradas](img/frequencia-aluno.png)
+
 O que o app guarda, por quê e por quanto tempo está em **Privacidade**, no rodapé. Em resumo:
 nome, matrícula, e-mail, curso, a foto do perfil, o resultado do teste, a foto e o texto da
 redação, a correção e a nota. Nada é usado para outro fim; foto e personalidade ficam em área

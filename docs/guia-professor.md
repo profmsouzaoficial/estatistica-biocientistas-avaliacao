@@ -94,6 +94,8 @@ No critério da disciplina, **5 faltas equivalem a 15 horas** (3 h por aula) e l
 por falta. Ao chegar a 5, o selo fica vermelho e o aluno vê o aviso no cartão **Sua frequência**.
 Datas sem chamada não contam como falta: o app só soma o que foi salvo.
 
+![Lista de chamada com o total de faltas e o selo de cada aluno](img/frequencia-professor.png)
+
 Cores dos grupos (também na legenda da tela):
 
 | Grupo | Cor | Tipos |
