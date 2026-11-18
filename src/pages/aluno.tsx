@@ -6,16 +6,16 @@ import { Alerta, AppBar, Botao, Carregando, Cartao, Selo, Vazio } from '../compo
 import { atrasoDeEntrega, formatarDataHora, formatarNota, tempoRelativo, plural, primeiroNome } from '../lib/formato'
 import type { Avaliacao, AvaliacaoDoAluno } from '../lib/types'
 
-export function rotuloEstado(a: AvaliacaoDoAluno): { texto: string; tom: 'neutro' | 'verde' | 'ambar' | 'vermelho' | 'azul' } {
+export function rotuloEstado(a: AvaliacaoDoAluno): { texto: string; tom: 'neutro' | 'marinho' | 'dourado' | 'vermelho' | 'azul' } {
   const s = a.submissao
   if (!s) {
     if (a.status === 'encerrada') return { texto: 'Entregas encerradas', tom: 'neutro' }
     const atrasada = a.prazo_em && new Date(a.prazo_em).getTime() < Date.now()
-    return atrasada ? { texto: 'Prazo encerrado', tom: 'vermelho' } : { texto: 'A fazer', tom: 'ambar' }
+    return atrasada ? { texto: 'Prazo encerrado', tom: 'vermelho' } : { texto: 'A fazer', tom: 'dourado' }
   }
-  if (s.status === 'rascunho') return { texto: 'Não enviada', tom: 'ambar' }
+  if (s.status === 'rascunho') return { texto: 'Não enviada', tom: 'dourado' }
   if (s.status === 'devolvida') return { texto: 'Devolvida para ajuste', tom: 'vermelho' }
-  if (a.correcao) return { texto: `Corrigida · ${formatarNota(a.correcao.nota_final)}`, tom: 'verde' }
+  if (a.correcao) return { texto: `Corrigida · ${formatarNota(a.correcao.nota_final)}`, tom: 'marinho' }
   return { texto: 'Em correção', tom: 'azul' }
 }
 
@@ -49,7 +49,7 @@ export function AlunoInicio() {
       />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-24">
         {perfil?.precisa_trocar_senha ? (
-          <Alerta tom="ambar" titulo="Defina uma senha só sua">
+          <Alerta tom="dourado" titulo="Defina uma senha só sua">
             Sua senha inicial é o seu e-mail — quem souber o endereço consegue entrar. Troque agora em{' '}
             <Link href="/perfil" className="font-medium underline">
               Meus dados
@@ -71,11 +71,11 @@ export function AlunoInicio() {
             <div className="grid grid-cols-2 gap-3">
               <Cartao className="!p-3.5">
                 <p className="text-[12px] uppercase tracking-wide text-tinta-fraca">A fazer</p>
-                <p className="mt-1 font-serif text-[26px] leading-none text-ambar">{pendentes}</p>
+                <p className="mt-1 font-serif text-[26px] leading-none text-dourado">{pendentes}</p>
               </Cartao>
               <Cartao className="!p-3.5">
                 <p className="text-[12px] uppercase tracking-wide text-tinta-fraca">Com devolutiva</p>
-                <p className="mt-1 font-serif text-[26px] leading-none text-verde">{prontas}</p>
+                <p className="mt-1 font-serif text-[26px] leading-none text-marinho">{prontas}</p>
               </Cartao>
             </div>
 
@@ -89,7 +89,7 @@ export function AlunoInicio() {
 
         <p className="px-1 text-center text-[12.5px] text-tinta-fraca">
           Primeira vez? Veja{' '}
-          <Link href="/ajuda" className="underline underline-offset-2 hover:text-verde">
+          <Link href="/ajuda" className="underline underline-offset-2 hover:text-marinho">
             como enviar sua redação
           </Link>
           .
@@ -181,7 +181,7 @@ export function AlunoAvaliacao({ id }: { id: string }) {
       <AppBar titulo="Avaliação" subtitulo={`${a.valor_total} pontos`} />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-28">
         <div>
-          <Link href="/" className="text-[13px] text-tinta-suave hover:text-verde">
+          <Link href="/" className="text-[13px] text-tinta-suave hover:text-marinho">
             ← Todas as avaliações
           </Link>
           <h2 className="mt-2 font-serif text-[21px] leading-tight text-tinta">{a.titulo}</h2>
@@ -192,7 +192,7 @@ export function AlunoAvaliacao({ id }: { id: string }) {
         </div>
 
         {a.prazo_em ? (
-          <div className={`rounded-xl px-3 py-2.5 text-[13.5px] ${prazoPassado ? 'bg-vermelho-claro text-vermelho' : 'bg-verde-claro text-verde-escuro'}`}>
+          <div className={`rounded-xl px-3 py-2.5 text-[13.5px] ${prazoPassado ? 'bg-vermelho-claro text-vermelho' : 'bg-marinho-claro text-marinho-escuro'}`}>
             <div className="flex items-center gap-2">
               <CalendarClock className="size-4 shrink-0" aria-hidden />
               {prazoPassado ? 'Prazo encerrado em ' : 'Entrega até '}
@@ -237,7 +237,7 @@ export function AlunoAvaliacao({ id }: { id: string }) {
 
         {a.submissao && a.submissao.status !== 'rascunho' ? (
           <Cartao className="!bg-papel-fundo/60">
-            <div className="flex items-center gap-2 text-verde-escuro">
+            <div className="flex items-center gap-2 text-marinho-escuro">
               <CheckCircle2 className="size-4" aria-hidden />
               <p className="text-[14px] font-medium">
                 Enviada {a.submissao.enviado_em ? tempoRelativo(a.submissao.enviado_em) : ''}
@@ -278,7 +278,7 @@ export function AlunoAvaliacao({ id }: { id: string }) {
 
         {prazoPassado && podeEnviar ? (
           <p className="flex items-start gap-2 text-[13px] leading-snug text-tinta-suave">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-ambar" aria-hidden />
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-dourado" aria-hidden />
             O prazo terminou. Se precisar de prorrogação, fale com o professor — ele pode reabrir a entrega.
           </p>
         ) : null}

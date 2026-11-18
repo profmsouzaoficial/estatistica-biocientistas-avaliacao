@@ -13,7 +13,7 @@ export function Privacidade() {
     <>
       <AppBar titulo="Privacidade e dados" subtitulo="O que o app guarda, por quê e por quanto tempo" />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-16">
-        <Link href="/" className="inline-flex items-center gap-1 text-[13px] text-tinta-suave hover:text-verde">
+        <Link href="/" className="inline-flex items-center gap-1 text-[13px] text-tinta-suave hover:text-marinho">
           <ArrowLeft className="size-3.5" aria-hidden /> Voltar
         </Link>
 
@@ -32,7 +32,7 @@ export function Privacidade() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[17px] text-tinta">
-            <Database className="size-4 text-verde" aria-hidden /> O que é guardado
+            <Database className="size-4 text-marinho" aria-hidden /> O que é guardado
           </h2>
           <ul className="space-y-2 text-[14px] leading-relaxed text-tinta-suave">
             <li>
@@ -60,7 +60,7 @@ export function Privacidade() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[17px] text-tinta">
-            <Share2 className="size-4 text-verde" aria-hidden /> Quem vê e para onde vai
+            <Share2 className="size-4 text-marinho" aria-hidden /> Quem vê e para onde vai
           </h2>
           <ul className="space-y-2 text-[14px] leading-relaxed text-tinta-suave">
             <li>
@@ -89,7 +89,7 @@ export function Privacidade() {
 
         <Cartao className="space-y-2">
           <h2 className="flex items-center gap-1.5 font-serif text-[17px] text-tinta">
-            <FileLock2 className="size-4 text-verde" aria-hidden /> Onde fica e por quanto tempo
+            <FileLock2 className="size-4 text-marinho" aria-hidden /> Onde fica e por quanto tempo
           </h2>
           <p className="texto-corrido">
             Os dados ficam no Supabase (banco PostgreSQL gerenciado), na região <strong>us-west-2 (Oregon,
@@ -106,7 +106,7 @@ export function Privacidade() {
 
         <Cartao className="space-y-2">
           <h2 className="flex items-center gap-1.5 font-serif text-[17px] text-tinta">
-            <UserCheck className="size-4 text-verde" aria-hidden /> Seus direitos
+            <UserCheck className="size-4 text-marinho" aria-hidden /> Seus direitos
           </h2>
           <ul className="space-y-1.5 text-[14px] leading-relaxed text-tinta-suave">
             <li>Ver e corrigir seus dados em <strong className="font-medium text-tinta">Perfil</strong>.</li>
@@ -117,7 +117,7 @@ export function Privacidade() {
           </ul>
           <p className="texto-corrido">
             Contato do responsável: professor <strong>Márcio Luís Moreira de Souza</strong> —{' '}
-            <a className="text-verde underline underline-offset-2 hover:text-tinta" href="mailto:marcio.souza@ufjf.br">
+            <a className="text-marinho underline underline-offset-2 hover:text-tinta" href="mailto:marcio.souza@ufjf.br">
               marcio.souza@ufjf.br
             </a>
             .
@@ -126,7 +126,7 @@ export function Privacidade() {
 
         <Cartao className="space-y-2">
           <h2 className="flex items-center gap-1.5 font-serif text-[17px] text-tinta">
-            <Trash2 className="size-4 text-verde" aria-hidden /> Cookies e rastreadores
+            <Trash2 className="size-4 text-marinho" aria-hidden /> Cookies e rastreadores
           </h2>
           <p className="texto-corrido">
             Não há cookies de publicidade, nem Google Analytics, nem rastreadores de terceiros. O navegador guarda

@@ -336,9 +336,19 @@ dois.
 fundo efetivo subindo a árvore e aplica a fórmula de luminância da WCAG. Reprova texto pequeno abaixo de
 4.5:1 e grande abaixo de 3:1. Foi ele que encontrou os dois problemas de hoje: as legendas em
 `tinta-fraca` (#8b968f) davam **2.59:1** em todos os fundos, e os botões desativados saíam a **1.09:1**
-(verde a 50% com texto branco). A paleta mudou (`tinta-suave` #4b5853 = 6.30 · `tinta-fraca` #616964 =
-4.79 · `ambar` #a74d08 = 4.79) e o botão desativado virou cinza com texto escuro — continua dizendo
+(verde a 50% com texto branco). O botão desativado virou cinza com texto escuro — continua dizendo
 “Corrigir 0 pendente(s)”, agora legível.
+
+### Identidade visual
+
+A paleta atual sai do **brasão da UFJF**: azul-marinho `#123e66`, vermelho `#b02a23`, dourado `#8a5a00`
+e papel quente `#f8f5ec`. O brasão oficial, com fundo transparente, fica em `public/brasao-ufjf.png` e
+aparece nas telas de entrada (grande) e no topo de todas as telas internas (pequeno). Favicon e ícones do
+PWA são gerados a partir dele com `node scripts/gerar-icones.mjs` (usa o Chromium do Playwright, sem
+dependência de ImageMagick).
+
+Contraste medido: `tinta-suave` #46536b = 6.28 · `tinta-fraca` #5a6678 = 4.72 · branco sobre marinho =
+11.01 · branco sobre vermelho = 6.56 · dourado sobre dourado-claro = 5.31.
 
 `pnpm e2e:mobile` mede os alvos de toque das 16 telas principais em 360×740 e reprova qualquer controle
 abaixo de 40px. Foi ele que achou as abas “Transcrição/Foto original” (32px) e o “Voltar para a lista”

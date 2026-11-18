@@ -12,13 +12,13 @@ export function Perfil() {
   const [curso, setCurso] = useState(perfil?.curso ?? '')
   const [telefone, setTelefone] = useState(perfil?.telefone ?? '')
   const [salvando, setSalvando] = useState(false)
-  const [msg, setMsg] = useState<{ tom: 'verde' | 'vermelho'; texto: string } | null>(null)
+  const [msg, setMsg] = useState<{ tom: 'marinho' | 'vermelho'; texto: string } | null>(null)
 
   const [senhaAtual, setSenhaAtual] = useState('')
   const [senha, setSenha] = useState('')
   const [senha2, setSenha2] = useState('')
   const [trocando, setTrocando] = useState(false)
-  const [msgSenha, setMsgSenha] = useState<{ tom: 'verde' | 'vermelho'; texto: string } | null>(null)
+  const [msgSenha, setMsgSenha] = useState<{ tom: 'marinho' | 'vermelho'; texto: string } | null>(null)
 
   async function salvarDados(e: React.FormEvent) {
     e.preventDefault()
@@ -28,7 +28,7 @@ export function Perfil() {
     try {
       await d.atualizarPerfil({ nome_completo: nome.trim(), telefone: telefone.trim() || null, curso: curso.trim() })
       await recarregar()
-      setMsg({ tom: 'verde', texto: 'Dados atualizados.' })
+      setMsg({ tom: 'marinho', texto: 'Dados atualizados.' })
     } catch (e) {
       setMsg({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Falha ao salvar.' })
     } finally {
@@ -51,7 +51,7 @@ export function Perfil() {
       setSenhaAtual('')
       setSenha('')
       setSenha2('')
-      setMsgSenha({ tom: 'verde', texto: 'Senha alterada. Os outros aparelhos que estavam conectados saíram.' })
+      setMsgSenha({ tom: 'marinho', texto: 'Senha alterada. Os outros aparelhos que estavam conectados saíram.' })
       await recarregar()
     } catch (e) {
       setMsgSenha({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Falha ao alterar a senha.' })
@@ -67,7 +67,7 @@ export function Perfil() {
       <AppBar titulo="Meus dados" subtitulo={perfil.papel === 'professor' ? 'Professor' : 'Estudante'} />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-24">
         {perfil.precisa_trocar_senha ? (
-          <Alerta tom="ambar" titulo="Sua senha ainda é a inicial">
+          <Alerta tom="dourado" titulo="Sua senha ainda é a inicial">
             Ela é igual ao seu e-mail. Escolha uma senha nova no cartão “Alterar senha”, abaixo.
           </Alerta>
         ) : null}

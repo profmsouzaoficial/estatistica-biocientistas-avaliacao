@@ -80,11 +80,11 @@ function notaParaSigaNaEscala(
 function estadoDaSubmissao(item: SubmissaoDoProfessor) {
   const { submissao: s, correcao: c, lancamento: l } = item
   if (!s) return { texto: 'não enviou', tom: 'neutro' as const }
-  if (l?.sucesso) return { texto: 'no SIGA', tom: 'verde' as const }
+  if (l?.sucesso) return { texto: 'no SIGA', tom: 'marinho' as const }
   if (s.status === 'devolvida') return { texto: 'devolvida', tom: 'vermelho' as const }
   if (!c) return { texto: 'a corrigir', tom: 'azul' as const }
-  if (c.decisao === 'pendente') return { texto: 'a revisar', tom: 'ambar' as const }
-  return { texto: 'a lançar', tom: 'verde' as const }
+  if (c.decisao === 'pendente') return { texto: 'a revisar', tom: 'dourado' as const }
+  return { texto: 'a lançar', tom: 'marinho' as const }
 }
 
 // ---------------------------------------------------------------------------
@@ -488,17 +488,17 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
       <AppBar titulo={avaliacao.titulo} subtitulo={`${avaliacao.valor_total} pontos · ${avaliacao.rubrica.length} critérios`} />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-28">
         <div className="flex items-center justify-between">
-          <Link href="/" className="text-[13px] text-tinta-suave hover:text-verde">
+          <Link href="/" className="text-[13px] text-tinta-suave hover:text-marinho">
             ← Painel
           </Link>
-          <button onClick={exportarCsv} className="alvo-toque gap-1 text-[13px] text-verde">
+          <button onClick={exportarCsv} className="alvo-toque gap-1 text-[13px] text-marinho">
             <Download className="size-3.5" aria-hidden /> CSV
           </button>
         </div>
 
         <Cartao className="flex flex-wrap items-center justify-between gap-2 py-2.5">
           <div className="flex items-center gap-2">
-            <Selo tom={avaliacao.status === 'publicada' ? 'verde' : avaliacao.status === 'encerrada' ? 'neutro' : 'ambar'}>
+            <Selo tom={avaliacao.status === 'publicada' ? 'marinho' : avaliacao.status === 'encerrada' ? 'neutro' : 'dourado'}>
               {avaliacao.status === 'publicada' ? 'recebendo entregas' : avaliacao.status === 'encerrada' ? 'entregas encerradas' : 'rascunho'}
             </Selo>
             <span className="text-[12.5px] text-tinta-suave">
@@ -523,7 +523,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               type="button"
               onClick={() => mudarStatus('publicada')}
               disabled={ocupado === 'status'}
-              className="inline-flex items-center gap-1 rounded-lg border border-verde/30 px-2.5 py-1 text-[12.5px] font-medium text-verde disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-lg border border-marinho/30 px-2.5 py-1 text-[12.5px] font-medium text-marinho disabled:opacity-50"
             >
               {avaliacao.status === 'encerrada' ? <Unlock className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
               {avaliacao.status === 'encerrada' ? 'Reabrir entregas' : 'Publicar para os alunos'}
@@ -597,7 +597,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             </div>
           )}
           {prazoPendente ? (
-            <Alerta tom="ambar" titulo="Confirme a mudança de prazo">
+            <Alerta tom="dourado" titulo="Confirme a mudança de prazo">
               <p>{prazoPendente.aviso}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Botao
@@ -632,7 +632,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           </Cartao>
         ) : null}
 
-        {resultado ? <Alerta tom="verde">{resultado}</Alerta> : null}
+        {resultado ? <Alerta tom="marinho">{resultado}</Alerta> : null}
         {erro ? <Alerta tom="vermelho">{erro}</Alerta> : null}
 
         <div className="grid grid-cols-3 gap-2.5">
@@ -649,7 +649,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                 da turma entregaram
               </p>
               {faltam.length === 0 ? (
-                <span className="rounded-lg bg-verde-claro px-2 py-1 text-[11.5px] font-medium text-verde-escuro">
+                <span className="rounded-lg bg-marinho-claro px-2 py-1 text-[11.5px] font-medium text-marinho-escuro">
                   todos entregaram
                 </span>
               ) : null}
@@ -699,7 +699,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
         </div>
 
         {confirmandoLancamento ? (
-          <Alerta tom="ambar" titulo={`Confirmar ${aLancar.length} lançamento(s)?`}>
+          <Alerta tom="dourado" titulo={`Confirmar ${aLancar.length} lançamento(s)?`}>
             <p className="text-[13.5px] leading-snug">
               Vai gravar <strong>{aLancar.length} nota(s)</strong> em{' '}
               <strong>{avaliacao.descricao_siga ?? 'avaliação sem descrição no SIGA'}</strong>
@@ -759,7 +759,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               SIGA: <strong className="font-medium text-tinta">{avaliacao.descricao_siga}</strong> · peso{' '}
               {avaliacao.peso_siga}
               {pesoDivergente ? (
-                <span className="text-ambar"> (no SIGA: {formatarPontos(pesoDivergente.pesoSiga)})</span>
+                <span className="text-dourado"> (no SIGA: {formatarPontos(pesoDivergente.pesoSiga)})</span>
               ) : null}{' '}
               ·{' '}
               {escalaSiga === 'pontos'
@@ -768,13 +768,13 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             </p>
             <Link
               href={`/prof/avaliacoes/${avaliacao.id}/historico`}
-              className="alvo-toque -mx-1 inline-flex items-center gap-1.5 rounded-lg px-1 text-[13px] font-medium text-verde underline-offset-2 hover:underline"
+              className="alvo-toque -mx-1 inline-flex items-center gap-1.5 rounded-lg px-1 text-[13px] font-medium text-marinho underline-offset-2 hover:underline"
             >
               <History className="size-4" aria-hidden />
               Histórico de lançamentos
             </Link>
             {pesoDivergente ? (
-              <Alerta tom="ambar" titulo="O peso aqui não é o peso do SIGA">
+              <Alerta tom="dourado" titulo="O peso aqui não é o peso do SIGA">
                 <p className="text-[13.5px] leading-snug">
                   No SIGA, <strong>{avaliacao.descricao_siga}</strong> vale{' '}
                   <strong>{formatarPontos(pesoDivergente.pesoSiga)} pontos</strong>; aqui a avaliação está
@@ -807,7 +807,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
               </Alerta>
             ) : null}
             {sigaTem === false ? (
-              <Alerta tom="ambar" titulo="Esta avaliação ainda não existe no SIGA">
+              <Alerta tom="dourado" titulo="Esta avaliação ainda não existe no SIGA">
                 <p className="text-[13.5px] leading-snug">
                   Sem ela, o SIGA recusa as notas. Será criada em{' '}
                   <strong>{turma?.codigo_siga ?? 'turma'}</strong> com a descrição{' '}
@@ -839,7 +839,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
             ) : null}
           </div>
         ) : (
-          <Alerta tom="ambar">
+          <Alerta tom="dourado">
             Esta avaliação não tem descrição do SIGA configurada. Preencha na criação para poder lançar as notas.
           </Alerta>
         )}
@@ -847,7 +847,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
         {avaliacao.descricao_siga && turma ? (
           <Cartao>
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-[12px] font-semibold uppercase tracking-wide text-verde">O que já está no SIGA</p>
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-marinho">O que já está no SIGA</p>
               {lidoEm ? (
                 <span className="shrink-0 text-[11.5px] text-tinta-fraca">
                   lido às {lidoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -888,15 +888,15 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                         </p>
                       </div>
                       {l.situacao === 'igual' ? (
-                        <Selo tom="verde">
+                        <Selo tom="marinho">
                           <CheckCircle2 className="size-3.5" aria-hidden /> confere
                         </Selo>
                       ) : l.situacao === 'diferente' ? (
-                        <Selo tom="ambar">diverge</Selo>
+                        <Selo tom="dourado">diverge</Selo>
                       ) : l.situacao === 'sumiu' ? (
                         <Selo tom="vermelho">não chegou</Selo>
                       ) : l.situacao === 'so_no_siga' ? (
-                        <Selo tom="ambar">só no SIGA</Selo>
+                        <Selo tom="dourado">só no SIGA</Selo>
                       ) : (
                         <Selo tom="neutro">a lançar</Selo>
                       )}
@@ -937,7 +937,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
                     <p className="text-[12.5px] text-tinta-suave">
                       {item.aluno.matricula} · enviada {item.submissao.enviado_em ? formatarDataHora(item.submissao.enviado_em) : '—'}
                       {atrasoDeEntrega(item.submissao.enviado_em, avaliacao.prazo_em) ? (
-                        <span className="font-medium text-ambar"> · fora do prazo</span>
+                        <span className="font-medium text-dourado"> · fora do prazo</span>
                       ) : null}
                     </p>
                   </div>
@@ -971,7 +971,7 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
           {erroExclusao ? <Alerta tom="vermelho">{erroExclusao}</Alerta> : null}
 
           {itens.length > 0 ? (
-            <Alerta tom="ambar">
+            <Alerta tom="dourado">
               Há {plural(itens.length, 'redação enviada', 'redações enviadas')} — a avaliação não pode ser
               excluída.
             </Alerta>
@@ -1197,23 +1197,23 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-32">
         <button
           onClick={voltar}
-          className="alvo-toque -ml-1 justify-start px-1 text-[13px] text-tinta-suave hover:text-verde"
+          className="alvo-toque -ml-1 justify-start px-1 text-[13px] text-tinta-suave hover:text-marinho"
         >
           ← Voltar para a lista
         </button>
 
         {erro ? <Alerta tom="vermelho">{erro}</Alerta> : null}
-        {aviso ? <Alerta tom="verde">{aviso}</Alerta> : null}
+        {aviso ? <Alerta tom="marinho">{aviso}</Alerta> : null}
         {atrasoDeEntrega(item.submissao.enviado_em, avaliacao?.prazo_em) ? (
-          <Alerta tom="ambar" titulo="Entregue fora do prazo">
+          <Alerta tom="dourado" titulo="Entregue fora do prazo">
             Enviada em {formatarDataHora(item.submissao.enviado_em)}
             {avaliacao?.prazo_em ? `, depois do prazo de ${formatarDataHora(avaliacao.prazo_em)}` : ''}. A nota não
             muda por isso — o aviso serve para você decidir.
           </Alerta>
         ) : null}
-        {pronto && aprovada ? <Alerta tom="verde">Revisão salva. A devolutiva já aparece para o aluno.</Alerta> : null}
+        {pronto && aprovada ? <Alerta tom="marinho">Revisão salva. A devolutiva já aparece para o aluno.</Alerta> : null}
         {lancada ? (
-          <Alerta tom="verde" titulo="Lançada no SIGA">
+          <Alerta tom="marinho" titulo="Lançada no SIGA">
             Nota {formatarNota(item.lancamento!.nota)} registrada em {formatarDataHora(item.lancamento!.criado_em)}.
           </Alerta>
         ) : null}
@@ -1280,7 +1280,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
               </p>
               <button
                 onClick={() => abrirFoto(item.submissao.foto_path)}
-                className="alvo-toque mt-1 text-[13px] font-medium text-verde underline underline-offset-2"
+                className="alvo-toque mt-1 text-[13px] font-medium text-marinho underline underline-offset-2"
               >
                 Tentar de novo
               </button>
@@ -1290,7 +1290,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
 
         {!item.correcao ? (
           <>
-            <Alerta tom="ambar" titulo="Ainda sem correção da IA">
+            <Alerta tom="dourado" titulo="Ainda sem correção da IA">
               Gere a correção pela lista da avaliação — ou atribua as notas você mesmo, critério por
               critério, e aprove.
             </Alerta>
@@ -1351,7 +1351,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                       </div>
                       <p className="mt-1 text-[12.5px] leading-snug text-tinta-suave">{c.justificativa}</p>
                       {c.citacao_conferida === false ? (
-                        <p className="mt-1 text-[11.5px] font-medium text-ambar">
+                        <p className="mt-1 text-[11.5px] font-medium text-dourado">
                           A citação entre aspas não aparece na transcrição — confira antes de aprovar.
                         </p>
                       ) : null}
@@ -1363,7 +1363,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Cartao>
-                <label className="block text-[12px] font-semibold uppercase tracking-wide text-verde" htmlFor="fortes">
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-marinho" htmlFor="fortes">
                   Pontos fortes
                 </label>
                 <textarea
@@ -1376,7 +1376,7 @@ export function ProfessorRevisao({ avaliacaoId, submissaoId }: { avaliacaoId: st
                 <p className="mt-1 text-[11.5px] text-tinta-fraca">Um item por linha.</p>
               </Cartao>
               <Cartao>
-                <label className="block text-[12px] font-semibold uppercase tracking-wide text-ambar" htmlFor="desenvolver">
+                <label className="block text-[12px] font-semibold uppercase tracking-wide text-dourado" htmlFor="desenvolver">
                   A desenvolver
                 </label>
                 <textarea

@@ -60,15 +60,15 @@ export function ProfessorInicio() {
 
         <div className="grid grid-cols-3 gap-2.5">
           <Indicador rotulo="A corrigir" valor={aguardandoCorrecao} tom="azul" />
-          <Indicador rotulo="A revisar" valor={pendentesRevisao} tom="ambar" />
-          <Indicador rotulo="A lançar" valor={paraLancar} tom="verde" />
+          <Indicador rotulo="A revisar" valor={pendentesRevisao} tom="dourado" />
+          <Indicador rotulo="A lançar" valor={paraLancar} tom="marinho" />
         </div>
 
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-[17px] text-tinta">Avaliações</h2>
           <Link
             href="/prof/avaliacoes/nova"
-            className="inline-flex items-center gap-1 rounded-lg bg-verde px-3 py-1.5 text-[13px] font-medium text-white"
+            className="inline-flex items-center gap-1 rounded-lg bg-marinho px-3 py-1.5 text-[13px] font-medium text-white"
           >
             <Plus className="size-3.5" aria-hidden /> Nova
           </Link>
@@ -94,7 +94,7 @@ export function ProfessorInicio() {
                 <Cartao className="transition-colors active:bg-papel-fundo">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-serif text-[16px] leading-snug text-tinta">{a.titulo}</h3>
-                    <Selo tom={a.status === 'publicada' ? 'verde' : a.status === 'encerrada' ? 'neutro' : 'ambar'}>
+                    <Selo tom={a.status === 'publicada' ? 'marinho' : a.status === 'encerrada' ? 'neutro' : 'dourado'}>
                       {a.status === 'publicada' ? 'publicada' : a.status === 'encerrada' ? 'encerrada' : 'rascunho'}
                     </Selo>
                   </div>
@@ -225,7 +225,7 @@ function PrimeirosPassos({
   if (pendentes.length === 0) return null
 
   return (
-    <Cartao className="border-verde/25 bg-verde-claro/40">
+    <Cartao className="border-marinho/25 bg-marinho-claro/40">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-serif text-[16px] text-tinta">Para começar</h2>
         <span className="text-[12px] text-tinta-suave">
@@ -236,7 +236,7 @@ function PrimeirosPassos({
         {itens.map((i) => (
           <li key={i.titulo} className="flex items-start gap-2.5">
             {i.pronto ? (
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-verde" aria-hidden />
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-marinho" aria-hidden />
             ) : i.verificar ? (
               <span className="mt-[3px] size-4 shrink-0 animate-pulse rounded-full border border-tinta-fraca/40" />
             ) : (
@@ -252,7 +252,7 @@ function PrimeirosPassos({
               <button
                 type="button"
                 onClick={() => navegar(i.acao!.destino)}
-                className="shrink-0 rounded-lg border border-verde/30 px-2.5 py-1 text-[12px] font-medium text-verde"
+                className="shrink-0 rounded-lg border border-marinho/30 px-2.5 py-1 text-[12px] font-medium text-marinho"
               >
                 {i.acao.rotulo}
               </button>
@@ -264,8 +264,8 @@ function PrimeirosPassos({
   )
 }
 
-function Indicador({ rotulo, valor, tom }: { rotulo: string; valor: number; tom: 'azul' | 'ambar' | 'verde' }) {
-  const cor = tom === 'azul' ? 'text-azul' : tom === 'ambar' ? 'text-ambar' : 'text-verde'
+function Indicador({ rotulo, valor, tom }: { rotulo: string; valor: number; tom: 'azul' | 'dourado' | 'marinho' }) {
+  const cor = tom === 'azul' ? 'text-azul' : tom === 'dourado' ? 'text-dourado' : 'text-marinho'
   return (
     <div className="cartao px-3 py-2.5">
       <p className="text-[11.5px] uppercase tracking-wide text-tinta-fraca">{rotulo}</p>
@@ -523,12 +523,12 @@ export function ProfessorNovaAvaliacao() {
     <>
       <AppBar titulo="Nova avaliação" subtitulo="Redação com correção por rubrica" />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-28">
-        <Link href="/" className="text-[13px] text-tinta-suave hover:text-verde">
+        <Link href="/" className="text-[13px] text-tinta-suave hover:text-marinho">
           ← Painel
         </Link>
 
         {turmas.length === 0 ? (
-          <Alerta tom="ambar" titulo="Nenhuma turma cadastrada">
+          <Alerta tom="dourado" titulo="Nenhuma turma cadastrada">
             Cadastre a turma e importe a lista de alunos antes de criar a avaliação.{' '}
             <Link href="/prof/alunos" className="font-medium underline">
               Ir para turmas
@@ -613,7 +613,7 @@ export function ProfessorNovaAvaliacao() {
           <Cartao>
             <div className="flex items-center justify-between">
               <h2 className="font-serif text-[16px] text-tinta">Rubrica</h2>
-              <span className={`text-[12.5px] font-medium ${somaOk ? 'text-verde' : 'text-vermelho'}`}>
+              <span className={`text-[12.5px] font-medium ${somaOk ? 'text-marinho' : 'text-vermelho'}`}>
                 {soma} / {total} pts
               </span>
             </div>
@@ -724,7 +724,7 @@ export function ProfessorNovaAvaliacao() {
                           type="button"
                           onClick={() => escolherSiga(a)}
                           className={`w-full rounded-lg border px-3 py-2 text-left transition-colors ${
-                            ativa ? 'border-verde bg-verde/5' : 'border-borda bg-white hover:border-verde/40'
+                            ativa ? 'border-marinho bg-marinho/5' : 'border-borda bg-white hover:border-marinho/40'
                           }`}
                         >
                           <span className="block text-[13.5px] font-medium text-tinta">{a.descricao}</span>
@@ -746,12 +746,12 @@ export function ProfessorNovaAvaliacao() {
               dica="É o campo descricao_avaliacao da API do SIGA; precisa ser idêntico ao nome da TVC."
             />
             {descricaoSiga.trim() && opcoesSiga.length > 0 && sigaConfere ? (
-              <p className="text-[12.5px] leading-snug text-verde">
+              <p className="text-[12.5px] leading-snug text-marinho">
                 Essa avaliação já existe no SIGA — as notas serão lançadas nela, sem criar outra.
               </p>
             ) : null}
             {descricaoSiga.trim() && opcoesSiga.length > 0 && !sigaConfere ? (
-              <p className="text-[12.5px] leading-snug text-ambar">
+              <p className="text-[12.5px] leading-snug text-dourado">
                 Essa descrição não aparece na lista do SIGA. Se for uma TVC nova, marque a opção abaixo para criá-la
                 agora — ou confira maiúsculas, acentos e o número.
               </p>
@@ -762,7 +762,7 @@ export function ProfessorNovaAvaliacao() {
                   type="checkbox"
                   checked={criarNoSiga}
                   onChange={(e) => setCriarNoSiga(e.target.checked)}
-                  className="mt-0.5 size-5 accent-verde"
+                  className="mt-0.5 size-5 accent-marinho"
                 />
                 <span className="text-[13px] leading-snug text-tinta">
                   <strong>Criar esta avaliação no SIGA agora.</strong> O app usa a descrição, o peso e a data acima.
@@ -813,7 +813,7 @@ export function ProfessorNovaAvaliacao() {
               type="checkbox"
               checked={publicar}
               onChange={(e) => setPublicar(e.target.checked)}
-              className="mt-0.5 size-5 accent-verde"
+              className="mt-0.5 size-5 accent-marinho"
             />
             <span className="text-[13.5px] leading-snug text-tinta">
               Publicar agora para os alunos. Se desmarcar, fica como rascunho — só você vê.

@@ -129,7 +129,7 @@ export function AlunoEnvio({ id }: { id: string }) {
     <>
       <AppBar titulo="Enviar redação" subtitulo={avaliacao.titulo} />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-28">
-        <Link href={`/avaliacoes/${id}`} className="text-[13px] text-tinta-suave hover:text-verde">
+        <Link href={`/avaliacoes/${id}`} className="text-[13px] text-tinta-suave hover:text-marinho">
           ← Voltar para a avaliação
         </Link>
 
@@ -141,7 +141,7 @@ export function AlunoEnvio({ id }: { id: string }) {
 
         {etapa === 'enviado' ? (
           <Cartao className="text-center">
-            <CheckCircle2 className="mx-auto size-10 text-verde" aria-hidden />
+            <CheckCircle2 className="mx-auto size-10 text-marinho" aria-hidden />
             <h2 className="mt-3 font-serif text-[20px] text-tinta">Redação enviada</h2>
             <p className="mx-auto mt-1.5 max-w-sm text-[14px] leading-snug text-tinta-suave">
               Sua entrega foi registrada. A correção entra na fila e a devolutiva aparece aqui assim que o professor
@@ -192,7 +192,7 @@ export function AlunoEnvio({ id }: { id: string }) {
               </div>
             </div>
 
-            {aviso ? <Alerta tom="ambar">{aviso}</Alerta> : null}
+            {aviso ? <Alerta tom="dourado">{aviso}</Alerta> : null}
 
             <AreaTexto
               rotulo="Texto da sua redação"
@@ -207,7 +207,7 @@ export function AlunoEnvio({ id }: { id: string }) {
                 type="checkbox"
                 checked={confirmado}
                 onChange={(e) => setConfirmado(e.target.checked)}
-                className="mt-0.5 size-5 shrink-0 accent-verde"
+                className="mt-0.5 size-5 shrink-0 accent-marinho"
               />
               <span className="text-[13.5px] leading-snug text-tinta">
                 Confirmo que este texto corresponde à minha redação manuscrita e que não há trechos de outra pessoa.

@@ -18,7 +18,7 @@ export function ProfessorAlunos() {
   const [previa, setPrevia] = useState<ReturnType<typeof interpretarCsv> | null>(null)
   /** Aviso sobre o arquivo lido (planilha do Excel, codificação do CSV). */
   const [avisoArquivo, setAvisoArquivo] = useState<string | null>(null)
-  const [msg, setMsg] = useState<{ tom: 'verde' | 'vermelho' | 'ambar'; texto: string } | null>(null)
+  const [msg, setMsg] = useState<{ tom: 'marinho' | 'vermelho' | 'dourado'; texto: string } | null>(null)
   const [ocupado, setOcupado] = useState(false)
   // A caixa de e-mail é otimista: o clique muda a tela na hora e volta atrás
   // se o banco recusar. Sem isso, o React re-renderiza com o valor antigo e a
@@ -76,7 +76,7 @@ export function ProfessorAlunos() {
       setExigindoLocal(null)
       setPrevia(null)
       setMsg({
-        tom: 'verde',
+        tom: 'marinho',
         texto: exige
           ? 'A lista volta a exigir o e-mail de cada aluno.'
           : 'Agora a lista pode vir só com matrícula e nome: no cadastro, o aluno informa o próprio e-mail.',
@@ -100,7 +100,7 @@ export function ProfessorAlunos() {
       const r = await d.importarAlunos(turmaId, p.linhas)
       await carregarAlunos(turmaId)
       setMsg({
-        tom: 'verde',
+        tom: 'marinho',
         texto: `${plural(r.inseridos, 'aluno incluído', 'alunos incluídos')}, ${plural(r.atualizados, 'atualizado', 'atualizados')}.`,
       })
       setTexto('')
@@ -152,7 +152,7 @@ export function ProfessorAlunos() {
       setRemovendo(false)
       setResumo(null)
       setMsg({
-        tom: 'verde',
+        tom: 'marinho',
         texto:
           `Turma ${turma.codigo_siga} removida, com ${plural(r.alunos, 'aluno', 'alunos')} e ` +
           `${plural(r.avaliacoes, 'avaliação', 'avaliações')}` +
@@ -177,7 +177,7 @@ export function ProfessorAlunos() {
       setTurmaId(t.id)
       setMostrarNovaTurma(false)
       setNovaTurma({ nome: '', codigo_siga: '', periodo: '2026/3', curso: 'Ciências Biológicas' })
-      setMsg({ tom: 'verde', texto: 'Turma criada. Agora importe a lista de alunos.' })
+      setMsg({ tom: 'marinho', texto: 'Turma criada. Agora importe a lista de alunos.' })
     } catch (e) {
       setMsg({ tom: 'vermelho', texto: e instanceof Error ? e.message : 'Falha ao criar a turma.' })
     } finally {
@@ -189,7 +189,7 @@ export function ProfessorAlunos() {
     <>
       <AppBar titulo="Turmas e alunos" subtitulo="A lista é a chave do cadastro e da matrícula no SIGA" />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-24">
-        <Link href="/" className="text-[13px] text-tinta-suave hover:text-verde">
+        <Link href="/" className="text-[13px] text-tinta-suave hover:text-marinho">
           ← Painel
         </Link>
 
@@ -200,7 +200,7 @@ export function ProfessorAlunos() {
         ) : (
           <>
             {turmas.length === 0 ? (
-              <Alerta tom="ambar" titulo="Comece pela turma">
+              <Alerta tom="dourado" titulo="Comece pela turma">
                 Crie a turma com o código do SIGA (ex.: CBV018GV-A) e o período (ex.: 2026/3).
               </Alerta>
             ) : (
@@ -225,7 +225,7 @@ export function ProfessorAlunos() {
                   <label className="mt-1 flex items-start gap-2.5 rounded-xl bg-papel-fundo px-3 py-2.5">
                     <input
                       type="checkbox"
-                      className="mt-0.5 size-4 accent-[var(--color-verde)]"
+                      className="mt-0.5 size-4 accent-[var(--color-marinho)]"
                       checked={exigirEmail}
                       disabled={ocupado}
                       onChange={(e) => alternarExigenciaDeEmail(e.target.checked)}
@@ -403,7 +403,7 @@ export function ProfessorAlunos() {
                   />
 
                   {avisoArquivo ? (
-                    <div className="mt-3 rounded-xl bg-ambar-claro px-3 py-2.5 text-[13px] leading-snug text-tinta">
+                    <div className="mt-3 rounded-xl bg-dourado-claro px-3 py-2.5 text-[13px] leading-snug text-tinta">
                       {avisoArquivo}
                     </div>
                   ) : null}
@@ -441,7 +441,7 @@ export function ProfessorAlunos() {
                           </p>
                         </div>
                         {a.user_id ? (
-                          <Selo tom="verde">
+                          <Selo tom="marinho">
                             <CheckCircle2 className="size-3" aria-hidden /> conta criada
                           </Selo>
                         ) : (

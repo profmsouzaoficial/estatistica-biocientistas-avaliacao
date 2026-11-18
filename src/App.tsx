@@ -156,7 +156,7 @@ function BarraInferior({ papel }: { papel: 'aluno' | 'professor' }) {
               key={href}
               href={href}
               className={`flex min-w-16 flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] ${
-                ativo ? 'text-verde' : 'text-tinta-fraca'
+                ativo ? 'text-marinho' : 'text-tinta-fraca'
               }`}
             >
               <Icone className="size-5" aria-hidden />
@@ -174,7 +174,7 @@ function NaoEncontrado() {
     <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-3 px-6 text-center">
       <p className="font-serif text-[22px] text-tinta">Página não encontrada</p>
       <p className="text-[14px] text-tinta-suave">O endereço mudou ou não existe.</p>
-      <Link href="/" className="text-[14px] font-medium text-verde underline-offset-2 hover:underline">
+      <Link href="/" className="text-[14px] font-medium text-marinho underline-offset-2 hover:underline">
         Voltar ao início
       </Link>
     </div>

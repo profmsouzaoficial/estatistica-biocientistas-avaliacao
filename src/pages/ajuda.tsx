@@ -15,13 +15,13 @@ export function Ajuda() {
     <>
       <AppBar titulo="Como enviar sua redação" subtitulo="Passo a passo, do cadastro à devolutiva" />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-16">
-        <Link href="/" className="inline-flex items-center gap-1 text-[13px] text-tinta-suave hover:text-verde">
+        <Link href="/" className="inline-flex items-center gap-1 text-[13px] text-tinta-suave hover:text-marinho">
           <ArrowLeft className="size-3.5" aria-hidden /> Voltar
         </Link>
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
-            <UserPlus className="size-4 text-verde" aria-hidden /> 1. Criar a conta
+            <UserPlus className="size-4 text-marinho" aria-hidden /> 1. Criar a conta
           </h2>
           <p className="texto-corrido">
             Use o <strong>e-mail</strong> e a <strong>matrícula</strong> que estão na lista da turma. Se a
@@ -39,7 +39,7 @@ export function Ajuda() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
-            <Camera className="size-4 text-verde" aria-hidden /> 2. Fotografar a folha
+            <Camera className="size-4 text-marinho" aria-hidden /> 2. Fotografar a folha
           </h2>
           <ul className="space-y-2 text-[14px] leading-relaxed text-tinta-suave">
             <li>
@@ -64,7 +64,7 @@ export function Ajuda() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
-            <Keyboard className="size-4 text-verde" aria-hidden /> 3. Conferir a transcrição
+            <Keyboard className="size-4 text-marinho" aria-hidden /> 3. Conferir a transcrição
           </h2>
           <p className="texto-corrido">
             O app lê a letra e mostra o texto. A correção usa <strong>esse texto</strong>, não a foto — então
@@ -79,7 +79,7 @@ export function Ajuda() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
-            <Send className="size-4 text-verde" aria-hidden /> 4. Enviar
+            <Send className="size-4 text-marinho" aria-hidden /> 4. Enviar
           </h2>
           <p className="texto-corrido">
             Marque a caixa de confirmação e toque em <strong>Enviar redação</strong>. Depois do envio, o texto
@@ -89,7 +89,7 @@ export function Ajuda() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
-            <Clock className="size-4 text-verde" aria-hidden /> 5. Prazo e devolutiva
+            <Clock className="size-4 text-marinho" aria-hidden /> 5. Prazo e devolutiva
           </h2>
           <p className="texto-corrido">
             O prazo aparece na tela da avaliação. Depois que o professor revisar e liberar, a devolutiva fica
@@ -97,7 +97,7 @@ export function Ajuda() {
           </p>
           <ul className="space-y-1.5 text-[14px] leading-relaxed text-tinta-suave">
             <li>
-              <CheckCircle2 className="mr-1 inline size-3.5 text-verde" aria-hidden /> a nota por critério e a
+              <CheckCircle2 className="mr-1 inline size-3.5 text-marinho" aria-hidden /> a nota por critério e a
               nota final;
             </li>
             <li>os pontos fortes do seu texto;</li>
@@ -111,7 +111,7 @@ export function Ajuda() {
 
         <Cartao className="space-y-3">
           <h2 className="flex items-center gap-1.5 font-serif text-[18px] text-tinta">
-            <HelpCircle className="size-4 text-verde" aria-hidden /> Problemas comuns
+            <HelpCircle className="size-4 text-marinho" aria-hidden /> Problemas comuns
           </h2>
           <dl className="space-y-3 text-[14px] leading-relaxed">
             <div>

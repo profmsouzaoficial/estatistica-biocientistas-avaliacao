@@ -10,11 +10,11 @@ const variantes: Record<Variante, string> = {
   // Desativado continua legível: o rótulo diz o que falta (“Corrigir 0 pendente(s)”)
   // e precisa ser lido. Antes era verde a 50% com texto branco — 1.09:1.
   primario:
-    'bg-verde text-white hover:bg-verde-escuro active:bg-verde-escuro disabled:bg-tinta-fraca/25 disabled:text-tinta-suave',
+    'bg-marinho text-white hover:bg-marinho-escuro active:bg-marinho-escuro disabled:bg-tinta-fraca/25 disabled:text-tinta-suave',
   secundario: 'bg-white text-tinta border border-borda hover:bg-papel-fundo disabled:bg-papel-fundo disabled:text-tinta-fraca',
-  fantasma: 'bg-transparent text-verde hover:bg-verde-claro',
+  fantasma: 'bg-transparent text-marinho hover:bg-marinho-claro',
   perigo: 'bg-vermelho text-white hover:bg-vermelho/90',
-  suave: 'bg-verde-claro text-verde-escuro hover:bg-verde/15',
+  suave: 'bg-marinho-claro text-marinho-escuro hover:bg-marinho/15',
 }
 
 export interface PropsBotao extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -136,12 +136,12 @@ export function Selecao({ rotulo, erro, dica, id, className = '', children, ...r
 
 // ---------------------------------------------------------------------------
 
-type Tom = 'neutro' | 'verde' | 'ambar' | 'vermelho' | 'azul'
+type Tom = 'neutro' | 'marinho' | 'dourado' | 'vermelho' | 'azul'
 
 const tons: Record<Tom, string> = {
   neutro: 'bg-papel-fundo text-tinta-suave border-borda',
-  verde: 'bg-verde-claro text-verde-escuro border-verde/20',
-  ambar: 'bg-ambar-claro text-ambar border-ambar/25',
+  marinho: 'bg-marinho-claro text-marinho-escuro border-marinho/20',
+  dourado: 'bg-dourado-claro text-dourado border-dourado/25',
   vermelho: 'bg-vermelho-claro text-vermelho border-vermelho/20',
   azul: 'bg-azul-claro text-azul border-azul/20',
 }
@@ -160,7 +160,7 @@ export function Selo({ children, tom = 'neutro', className = '' }: { children: R
 
 export function Alerta({
   children,
-  tom = 'ambar',
+  tom = 'dourado',
   titulo,
 }: {
   children?: ReactNode
@@ -189,7 +189,7 @@ export function Carregando({ texto = 'Carregando…' }: { texto?: string }) {
 export function BarraIndeterminada({ children }: { children: ReactNode }) {
   return (
     <div className="space-y-2">
-      <div className="relative h-1.5 overflow-hidden rounded-full bg-verde/15 text-verde barra-indeterminada" />
+      <div className="relative h-1.5 overflow-hidden rounded-full bg-marinho/15 text-marinho barra-indeterminada" />
       <p className="text-center text-[13px] text-tinta-suave">{children}</p>
     </div>
   )
@@ -215,11 +215,26 @@ export function Vazio({
 
 // ---------------------------------------------------------------------------
 
+// O brasão é a âncora visual do app: aparece nas telas de entrada e no topo de
+// todas as telas internas. O PNG tem fundo transparente (recortado do oficial).
+export function BrasaoUFJF({ className = 'h-10', alt = '' }: { className?: string; alt?: string }) {
+  return (
+    <img
+      src="/brasao-ufjf.png"
+      alt={alt}
+      width={320}
+      height={358}
+      className={`w-auto shrink-0 object-contain ${className}`}
+    />
+  )
+}
+
 export function AppBar({ titulo, subtitulo }: { titulo: string; subtitulo?: string }) {
   return (
-    <header className="safe-top sticky top-0 z-20 border-b border-borda bg-papel/85 backdrop-blur">
-      <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
-        <div className="min-w-0">
+    <header className="safe-top sticky top-0 z-20 border-b border-borda bg-papel/90 backdrop-blur">
+      <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-2.5">
+        <BrasaoUFJF className="h-10" />
+        <div className="min-w-0 border-l border-borda pl-3">
           <h1 className="truncate font-serif text-[19px] leading-tight text-tinta">{titulo}</h1>
           {subtitulo ? <p className="truncate text-[12.5px] text-tinta-suave">{subtitulo}</p> : null}
         </div>
@@ -230,7 +245,7 @@ export function AppBar({ titulo, subtitulo }: { titulo: string; subtitulo?: stri
 
 export function BarraVoltar({ href, children }: { href: string; children?: ReactNode }) {
   return (
-    <a href={href} className="inline-flex items-center gap-1 text-[13.5px] font-medium text-tinta-suave hover:text-verde">
+    <a href={href} className="inline-flex items-center gap-1 text-[13.5px] font-medium text-tinta-suave hover:text-marinho">
       <ArrowLeft className="size-4" aria-hidden />
       {children ?? 'Voltar'}
     </a>

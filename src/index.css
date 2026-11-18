@@ -17,26 +17,26 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
 
-  --color-papel: #f7f5ef;
-  --color-papel-fundo: #efece2;
+  /* Paleta tirada do brasão da UFJF (azul-marinho, vermelho e dourado) sobre
+     papel quente. Contraste conferido com `pnpm test:contraste` (WCAG AA):
+     tinta-suave 6.28 e tinta-fraca 4.72 no pior fundo (papel-fundo), branco
+     sobre marinho 11.01, branco sobre vermelho 6.56, dourado sobre dourado-claro 5.31. */
+  --color-papel: #f8f5ec;
+  --color-papel-fundo: #ede7d8;
   --color-cartao: #ffffff;
-  --color-tinta: #16211f;
-  /* Contraste medido com `pnpm test:contraste` (WCAG AA, texto pequeno):
-     tinta-suave 6.30 e tinta-fraca 4.79 no pior fundo do app (papel-fundo).
-     Os valores antigos (#5c6b66 e #8b968f) davam 4.74 e 2.59 — o segundo
-     reprovava em todo fundo, e é usado em legendas de 11–12px. */
-  --color-tinta-suave: #4b5853;
-  --color-tinta-fraca: #616964;
-  --color-borda: #e2ddd1;
-  --color-verde: #0f5f52;
-  --color-verde-escuro: #0a443b;
-  --color-verde-claro: #e8f1ee;
-  --color-ambar: #a74d08;
-  --color-ambar-claro: #fdf3e3;
-  --color-vermelho: #b3261e;
-  --color-vermelho-claro: #fdeceb;
-  --color-azul: #1d4f91;
-  --color-azul-claro: #eaf1f9;
+  --color-tinta: #16233a;
+  --color-tinta-suave: #46536b;
+  --color-tinta-fraca: #5a6678;
+  --color-borda: #ddd6c6;
+  --color-marinho: #123e66;
+  --color-marinho-escuro: #0b2c4a;
+  --color-marinho-claro: #e8eff5;
+  --color-dourado: #8a5a00;
+  --color-dourado-claro: #fbf2da;
+  --color-vermelho: #b02a23;
+  --color-vermelho-claro: #fbeae8;
+  --color-azul: #2e6491;
+  --color-azul-claro: #eaf2f8;
 }
 
 @layer base {
@@ -62,15 +62,16 @@
     font-size: 16px;
   }
   ::selection {
-    background: #cfe3dc;
+    background: #f3dfae;
+    color: var(--color-tinta);
   }
 }
 
 @layer components {
   .campo {
     @apply w-full rounded-xl border border-borda bg-white px-3.5 py-2.5 text-tinta
-           placeholder:text-tinta-fraca focus:border-verde focus:outline-none
-           focus:ring-2 focus:ring-verde/20;
+           placeholder:text-tinta-fraca focus:border-marinho focus:outline-none
+           focus:ring-2 focus:ring-marinho/20;
   }
   .rotulo {
     @apply mb-1.5 block text-sm font-medium text-tinta;

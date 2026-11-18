@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { AlertCircle, ArrowRight, BookOpen, KeyRound, Mail } from 'lucide-react'
+import { AlertCircle, ArrowRight, KeyRound, Mail } from 'lucide-react'
 import { usarSessao } from '../lib/sessao'
 import { limparAvisoDoLink, lerAvisoDoLink, type ErroDoLink } from '../lib/linkRecuperacao'
 import { usarRota } from '../lib/router'
 import { Link } from '../lib/router'
-import { Alerta, Botao, Campo, Selecao } from '../components/ui'
+import { Alerta, Botao, BrasaoUFJF, Campo, Selecao } from '../components/ui'
 import type { Turma } from '../lib/types'
 import type { ConsultaMatricula, MotivoValidacao } from '../lib/dados'
 
@@ -16,9 +16,8 @@ export function MolduraAuth({ children, rodape }: { children: ReactNode; rodape?
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-7 text-center">
-        <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-verde text-white shadow-sm">
-          <BookOpen className="size-6" aria-hidden />
-        </div>
+        <BrasaoUFJF className="mx-auto mb-2 h-24 drop-shadow-sm" alt="Brasão da Universidade Federal de Juiz de Fora" />
+        <div className="mx-auto mb-3 h-0.5 w-10 rounded-full bg-dourado/70" aria-hidden />
         <h1 className="font-serif text-[24px] leading-tight text-tinta">Avaliações</h1>
         <p className="mt-1 text-[13.5px] text-tinta-suave">Análise de Dados para Biocientistas · UFJF/GV</p>
       </div>
@@ -74,7 +73,7 @@ export function Entrar() {
         <div className="space-y-2 text-center text-[14px]">
           <p className="text-tinta-suave">
             Primeira vez aqui?{' '}
-            <Link href="/cadastrar" className="font-medium text-verde underline-offset-2 hover:underline">
+            <Link href="/cadastrar" className="font-medium text-marinho underline-offset-2 hover:underline">
               Criar conta
             </Link>
           </p>
@@ -269,7 +268,7 @@ export function Cadastrar() {
       rodape={
         <p className="text-center text-[14px] text-tinta-suave">
           Já tem conta?{' '}
-          <Link href="/entrar" className="font-medium text-verde underline-offset-2 hover:underline">
+          <Link href="/entrar" className="font-medium text-marinho underline-offset-2 hover:underline">
             Entrar
           </Link>
         </p>
@@ -319,7 +318,7 @@ export function Cadastrar() {
         {erroConsulta ? <Alerta tom="vermelho">{erroConsulta}</Alerta> : null}
 
         {jaTemConta ? (
-          <Alerta tom="ambar">
+          <Alerta tom="dourado">
             <p className="font-medium">Esta matrícula já tem conta.</p>
             <p className="mt-1">
               Entre com o e-mail institucional
@@ -333,7 +332,7 @@ export function Cadastrar() {
             </p>
             <Link
               href="/entrar"
-              className="mt-2 inline-flex items-center gap-1 font-medium text-verde underline-offset-2 hover:underline"
+              className="mt-2 inline-flex items-center gap-1 font-medium text-marinho underline-offset-2 hover:underline"
             >
               Ir para entrar
             </Link>
@@ -341,7 +340,7 @@ export function Cadastrar() {
         ) : null}
 
         {podeCriar ? (
-          <Alerta tom="verde">
+          <Alerta tom="marinho">
             Matrícula encontrada na lista da turma. Confira seus dados e defina a senha.
           </Alerta>
         ) : null}
@@ -407,7 +406,7 @@ export function Cadastrar() {
             <label className="flex items-start gap-2.5 rounded-xl bg-papel-fundo px-3 py-2.5">
               <input
                 type="checkbox"
-                className="mt-0.5 size-4 shrink-0 accent-[var(--color-verde)]"
+                className="mt-0.5 size-4 shrink-0 accent-[var(--color-marinho)]"
                 checked={consentiu}
                 onChange={(e) => setConsentiu(e.target.checked)}
               />
@@ -417,7 +416,7 @@ export function Cadastrar() {
                   href="/privacidade"
                   target="_blank"
                   rel="noreferrer"
-                  className="font-medium text-verde underline-offset-2 hover:underline"
+                  className="font-medium text-marinho underline-offset-2 hover:underline"
                 >
                   aviso de privacidade
                 </a>{' '}
@@ -435,7 +434,7 @@ export function Cadastrar() {
             <span>{erro}</span>
           </div>
         ) : null}
-        {aviso ? <Alerta tom="verde">{aviso}</Alerta> : null}
+        {aviso ? <Alerta tom="marinho">{aviso}</Alerta> : null}
 
         {!jaTemConta ? (
           <Botao type="submit" largo carregando={enviando} disabled={!consentiu || !podeCriar}>
@@ -482,14 +481,14 @@ export function Recuperar() {
     <MolduraAuth
       rodape={
         <p className="text-center text-[14px]">
-          <Link href="/entrar" className="text-verde underline-offset-2 hover:underline">
+          <Link href="/entrar" className="text-marinho underline-offset-2 hover:underline">
             Voltar para o login
           </Link>
         </p>
       }
     >
       {enviado ? (
-        <Alerta tom="verde" titulo="Link enviado">
+        <Alerta tom="marinho" titulo="Link enviado">
           Se existir uma conta com <strong>{email}</strong>, o e-mail de recuperação chega em instantes. Confira também a
           caixa de spam.
         </Alerta>
@@ -554,7 +553,7 @@ export function Redefinir() {
   if (pronto) {
     return (
       <MolduraAuth>
-        <Alerta tom="verde" titulo="Senha alterada">
+        <Alerta tom="marinho" titulo="Senha alterada">
           Tudo certo. Estamos abrindo o aplicativo…
         </Alerta>
       </MolduraAuth>
@@ -571,7 +570,7 @@ export function Redefinir() {
           <Alerta tom="vermelho" titulo="Abra o link do e-mail">
             Para definir uma nova senha, use o link que enviamos para o seu e-mail. Se ele expirou, peça outro.
           </Alerta>
-          <Link href="/recuperar" className="block text-center text-[14px] text-verde underline-offset-2 hover:underline">
+          <Link href="/recuperar" className="block text-center text-[14px] text-marinho underline-offset-2 hover:underline">
             Pedir um link novo
           </Link>
         </div>

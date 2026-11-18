@@ -80,7 +80,7 @@ export function ProfessorHistorico({ avaliacaoId }: { avaliacaoId: string }) {
       <header className="border-b border-borda bg-papel/95 px-4 py-3 backdrop-blur">
         <Link
           href={`/prof/avaliacoes/${avaliacaoId}`}
-          className="alvo-toque -mx-1 inline-flex items-center gap-1.5 rounded-lg px-1 text-[14px] text-verde"
+          className="alvo-toque -mx-1 inline-flex items-center gap-1.5 rounded-lg px-1 text-[14px] text-marinho"
         >
           <ArrowLeft className="size-4" aria-hidden />
           Voltar para a avaliação
@@ -115,7 +115,7 @@ export function ProfessorHistorico({ avaliacaoId }: { avaliacaoId: string }) {
                 <p className="text-[15px] font-medium text-tinta">
                   {plural(resumo.total, 'tentativa', 'tentativas')}
                 </p>
-                <span className="inline-flex items-center gap-1 text-[13px] text-verde">
+                <span className="inline-flex items-center gap-1 text-[13px] text-marinho">
                   <CheckCircle2 className="size-4" aria-hidden />
                   {resumo.aceitas} {resumo.aceitas === 1 ? 'aceita' : 'aceitas'}
                 </span>
@@ -154,7 +154,7 @@ export function ProfessorHistorico({ avaliacaoId }: { avaliacaoId: string }) {
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     {l.sucesso ? (
-                      <Selo tom="verde">
+                      <Selo tom="marinho">
                         <CheckCircle2 className="mr-1 size-3.5" aria-hidden />
                         Aceito pelo SIGA{l.http_status ? ` · HTTP ${l.http_status}` : ''}
                       </Selo>
