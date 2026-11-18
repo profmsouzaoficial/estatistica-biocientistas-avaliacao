@@ -127,6 +127,21 @@ export function ProfessorAvaliacao({ id }: { id: string }) {
   // A escala do SIGA vem do servidor (SIGA_ESCALA); 0–10 é o padrão.
   const escalaSiga = usarEscalaSiga(d)
 
+  // Aviso de uma linha vindo da criação automática no SIGA (que acontece depois
+  // de a avaliação local já existir). Lido uma vez, na chegada à tela.
+  useEffect(() => {
+    const aviso = sessionStorage.getItem('siga-aviso')
+    if (aviso) {
+      sessionStorage.removeItem('siga-aviso')
+      setErroSiga(aviso)
+    }
+    const feito = sessionStorage.getItem('siga-ok')
+    if (feito) {
+      sessionStorage.removeItem('siga-ok')
+      setResultado(feito)
+    }
+  }, [])
+
   const carregar = useCallback(async () => {
     if (!d) return
     const [av, subs] = await Promise.all([d.avaliacao(id), d.submissoesDaAvaliacao(id)])

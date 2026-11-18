@@ -28,6 +28,20 @@ export interface Cadastro {
   consentimento?: boolean
 }
 
+/** Resultado da conferência pública de matrícula (tela de cadastro). */
+export interface ConsultaMatricula {
+  ok: boolean
+  motivo?: 'matricula' | 'dados_incompletos'
+  ja_cadastrado?: boolean
+  /** Só vem preenchido para matrícula ainda sem conta. */
+  nome?: string | null
+  /** Só vem completo para matrícula ainda sem conta; depois, use email_mascarado. */
+  email?: string | null
+  email_mascarado?: string | null
+  curso?: string | null
+  exige_email?: boolean
+}
+
 export type MotivoValidacao =
   | 'ok'
   | 'matricula'
@@ -106,6 +120,8 @@ export interface Dados {
   cadastrar(entrada: Cadastro): Promise<{ precisaConfirmarEmail: boolean }>
   turmas(): Promise<Turma[]>
   validarMatricula(turmaId: string, matricula: string, email: string): Promise<MotivoValidacao>
+  /** Confere a matrícula na lista da turma e devolve os dados para preencher o cadastro. */
+  consultarMatricula(turmaId: string, matricula: string): Promise<ConsultaMatricula>
   recuperarSenha(email: string): Promise<void>
   atualizarPerfil(p: { nome_completo: string; telefone: string | null; curso: string }): Promise<void>
   /**

@@ -8,6 +8,7 @@ import type {
   LinhaImportacao,
   RespostaApagarAvaliacao,
   RespostaApagarTurma,
+  ConsultaMatricula,
 } from './dados'
 import { comPrazo, erroDeEnvio, PRAZO_ENVIO_MS } from './envio'
 import { api, configurarToken, PRAZO_CORRECAO_MS, PRAZO_OCR_MS, PRAZO_SIGA_MS } from './servidor'
@@ -140,6 +141,15 @@ export async function criarDadosSupabase(url: string, chave: string): Promise<Da
       if (error) return 'erro'
       const r = data as { ok: boolean; motivo: MotivoValidacao }
       return r?.motivo ?? 'erro'
+    },
+
+    async consultarMatricula(turmaId, matricula) {
+      const { data, error } = await sb.rpc('consultar_matricula', {
+        p_turma: turmaId,
+        p_matricula: matricula.trim(),
+      })
+      if (error) throw new Error(error.message)
+      return data as ConsultaMatricula
     },
 
     async recuperarSenha(email) {

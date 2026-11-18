@@ -192,9 +192,9 @@ async function foto(page, nome) {
 async function escolherTurmaDeTeste(page) {
   const porRotulo = page.getByLabel('Turma').first()
   const select = (await porRotulo.count()) ? porRotulo : page.locator('select').first()
-  // o rótulo da opção varia: "TESTE-E2E · Turma · 2026/3" no cadastro e
-  // "TESTE-E2E · Turma · 2026/3 (TESTEE2E-A)" no painel — o nome casa nos dois
-  const opcao = select.locator('option', { hasText: ALUNO.turma }).first()
+  // o rótulo da opção varia: "TESTEE2E-A · 2026/3" no cadastro e
+  // "... (TESTEE2E-A)" no painel — o código do SIGA casa nos dois
+  const opcao = select.locator('option', { hasText: ALUNO.codigo }).first()
   const valor = await opcao.getAttribute('value')
   if (!valor) throw new Error(`A turma ${ALUNO.turma} não apareceu na lista de turmas.`)
   await select.selectOption(valor)
@@ -374,10 +374,18 @@ async function main() {
     await sair(page)
     await page.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(page)
-    await page.getByLabel('Nome completo').fill(ALUNO.nome)
     await page.getByLabel('Matrícula', { exact: true }).fill(ALUNO.matricula)
-    await page.getByLabel('E-mail institucional').fill(ALUNO.email)
-    await page.getByLabel('Curso').fill('Ciências Biológicas')
+    // a conferência é automática: nome, e-mail e curso vêm da lista da turma
+    await page.getByText('Matrícula encontrada na lista da turma').waitFor({ timeout: 20000 })
+    if ((await page.getByLabel('Nome completo').inputValue()) !== ALUNO.nome) {
+      throw new Error('O nome deveria vir preenchido da lista da turma.')
+    }
+    if ((await page.getByLabel('E-mail institucional').inputValue()) !== ALUNO.email) {
+      throw new Error('O e-mail deveria vir preenchido da lista da turma.')
+    }
+    if ((await page.getByLabel('Curso').inputValue()) !== 'Ciências Biológicas') {
+      throw new Error('O curso deveria vir preenchido da turma.')
+    }
     await page.getByLabel('Senha', { exact: true }).fill(ALUNO.senha)
     await page.getByLabel('Repita a senha').fill(ALUNO.senha)
 
@@ -408,6 +416,26 @@ async function main() {
     if (!consentimento?.[0]?.consentimento_em) {
       throw new Error('O consentimento do aviso de privacidade não foi gravado em profiles.')
     }
+
+    // quem já tem conta vê o atalho para entrar, em vez de um cadastro vazio
+    const contextoConta = await navegador.newContext({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+      locale: 'pt-BR',
+      timezoneId: 'America/Sao_Paulo',
+    })
+    const pagConta = await contextoConta.newPage()
+    await pagConta.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
+    await escolherTurmaDeTeste(pagConta)
+    await pagConta.getByLabel('Matrícula', { exact: true }).fill(ALUNO.matricula)
+    await pagConta.getByText('Esta matrícula já tem conta').waitFor({ timeout: 20000 })
+    const [localEmail, dominioEmail] = ALUNO.email.split('@')
+    const mascarado = `${localEmail[0]}***${localEmail[localEmail.length - 1]}@${dominioEmail}`
+    await pagConta.getByText(mascarado).waitFor({ timeout: 10000 })
+    if (await pagConta.getByRole('button', { name: 'Criar conta' }).count()) {
+      throw new Error('Matrícula com conta não deveria oferecer o botão de criar conta.')
+    }
+    await contextoConta.close()
 
     // ---- 5. aluno envia a foto --------------------------------------------
     console.log('  ▸ 5/26 aluno fotografa e envia')
@@ -752,10 +780,10 @@ async function main() {
     pagRecl.setDefaultTimeout(25000)
     await pagRecl.goto(`${WEB}/cadastrar`, { waitUntil: 'networkidle' })
     await escolherTurmaDeTeste(pagRecl)
-    await pagRecl.getByLabel('Nome completo').fill(RECLAMANTE.nome)
     await pagRecl.getByLabel('Matrícula', { exact: true }).fill(RECLAMANTE.matricula)
+    await pagRecl.getByText('Matrícula encontrada na lista da turma').waitFor({ timeout: 20000 })
+    // a lista veio sem e-mail: o aluno informa o dele, o resto vem preenchido
     await pagRecl.getByLabel('E-mail institucional').fill(RECLAMANTE.email)
-    await pagRecl.getByLabel('Curso').fill('Ciências Biológicas')
     await pagRecl.getByLabel('Senha', { exact: true }).fill(RECLAMANTE.senha)
     await pagRecl.getByLabel('Repita a senha').fill(RECLAMANTE.senha)
     await pagRecl.getByRole('checkbox').check()
@@ -787,13 +815,14 @@ async function main() {
     await page.getByLabel('Peso no SIGA').fill('20')
     await page.getByLabel('Data no SIGA').fill('2027-02-05')
     await page.getByRole('button', { name: 'Publicar avaliação' }).click()
-    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/)
-    await page.getByText('Esta avaliação ainda não existe no SIGA').waitFor({ timeout: 20000 })
-    await foto(page, '18-avaliacao-fora-do-siga')
-    await page.getByRole('button', { name: 'Criar no SIGA' }).click()
+    await page.waitForURL(/\/prof\/avaliacoes\/[0-9a-f-]{36}$/, { timeout: 30000 })
+    // a criação no SIGA agora é automática: o formulário já cria a TVC e a tela
+    // da avaliação confirma, sem passar pelo botão manual
     await page.getByText('Avaliação criada no SIGA').waitFor({ timeout: 30000 })
-    await page.getByText('Esta avaliação ainda não existe no SIGA').waitFor({ state: 'detached', timeout: 15000 })
-    await foto(page, '19-avaliacao-criada-no-siga')
+    if (await page.getByText('Esta avaliação ainda não existe no SIGA').count()) {
+      throw new Error('A avaliação deveria ter sido criada no SIGA automaticamente.')
+    }
+    await foto(page, '18-avaliacao-criada-no-siga')
 
     // ---- 19. aluno edita os próprios dados e troca a senha ---------------
     console.log('  ▸ 19/26 aluno edita os dados e troca a senha')

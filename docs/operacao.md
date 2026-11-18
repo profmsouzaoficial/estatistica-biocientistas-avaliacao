@@ -33,6 +33,11 @@ A pasta padrão é `~/.dsh/dados/2026-3/`, com um arquivo por turma nomeado pelo
 e-mail** e liga `precisa_trocar_senha`; o app mostra o aviso até a troca. Rodar de novo não mexe em quem
 já tem conta.
 
+Também é possível importar **pela tela**: `/prof/alunos` → **Importar lista** → enviar o CSV (ou colar o
+texto). A lista alimenta o cadastro: o aluno abre `/cadastrar`, escolhe a **turma pelo código do SIGA**,
+digita a **matrícula** e o app confere em `alunos_esperados`; nome, e-mail institucional e curso vêm
+preenchidos da lista. Quem já tem conta vê o aviso e o atalho para entrar.
+
 ---
 
 ### Publicar uma versão nova (quando o app muda)
@@ -87,9 +92,15 @@ Em **Nova avaliação**:
 | Tema e instruções | é o que o aluno lê no celular; diga o número de linhas e se é à mão |
 | Valor total | a rubrica precisa somar exatamente isso — o app recusa salvar se não fechar |
 | Rubrica | 3 a 6 critérios; cada um com valor e descrição do que conta |
-| Descrição no SIGA | escolha na lista que o app busca ao selecionar a turma; precisa ser **idêntica** ao nome da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Publicar com uma descrição fora da lista é recusado — salve como rascunho e crie a TVC no SIGA primeiro |
+| Descrição no SIGA | escolha na lista que o app busca ao selecionar a turma; precisa ser **idêntica** ao nome da avaliação no SIGA (ex.: `Trabalho sobre Probabilidades`). Se a TVC ainda não existir, marque **“Criar esta avaliação no SIGA agora”**: ao publicar, o app cria a avaliação lá e já mostra a confirmação na tela dela |
 | Peso no SIGA | o peso que o SIGA usa para aquela avaliação; a nota é convertida proporcionalmente |
 | Prazo | opcional; depois dele o aluno não abre entrega nova. Data no passado é recusada (a avaliação nasceria fechada) |
+
+A criação no SIGA é **automática** quando a descrição ainda não está na lista: o app usa a descrição, o
+peso e a data informados. O SIGA **não tem rota para apagar** uma avaliação — por isso o formulário pede
+confirmação e a rota é idempotente (clique duplo não cria duas). Se a chamada falhar depois de salvar, a
+avaliação local fica salva e a tela dela mostra **“Criar no SIGA”** para a segunda tentativa. Rascunho não
+cria nada no SIGA.
 
 ### 2. Publicar e acompanhar (2 min por dia)
 

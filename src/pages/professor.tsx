@@ -7,6 +7,8 @@ import { Alerta, AppBar, Botao, Campo, Carregando, Cartao, Selo } from '../compo
 import { CAPITULOS } from '../lib/livro'
 import type { AvaliacaoSiga, Criterio, Diagnostico, Esperado, ResumoAvaliacao, Turma } from '../lib/types'
 import { agoraParaInput, formatarNota } from '../lib/formato'
+import { numeroDaTvc } from '../lib/siga'
+import { api } from '../lib/servidor'
 import { validarPrazoCriacao } from '../lib/prazos'
 
 // ---------------------------------------------------------------------------
@@ -315,6 +317,9 @@ export function ProfessorNovaAvaliacao() {
   const [dataSiga, setDataSiga] = useState('')
   const [prazo, setPrazo] = useState('')
   const [publicar, setPublicar] = useState(true)
+  // Criar a TVC no SIGA junto com a avaliação local. Só vale para publicar:
+  // rascunho é rascunho, não deve mexer na estrutura do SIGA.
+  const [criarNoSiga, setCriarNoSiga] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [opcoesSiga, setOpcoesSiga] = useState<AvaliacaoSiga[]>([])
@@ -358,6 +363,7 @@ export function ProfessorNovaAvaliacao() {
   const sigaConfere =
     descricaoSiga.trim() !== '' &&
     opcoesSiga.some((a) => a.descricao.trim().toLowerCase() === descricaoSiga.trim().toLowerCase())
+  const numeroTvc = numeroDaTvc(descricaoSiga)
 
   // Ao escolher a turma, já consulta o SIGA: o professor vê as TVCs existentes
   // sem precisar descobrir o botão. O botão continua lá para atualizar.
@@ -429,15 +435,44 @@ export function ProfessorNovaAvaliacao() {
     if (total <= 0) return setErro('O valor total precisa ser maior que zero.')
     if (rubrica.some((c) => !c.nome.trim())) return setErro('Todo critério precisa de um nome.')
     if (!somaOk) return setErro(`A rubrica soma ${soma} mas o valor total é ${total}.`)
+
+    // A lista do SIGA pode ter chegado depois de o professor digitar a
+    // descrição. Antes de decidir entre "lançar na TVC existente" e "criar uma
+    // nova", confere de novo — sem isso, uma TVC que já existe seria tratada
+    // como nova e o formulário pediria data à toa.
+    let existeNoSiga = sigaConfere
+    if (publicar && descricaoSiga.trim() && !existeNoSiga && turmaSelecionada) {
+      setBuscandoSiga(true)
+      try {
+        const quadro = await d.avaliacoesDoSiga(turmaSelecionada.codigo_siga, turmaSelecionada.periodo)
+        setOpcoesSiga(quadro.avaliacoes)
+        existeNoSiga = quadro.avaliacoes.some(
+          (a) => a.descricao.trim().toLowerCase() === descricaoSiga.trim().toLowerCase(),
+        )
+      } catch {
+        // sem lista, segue com o que já estava na tela; as validações abaixo
+        // cobram data/peso se for criar
+      } finally {
+        setBuscandoSiga(false)
+      }
+    }
+
     if (publicar && !descricaoSiga.trim()) {
       return setErro(
         'Para publicar, informe a descrição da avaliação no SIGA (ex.: TVC 1). Sem ela o lançamento de notas não tem para onde ir. Se a TVC ainda não existe, salve como rascunho.',
       )
     }
-    if (publicar && opcoesSiga.length > 0 && !sigaConfere) {
+    if (publicar && !existeNoSiga && !criarNoSiga) {
       return setErro(
-        `A descrição “${descricaoSiga.trim()}” não está na lista do SIGA desta turma. Escolha uma das avaliações listadas acima ou crie a TVC no SIGA antes de publicar.`,
+        `A descrição “${descricaoSiga.trim()}” não está na lista do SIGA desta turma. Escolha uma das avaliações listadas acima ou marque “Criar esta avaliação no SIGA” para criar a TVC agora.`,
       )
+    }
+    if (publicar && criarNoSiga && !existeNoSiga) {
+      if (!numeroTvc) {
+        return setErro('Para criar no SIGA, a descrição precisa ter o número da TVC — por exemplo “TVC 1”.')
+      }
+      if (!dataSiga) return setErro('Informe a data da avaliação no SIGA para criá-la.')
+      if (!(Number(pesoSiga) > 0)) return setErro('Informe o peso da avaliação no SIGA.')
     }
     // O banco também recusa prazo antes da abertura, mas a mensagem dele não
     // explica o que fazer — esta explica.
@@ -461,6 +496,21 @@ export function ProfessorNovaAvaliacao() {
         prazo_em: prazo ? new Date(prazo).toISOString() : null,
         status: publicar ? 'publicada' : 'rascunho',
       })
+      if (publicar && criarNoSiga && !existeNoSiga) {
+        try {
+          await api('/siga/avaliacao', { avaliacao_id: criada.id })
+          sessionStorage.setItem('siga-ok', 'Avaliação criada no SIGA. Agora as notas podem ser lançadas.')
+        } catch (e) {
+          // A avaliação local já existe; não dá para desfazer sem apagar o que
+          // o professor acabou de montar. Avisa na tela da avaliação e deixa o
+          // botão “Criar no SIGA” para a segunda tentativa.
+          const motivo = e instanceof Error ? e.message : 'o SIGA não aceitou a criação.'
+          sessionStorage.setItem(
+            'siga-aviso',
+            `A avaliação foi salva, mas não foi criada no SIGA: ${motivo} Use “Criar no SIGA” nesta tela para tentar de novo.`,
+          )
+        }
+      }
       navegar(`/prof/avaliacoes/${criada.id}`)
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Falha ao criar a avaliação.')
@@ -695,10 +745,41 @@ export function ProfessorNovaAvaliacao() {
               placeholder="TVC 1"
               dica="É o campo descricao_avaliacao da API do SIGA; precisa ser idêntico ao nome da TVC."
             />
+            {descricaoSiga.trim() && opcoesSiga.length > 0 && sigaConfere ? (
+              <p className="text-[12.5px] leading-snug text-verde">
+                Essa avaliação já existe no SIGA — as notas serão lançadas nela, sem criar outra.
+              </p>
+            ) : null}
             {descricaoSiga.trim() && opcoesSiga.length > 0 && !sigaConfere ? (
               <p className="text-[12.5px] leading-snug text-ambar">
-                Essa descrição não aparece na lista do SIGA. Confira maiúsculas, acentos e o número da TVC — ou crie a
-                avaliação no SIGA antes de publicar.
+                Essa descrição não aparece na lista do SIGA. Se for uma TVC nova, marque a opção abaixo para criá-la
+                agora — ou confira maiúsculas, acentos e o número.
+              </p>
+            ) : null}
+            {publicar && descricaoSiga.trim() && !sigaConfere ? (
+              <label className="flex items-start gap-2.5 rounded-xl border border-borda bg-white px-3.5 py-3">
+                <input
+                  type="checkbox"
+                  checked={criarNoSiga}
+                  onChange={(e) => setCriarNoSiga(e.target.checked)}
+                  className="mt-0.5 size-5 accent-verde"
+                />
+                <span className="text-[13px] leading-snug text-tinta">
+                  <strong>Criar esta avaliação no SIGA agora.</strong> O app usa a descrição, o peso e a data acima.
+                  O SIGA não tem rota para apagar uma avaliação — confira antes de publicar.
+                </span>
+              </label>
+            ) : null}
+            {publicar && descricaoSiga.trim() && !sigaConfere && (!numeroTvc || !dataSiga || !(Number(pesoSiga) > 0)) ? (
+              <div className="text-[12.5px] leading-snug text-vermelho">
+                {!numeroTvc ? <p>A descrição precisa ter o número da TVC (ex.: “TVC 1”).</p> : null}
+                {!dataSiga ? <p>Informe a data no SIGA para poder criar.</p> : null}
+                {!(Number(pesoSiga) > 0) ? <p>Informe o peso da avaliação no SIGA.</p> : null}
+              </div>
+            ) : null}
+            {!publicar ? (
+              <p className="text-[12.5px] leading-snug text-tinta-suave">
+                Rascunho: nada é criado no SIGA até você publicar.
               </p>
             ) : null}
             <div className="grid grid-cols-2 gap-3">

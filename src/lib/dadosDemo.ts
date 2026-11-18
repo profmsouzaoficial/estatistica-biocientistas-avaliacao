@@ -3,7 +3,15 @@
  * A nota e a devolutiva são geradas por uma heurística local — é um ensaio da
  * interface, não uma correção de verdade. A UI marca isso com o selo "demonstração".
  */
-import type { Cadastro, Dados, LinhaImportacao, MotivoValidacao, NovaAvaliacao, Revisao } from './dados'
+import type {
+  Cadastro,
+  ConsultaMatricula,
+  Dados,
+  LinhaImportacao,
+  MotivoValidacao,
+  NovaAvaliacao,
+  Revisao,
+} from './dados'
 import { notaParaSiga } from './types'
 import type {
   Avaliacao,
@@ -543,6 +551,30 @@ export function criarDadosDemo(): Dados {
       if (esp.email.toLowerCase() !== email.trim().toLowerCase()) return 'email'
       if (esp.user_id) return 'ja_cadastrado'
       return 'ok'
+    },
+
+    async consultarMatricula(turmaId, matricula): Promise<ConsultaMatricula> {
+      const esp = base.esperados.find(
+        (e) => e.turma_id === turmaId && e.matricula.toUpperCase() === matricula.trim().toUpperCase(),
+      )
+      if (!esp) return { ok: false, motivo: 'matricula' }
+      const turma = base.turmas.find((t) => t.id === turmaId)
+      if (esp.user_id) {
+        return {
+          ok: true,
+          ja_cadastrado: true,
+          email_mascarado: esp.email ? `${esp.email[0]}***@${esp.email.split('@')[1]}` : null,
+          curso: turma?.curso ?? null,
+        }
+      }
+      return {
+        ok: true,
+        ja_cadastrado: false,
+        nome: esp.nome_completo,
+        email: esp.email || null,
+        curso: turma?.curso ?? null,
+        exige_email: turma?.exige_email ?? true,
+      }
     },
 
     async recuperarSenha() {

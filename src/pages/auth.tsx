@@ -6,7 +6,7 @@ import { usarRota } from '../lib/router'
 import { Link } from '../lib/router'
 import { Alerta, Botao, Campo, Selecao } from '../components/ui'
 import type { Turma } from '../lib/types'
-import type { MotivoValidacao } from '../lib/dados'
+import type { ConsultaMatricula, MotivoValidacao } from '../lib/dados'
 
 // ---------------------------------------------------------------------------
 // Moldura comum das telas de entrada
@@ -162,6 +162,13 @@ export function Cadastrar() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
+  // Conferência da matrícula na lista da turma (alunos_esperados).
+  const [consulta, setConsulta] = useState<ConsultaMatricula | null>(null)
+  const [conferindo, setConferindo] = useState(false)
+  const [erroConsulta, setErroConsulta] = useState<string | null>(null)
+  // A lista pode vir sem e-mail (turma que permite); aí o aluno digita o dele.
+  const [emailEditavel, setEmailEditavel] = useState(false)
+
   useEffect(() => {
     d?.turmas()
       .then((t) => {
@@ -171,15 +178,60 @@ export function Cadastrar() {
       .catch(() => setErro('Não foi possível carregar as turmas.'))
   }, [d])
 
+  // Espera o aluno terminar de digitar e confere sozinho: com turma + matrícula
+  // válidas, nome/e-mail/curso vêm da lista e o aluno só escolhe a senha.
+  useEffect(() => {
+    setConsulta(null)
+    setErroConsulta(null)
+    if (!d || !turmaId || matricula.trim().length < 6) {
+      setConferindo(false)
+      return
+    }
+    let vivo = true
+    const timer = setTimeout(async () => {
+      setConferindo(true)
+      try {
+        const r = await d.consultarMatricula(turmaId, matricula)
+        if (!vivo) return
+        setConsulta(r)
+        if (r.ok && !r.ja_cadastrado) {
+          setNome(r.nome ?? '')
+          setEmail(r.email ?? '')
+          setCurso(r.curso ?? 'Ciências Biológicas')
+          setEmailEditavel(!r.email)
+        } else {
+          setEmailEditavel(false)
+          if (!r.ok) setNome('')
+        }
+      } catch (e) {
+        if (!vivo) return
+        setConsulta(null)
+        setErroConsulta(e instanceof Error ? e.message : 'Não consegui conferir a matrícula agora.')
+      } finally {
+        if (vivo) setConferindo(false)
+      }
+    }, 450)
+    return () => {
+      vivo = false
+      clearTimeout(timer)
+    }
+  }, [d, turmaId, matricula])
+
+  const podeCriar = consulta?.ok === true && consulta.ja_cadastrado !== true
+
   async function submeter(e: React.FormEvent) {
     e.preventDefault()
     if (!d) return
     setErro(null)
     setAviso(null)
 
+    if (!turmaId) return setErro('Escolha sua turma.')
+    if (!consulta?.ok || consulta.ja_cadastrado) {
+      return setErro('Confira a matrícula na lista da turma antes de criar a conta.')
+    }
     if (senha.length < 8) return setErro('A senha precisa ter ao menos 8 caracteres.')
     if (senha !== senha2) return setErro('As duas senhas não conferem.')
-    if (!turmaId) return setErro('Escolha sua turma.')
+    if (!email.trim()) return setErro('Informe o e-mail institucional.')
     if (!consentiu) {
       return setErro('Para criar a conta, leia o aviso de privacidade e marque a caixa de concordância.')
     }
@@ -210,6 +262,8 @@ export function Cadastrar() {
     }
   }
 
+  const jaTemConta = consulta?.ok === true && consulta.ja_cadastrado === true
+
   return (
     <MolduraAuth
       rodape={
@@ -222,22 +276,20 @@ export function Cadastrar() {
       }
     >
       <form onSubmit={submeter} className="space-y-4">
+        <p className="text-[13px] leading-snug text-tinta-suave">
+          Escolha a turma e digite a matrícula: o app confere na lista do professor e preenche nome, e-mail e
+          curso. Você só define a senha.
+        </p>
+
         <Selecao rotulo="Turma" value={turmaId} onChange={(e) => setTurmaId(e.target.value)} required>
           <option value="">Selecione…</option>
           {turmas.map((t) => (
             <option key={t.id} value={t.id}>
-              {t.nome} · {t.periodo}
+              {t.codigo_siga} · {t.periodo}
             </option>
           ))}
         </Selecao>
-        <Campo
-          rotulo="Nome completo"
-          autoComplete="name"
-          required
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          placeholder="Como consta na lista da turma"
-        />
+
         <Campo
           rotulo="Matrícula"
           required
@@ -251,57 +303,131 @@ export function Cadastrar() {
           autoComplete="username"
           dica="A matrícula precisa ser igual à da lista da turma — é por ela que a nota chega ao SIGA. Pode digitar as letras do final em minúsculas."
         />
-        <Campo
-          rotulo="E-mail institucional"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="nome@estudante.ufjf.br"
-          dica="Precisa ser o mesmo e-mail informado ao professor na lista da turma."
-        />
-        <Campo rotulo="Curso" required value={curso} onChange={(e) => setCurso(e.target.value)} />
-        <Campo
-          rotulo="Senha"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          dica="Mínimo de 8 caracteres."
-        />
-        <Campo
-          rotulo="Repita a senha"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={senha2}
-          onChange={(e) => setSenha2(e.target.value)}
-        />
 
-        <label className="flex items-start gap-2.5 rounded-xl bg-papel-fundo px-3 py-2.5">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 shrink-0 accent-[var(--color-verde)]"
-            checked={consentiu}
-            onChange={(e) => setConsentiu(e.target.checked)}
-          />
-          <span className="text-[13px] leading-snug text-tinta-suave">
-            Li o{' '}
-            <a
-              href="/privacidade"
-              target="_blank"
-              rel="noreferrer"
-              className="font-medium text-verde underline-offset-2 hover:underline"
+        {conferindo ? (
+          <p className="text-[12.5px] text-tinta-suave">Conferindo a matrícula na lista da turma…</p>
+        ) : null}
+
+        {consulta && !consulta.ok ? (
+          <Alerta tom="vermelho">
+            {consulta.motivo === 'matricula'
+              ? 'Matrícula não encontrada nesta turma. Confira o número (com as letras do final, se houver) ou fale com o professor.'
+              : 'Informe a turma e a matrícula para conferir.'}
+          </Alerta>
+        ) : null}
+
+        {erroConsulta ? <Alerta tom="vermelho">{erroConsulta}</Alerta> : null}
+
+        {jaTemConta ? (
+          <Alerta tom="ambar">
+            <p className="font-medium">Esta matrícula já tem conta.</p>
+            <p className="mt-1">
+              Entre com o e-mail institucional
+              {consulta?.email_mascarado ? (
+                <>
+                  {' '}
+                  (<strong>{consulta.email_mascarado}</strong>)
+                </>
+              ) : null}{' '}
+              e a senha inicial — que é o mesmo e-mail. Se já trocou a senha, use a senha nova.
+            </p>
+            <Link
+              href="/entrar"
+              className="mt-2 inline-flex items-center gap-1 font-medium text-verde underline-offset-2 hover:underline"
             >
-              aviso de privacidade
-            </a>{' '}
-            e concordo com o uso dos meus dados (nome, matrícula, e-mail, foto e texto da redação) para corrigir a
-            redação e lançar a nota no SIGA.
-          </span>
-        </label>
+              Ir para entrar
+            </Link>
+          </Alerta>
+        ) : null}
+
+        {podeCriar ? (
+          <Alerta tom="verde">
+            Matrícula encontrada na lista da turma. Confira seus dados e defina a senha.
+          </Alerta>
+        ) : null}
+
+        {!jaTemConta ? (
+          <>
+            <Campo
+              rotulo="Nome completo"
+              autoComplete="name"
+              required
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Como consta na lista da turma"
+              disabled={!podeCriar}
+              readOnly={podeCriar}
+              dica={podeCriar ? 'Veio da lista da turma. Se estiver errado, fale com o professor.' : undefined}
+            />
+            <Campo
+              rotulo="E-mail institucional"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="nome@estudante.ufjf.br"
+              disabled={!podeCriar}
+              readOnly={podeCriar && !emailEditavel}
+              dica={
+                emailEditavel && podeCriar
+                  ? 'A lista desta turma não tinha seu e-mail. Digite o e-mail institucional.'
+                  : 'Preenchido a partir da lista da turma.'
+              }
+            />
+            <Campo
+              rotulo="Curso"
+              required
+              value={curso}
+              onChange={(e) => setCurso(e.target.value)}
+              disabled={!podeCriar}
+              readOnly={podeCriar}
+            />
+            <Campo
+              rotulo="Senha"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              dica="Mínimo de 8 caracteres."
+              disabled={!podeCriar}
+            />
+            <Campo
+              rotulo="Repita a senha"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={senha2}
+              onChange={(e) => setSenha2(e.target.value)}
+              disabled={!podeCriar}
+            />
+
+            <label className="flex items-start gap-2.5 rounded-xl bg-papel-fundo px-3 py-2.5">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 accent-[var(--color-verde)]"
+                checked={consentiu}
+                onChange={(e) => setConsentiu(e.target.checked)}
+              />
+              <span className="text-[13px] leading-snug text-tinta-suave">
+                Li o{' '}
+                <a
+                  href="/privacidade"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-verde underline-offset-2 hover:underline"
+                >
+                  aviso de privacidade
+                </a>{' '}
+                e concordo com o uso dos meus dados (nome, matrícula, e-mail, foto e texto da redação) para corrigir a
+                redação e lançar a nota no SIGA.
+              </span>
+            </label>
+          </>
+        ) : null}
+
 
         {erro ? (
           <div className="flex items-start gap-2 rounded-xl bg-vermelho-claro px-3 py-2.5 text-[13.5px] text-vermelho">
@@ -311,9 +437,11 @@ export function Cadastrar() {
         ) : null}
         {aviso ? <Alerta tom="verde">{aviso}</Alerta> : null}
 
-        <Botao type="submit" largo carregando={enviando} disabled={!consentiu}>
-          Criar conta
-        </Botao>
+        {!jaTemConta ? (
+          <Botao type="submit" largo carregando={enviando} disabled={!consentiu || !podeCriar}>
+            Criar conta
+          </Botao>
+        ) : null}
       </form>
     </MolduraAuth>
   )
